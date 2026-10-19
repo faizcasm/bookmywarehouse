@@ -1,0 +1,266 @@
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth, PARTNER_APP_URL } from '../auth/AuthContext';
+import { api } from '../lib/api';
+import { formatRelativeTime } from '../lib/format';
+import type { NotificationsPayload } from '../lib/types';
+
+const NAV_LINKS = [
+  { to: '/search', label: 'Explore' },
+  { to: '/bookings', label: 'My bookings', auth: true },
+  { to: '/messages', label: 'Messages', auth: true },
+];
+
+export function Header() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [query, setQuery] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [bellOpen, setBellOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
+  const [recent, setRecent] = useState<NotificationsPayload['items']>([]);
+  const rootRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    setMenuOpen(false);
+    setBellOpen(false);
+    setMobileOpen(false);
+  }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    if (!user) {
+      setUnread(0);
+      setRecent([]);
+      return undefined;
+    }
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const data = await api.getWithMeta<NotificationsPayload>('/notifications', { page: 1, limit: 5 });
+        if (!cancelled) {
+          setUnread(data.data.unread ?? 0);
+          setRecent(data.data.items ?? []);
+        }
+      } catch {
+        /* the bell is non-critical */
+      }
+    };
+    void load();
+    const timer = window.setInterval(load, 60_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [user]);
+
+  useEffect(() => {
+    if (!menuOpen && !bellOpen) return undefined;
+    const onClick = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setMenuOpen(false);
+        setBellOpen(false);
+      }
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMenuOpen(false);
+        setBellOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen, bellOpen]);
+
+  const onSearch = (event: FormEvent) => {
+    event.preventDefault();
+    const trimmed = query.trim();
+    navigate(trimmed ? `/search?q=${encodeURIComponent(trimmed)}` : '/search');
+  };
+
+  const onMarkAllRead = async () => {
+    try {
+      await api.post('/notifications/read', {});
+      setUnread(0);
+      setRecent((items) => items.map((item) => ({ ...item, read: true })));
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const onLogout = async () => {
+    await logout();
+    navigate('/');
+  };
+
+  return (
+    <header className="site-header" ref={rootRef}>
+      <div className="container header-inner">
+        <Link to="/" className="brand" aria-label="BookMyWarehouse home">
+          <span className="brand-mark" aria-hidden="true">
+            BMW
+          </span>
+          <span className="brand-text">
+            BookMy<span className="brand-accent">Warehouse</span>
+          </span>
+        </Link>
+
+        <form className="header-search" role="search" onSubmit={onSearch}>
+          <label htmlFor="header-search-input" className="visually-hidden">
+            Search listings
+          </label>
+          <input
+            id="header-search-input"
+            className="input header-search-input"
+            type="search"
+            placeholder="Search warehouses, equipment, services…"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          <button type="submit" className="btn btn-primary btn-sm" aria-label="Search">
+            Search
+          </button>
+        </form>
+
+        <nav className={`header-nav ${mobileOpen ? 'is-open' : ''}`} aria-label="Main navigation">
+          {NAV_LINKS.filter((link) => !link.auth || user).map((link) => (
+            <NavLink key={link.to} to={link.to} className="nav-link">
+              {link.label}
+            </NavLink>
+          ))}
+          {!user ? (
+            <>
+              <a className="nav-link" href={PARTNER_APP_URL}>
+                List your space
+              </a>
+              <Link to="/login" className="btn btn-outline btn-sm">
+                Sign in
+              </Link>
+              <Link to="/register" className="btn btn-primary btn-sm">
+                Join free
+              </Link>
+            </>
+          ) : null}
+        </nav>
+
+        <div className="header-actions">
+          {user ? (
+            <>
+              <div className="dropdown-anchor">
+                <button
+                  type="button"
+                  className="icon-btn bell-btn"
+                  aria-label={`Notifications${unread > 0 ? ` (${unread} unread)` : ''}`}
+                  aria-expanded={bellOpen}
+                  onClick={() => {
+                    setBellOpen((v) => !v);
+                    setMenuOpen(false);
+                  }}
+                >
+                  🔔
+                  {unread > 0 ? <span className="badge-count">{unread > 99 ? '99+' : unread}</span> : null}
+                </button>
+                {bellOpen ? (
+                  <div className="dropdown bell-dropdown" role="menu" aria-label="Recent notifications">
+                    <div className="dropdown-head">
+                      <strong>Notifications</strong>
+                      {unread > 0 ? (
+                        <button type="button" className="link-btn" onClick={onMarkAllRead}>
+                          Mark all read
+                        </button>
+                      ) : null}
+                    </div>
+                    {recent.length === 0 ? (
+                      <p className="dropdown-empty">No notifications yet.</p>
+                    ) : (
+                      <ul className="notification-mini-list">
+                        {recent.map((item) => (
+                          <li key={item.id} className={item.read ? 'is-read' : 'is-unread'}>
+                            <Link to="/notifications">
+                              <strong>{item.title}</strong>
+                              <span className="muted">{item.body}</span>
+                              <time dateTime={item.createdAt}>{formatRelativeTime(item.createdAt)}</time>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <Link to="/notifications" className="dropdown-foot">
+                      View all notifications →
+                    </Link>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="dropdown-anchor">
+                <button
+                  type="button"
+                  className="user-btn"
+                  aria-label="Account menu"
+                  aria-expanded={menuOpen}
+                  onClick={() => {
+                    setMenuOpen((v) => !v);
+                    setBellOpen(false);
+                  }}
+                >
+                  {user.avatarUrl ? (
+                    <img src={user.avatarUrl} alt="" className="avatar" />
+                  ) : (
+                    <span className="avatar avatar-fallback" aria-hidden="true">
+                      {user.name.charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                  <span className="user-btn-name">{user.name.split(' ')[0]}</span>
+                </button>
+                {menuOpen ? (
+                  <div className="dropdown user-dropdown" role="menu" aria-label="Account">
+                    <div className="dropdown-head">
+                      <strong>{user.name}</strong>
+                      <span className="muted">{user.email}</span>
+                    </div>
+                    <Link className="dropdown-item" to="/profile">
+                      Profile
+                    </Link>
+                    <Link className="dropdown-item" to="/bookings">
+                      My bookings
+                    </Link>
+                    <Link className="dropdown-item" to="/favorites">
+                      Favorites
+                    </Link>
+                    <Link className="dropdown-item" to="/reviews">
+                      My reviews
+                    </Link>
+                    <Link className="dropdown-item" to="/invoices">
+                      Invoices
+                    </Link>
+                    <Link className="dropdown-item" to="/disputes">
+                      Disputes
+                    </Link>
+                    <button type="button" className="dropdown-item dropdown-danger" onClick={onLogout}>
+                      Sign out
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            </>
+          ) : null}
+
+          <button
+            type="button"
+            className="icon-btn mobile-menu-btn"
+            aria-label="Toggle navigation menu"
+            aria-expanded={mobileOpen}
+            onClick={() => setMobileOpen((v) => !v)}
+          >
+            ☰
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+}

@@ -1,0 +1,38 @@
+{
+  "name": "bookmywarehouse",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BookMyWarehouse - B2B marketplace for warehouses, equipment and logistics services",
+  "packageManager": "pnpm@10.15.0",
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter \"./apps/*\" dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint .",
+    "test": "pnpm -r test",
+    "test:e2e": "pnpm --filter @bmw/e2e test:e2e",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json,css}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,md,json,css}\"",
+    "seed": "pnpm --filter @bmw/api seed",
+    "db:indexes": "pnpm --filter @bmw/api db:indexes"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.13.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-unused-imports": "^4.4.1",
+    "globals": "^17.13.0",
+    "prettier": "^3.4.2",
+    "typescript-eslint": "^8.71.2"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "@scarf/scarf",
+      "protobufjs"
+    ]
+  }
+}

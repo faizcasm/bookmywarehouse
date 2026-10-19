@@ -1,0 +1,14 @@
+{
+  "name": "@bmw/e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "latest",
+    "@types/node": "^22.13.0",
+    "typescript": "^5.7.3"
+  }
+}
