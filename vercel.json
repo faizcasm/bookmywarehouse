@@ -5,7 +5,11 @@
       "root": "apps/customer",
       "framework": "vite",
       "buildCommand": "pnpm --filter @bmw/customer build",
-      "outputDirectory": "dist"
+      "outputDirectory": "dist",
+      "routes": [
+        { "handle": "filesystem" },
+        { "src": "/(.*)", "destination": "/index.html" }
+      ]
     },
     "partner": {
       "root": "apps/partner",
@@ -20,7 +24,9 @@
         {
           "src": "/partner",
           "transforms": [{ "type": "request.path", "op": "set", "args": "/" }]
-        }
+        },
+        { "handle": "filesystem" },
+        { "src": "/(.*)", "destination": "/index.html" }
       ]
     },
     "admin": {
@@ -36,13 +42,14 @@
         {
           "src": "/admin",
           "transforms": [{ "type": "request.path", "op": "set", "args": "/" }]
-        }
+        },
+        { "handle": "filesystem" },
+        { "src": "/(.*)", "destination": "/index.html" }
       ]
     },
     "api": {
       "root": "apps/api",
-      "framework": "express",
-      "entrypoint": "dist/serverless.js",
+      "entrypoint": "dist/app.js",
       "buildCommand": "pnpm --filter @bmw/api... build"
     }
   },

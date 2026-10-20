@@ -3,6 +3,7 @@ import compression from 'compression';
 import cors from 'cors';
 import express, { type Express, type NextFunction, type Request, type Response } from 'express';
 import helmet from 'helmet';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { generateHTML, serve as swaggerServe } from 'swagger-ui-express';
 
 import { corsOrigins, env, isProd } from './config/env.js';
@@ -140,4 +141,33 @@ export async function startServer(): Promise<{ app: Express; close: () => Promis
   };
 
   return { app, close };
+}
+
+/**
+ * Serverless entry — Vercel invokes `dist/app.js` as the function handler
+ * (see `services.api.entrypoint` in the root vercel.json), so the default
+ * export here is the (req, res) listener the platform calls per request.
+ *
+ * The app is created once per cold start after the Mongo handshake; warm
+ * invocations reuse the connection cached on globalThis (config/db.ts). On a
+ * failed connect the promise resets so a transient outage does not poison
+ * every subsequent warm invocation.
+ */
+let serverlessAppPromise: Promise<Express> | null = null;
+
+function getServerlessApp(): Promise<Express> {
+  if (!serverlessAppPromise) {
+    serverlessAppPromise = connectDatabase()
+      .then(() => createApp())
+      .catch((err: unknown) => {
+        serverlessAppPromise = null;
+        throw err;
+      });
+  }
+  return serverlessAppPromise;
+}
+
+export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const app = await getServerlessApp();
+  app(req, res);
 }

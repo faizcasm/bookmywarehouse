@@ -6,7 +6,7 @@
   "main": "./dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && esbuild src/app.ts --bundle --platform=node --format=esm --outfile=dist/app.js --legal-comments=none --banner:js=\"import { createRequire } from 'node:module'; import { fileURLToPath } from 'node:url'; import { dirname as _dirname } from 'node:path'; const require = createRequire(import.meta.url); const __filename = fileURLToPath(import.meta.url); const __dirname = _dirname(__filename);\" && node ./scripts/prepare-dist.mjs",
     "start": "node dist/server.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
@@ -38,6 +38,7 @@
     "@types/node": "^22.13.0",
     "@types/supertest": "^6.0.2",
     "@types/swagger-ui-express": "^4.1.7",
+    "esbuild": "^0.28.2",
     "supertest": "^7.0.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",

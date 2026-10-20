@@ -15,7 +15,7 @@ shared domain:
 | `customer` | `apps/customer` | `/(.*)` (catch-all) | Vite static SPA at the domain root |
 | `partner` | `apps/partner` | `/partner`, `/partner/(.*)` | Vite SPA; built with `base: /partner/`, router basename `/partner`; service-internal `request.path` transform strips the prefix |
 | `admin` | `apps/admin` | `/admin`, `/admin/(.*)` | Same scheme with `/admin` |
-| `api` | `apps/api` | `/api/(.*)` and `/health` | Express on the Node runtime, entry `dist/serverless.js` (exports the app as a request listener; no `listen()`) |
+| `api` | `apps/api` | `/api/(.*)` and `/health` | Express on the Node runtime, entry `dist/app.js` (esbuild ESM bundle; the default export of `app.ts` is a `(req, res)` request listener, no `listen()`) |
 
 - Rewrites are ordered most-specific first: `/api/*` and `/health` → `api`, then the
   `/partner` and `/admin` prefixes, then the catch-all → `customer`.
@@ -33,9 +33,17 @@ shared domain:
 
 ### Serverless constraints and how they're handled
 
-- **No long-lived process** — the API already distinguishes `app.ts` (Express app factory)
-  from `server.ts` (the local listener), so a serverless entry can export the app without a
-  socket listener.
+- **No long-lived process** — the API distinguishes `app.ts` (Express app factory +
+  serverless default export) from `server.ts` (the local listener), so the platform gets
+  a `(req, res)` listener without a socket.
+- **Single-file function bundle** — `dist/app.js` is produced by esbuild
+  (`--bundle --format=esm`, with a `createRequire`/`__dirname` banner). Vercel stages
+  `dist/*` at the lambda root while pnpm's symlinked packages keep repo-relative paths,
+  so bare-specifier resolution into `node_modules` fails there; bundling removes the
+  dependency entirely. The build also writes `dist/package.json` (`{"type":"module"}`,
+  without which Node loads the ESM bundle as CommonJS) and copies swagger-ui's static
+  assets next to the bundle, because `swagger-ui-express` serves them from its inlined
+  `__dirname`.
 - **No in-memory state** — sessions are stateless JWTs; refresh sessions live in MongoDB;
   nothing critical is kept in process memory. Horizontal scaling is safe.
 - **No WebSocket/background workers** — the design doesn't rely on any. Email delivery is

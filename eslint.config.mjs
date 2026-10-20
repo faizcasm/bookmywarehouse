@@ -9,6 +9,7 @@ export default tseslint.config(
     ignores: [
       '**/dist/**',
       '**/build/**',
+      '.vercel/**',
       '**/node_modules/**',
       '**/coverage/**',
       '**/test-results/**',

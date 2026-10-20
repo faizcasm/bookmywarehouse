@@ -148,6 +148,18 @@ Built against `docs/API_REFERENCE.md` (written first as the shared contract):
    env-driven cross-app links. No service bindings needed — no server-to-server calls
    exist (SPAs call the API from the browser over the public route). Deployment details
    in `docs/DEPLOYMENT.md`.
+   **Shipped 2026-10-20** — production live at <https://bookmywarehouse.vercel.app>,
+   verified end-to-end (health with Atlas connected, openapi + Swagger UI assets, every
+   SPA deep link incl. `/partner`/`/admin` prefixes, demo login writing to Atlas from
+   Vercel). During rollout the API entry became `dist/app.js`, an esbuild ESM bundle
+   with the request listener as `app.ts`'s default export (replaces `serverless.ts`):
+   the services builder forces `handler: app.js`, stages `dist/*` flat while pnpm keeps
+   repo-relative `node_modules` paths (breaking bare-specifier resolution), and omits a
+   root `package.json` (so ESM loaded as CJS). The build now bundles to one
+   self-contained file, writes `dist/package.json` (`type: module`), and copies
+   swagger-ui's static assets beside it. Also: SPA history fallback is **not**
+   automatic in services mode — each SPA service declares `handle: filesystem` +
+   → `/index.html` explicitly.
 3. Post-MVP candidates: Cloudinary image storage for production, real payment provider
    keys (Razorpay/Stripe), email delivery via Resend, `idPrefix` fix for onboarding
    address fields.
