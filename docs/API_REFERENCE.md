@@ -169,9 +169,12 @@ Password for all: `Demo@1234`
 
 ## 11. Frontend conventions (all three apps)
 
-- Vite + React 18 + TS (`moduleResolution: Bundler`), `react-router-dom` v6, **no UI component
-  libraries** — handwritten modern CSS (design tokens via CSS variables, cards, badges, tables,
-  responsive layout, focus states). Brand: deep teal/green (`#0f766e` family) with warm accents.
+- Vite + React 18 + TS (`moduleResolution: Bundler`), `react-router-dom` v6, **no external UI
+  component libraries** — a shared in-repo kit `@bmw/ui` (`packages/ui`: shadcn-style
+  primitives, `ThemeProvider`/`ThemeToggle`, Motion variants) on Tailwind v4, with one
+  token source `packages/ui/src/tokens.css` layered over each app's handwritten CSS.
+  Brand: electric blue (`#2563eb`) with deep-navy ink, crisp neutrals and a teal accent;
+  light/dark/system themes via `[data-theme]`.
 - Env: `VITE_API_URL` (default `http://localhost:4000/api/v1`).
 - One shared-per-app `api.ts` fetch wrapper implementing §1–2 (envelope unwrap, CSRF header,
   auto-refresh-once on 401, typed errors).

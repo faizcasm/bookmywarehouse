@@ -123,7 +123,7 @@ Built against `docs/API_REFERENCE.md` (written first as the shared contract):
 | --- | --- | --- |
 | Lint | `pnpm lint` | ✅ pass |
 | Typecheck | `pnpm typecheck` (all 7 packages) | ✅ pass |
-| Unit + integration tests | `pnpm test` | ✅ API 73/73 · customer 24/24 · partner 30/30 · admin 22/22 = **149 passed** |
+| Unit + integration tests | `pnpm test` | ✅ API 73/73 · customer 26/26 · partner 30/30 · admin 22/22 = **151 passed** |
 | End-to-end | `pnpm test:e2e` | ✅ 12/12 (re-run verified) |
 | Production builds | `pnpm build` | ✅ API tsc build + 3 Vite bundles |
 | API docs live | curl `/api/v1/openapi.json`, `/api/v1/docs` | ✅ 200/200, 98 operations |
@@ -191,6 +191,39 @@ Built against `docs/API_REFERENCE.md` (written first as the shared contract):
    a `dist/`-less local `vercel build`, then a real Git-triggered production deploy and
    full production checks; lint/typecheck/test 149/149.
    **Shipped 2026-10-20.**
-5. Post-MVP candidates: Cloudinary image storage for production, real payment provider
+5. **Premium B2B redesign: shared `@bmw/ui` system, Tailwind v4, light/dark themes,
+   Motion, recharts, 3D hero** — done: new source-only workspace package `packages/ui`
+   with a single design-token source `tokens.css` (electric-blue `#2563eb` primary, deep
+   navy ink, crisp neutrals, teal kept as accent; light on `:root`, dark on
+   `[data-theme="dark"]`, mapped through Tailwind v4 `@theme inline` so utilities flip at
+   runtime), an `ThemeProvider`/`ThemeToggle` trio (light/dark/system, persisted under
+   `bmw-theme`, live system-follow) with a no-FOUC bootstrap script in each `index.html`,
+   a shadcn-style kit (Button, Card, Dialog with focus-trap/scroll-lock, Dropdown, Tabs,
+   Stat+CountUp, EmptyState/ErrorState, form field primitives, …) and Motion variants +
+   `MotionConfig reducedMotion="user"`. All three SPAs now compile Tailwind v4
+   (`@tailwindcss/vite`) and their stylesheets were rewritten onto the token layer while
+   preserving every E2E/unit-test selector contract (`.badge--*`, `.toast__message`,
+   `table.data-table`, `.queue-item`, `#kyc-heading`, `#reason-dialog-input`,
+   `role="img"` chart summaries, all `#id`s). Customer got a split hero with a lazy
+   React Three Fiber procedural warehouse scene (graceful fallbacks: mobile, reduced
+   motion, ≤4 GB deviceMemory, data-saver, no WebGL → CSS visual), lucide icons
+   throughout, AnimatePresence page transitions; partner got a recharts revenue/bookings
+   combo + animated Stat cards under a glass shell; admin got recharts revenue/trends +
+   a KPI grid with its accessible chart contract kept, premium queue and tables.
+   jsdom test setups gained `matchMedia`/`IntersectionObserver`/`localStorage` stubs,
+   plus new `@bmw/ui` smoke tests.
+   **Pre-existing bugs found & fixed during the sweep:** customer
+   Favorites/Bookings/Invoices treated the `{items}` API envelope as a raw array
+   (a `TypeError` crashed all three pages for every signed-in customer); admin Reviews
+   crashed on hydrated review DTOs and POSTed moderation to `undefined` ids; admin
+   `formatRelativeTime` passed a `Date` into a string formatter.
+   **Verified by execution:** `pnpm lint` ✅, `pnpm typecheck` ✅, `pnpm test` →
+   **151/151** (API 73 · customer 26 · partner 30 · admin 22), `pnpm test:e2e` →
+   **12/12**, `pnpm build` ✅, dist-less local `vercel build` of all four services ✅,
+   Git deploy `dpl_2uspHCmYmagdHVBSx4DuFyzFRhBX` → READY, and a production browser
+   sweep of all three SPAs in light **and** dark mode with zero console/page errors
+   (demo data, recharts and theme toggle confirmed live).
+   **Shipped 2026-10-20.**
+6. Post-MVP candidates: Cloudinary image storage for production, real payment provider
    keys (Razorpay/Stripe), email delivery via Resend, `idPrefix` fix for onboarding
    address fields.
