@@ -13,8 +13,8 @@ shared domain:
 | Service | Root | Public path | Notes |
 | --- | --- | --- | --- |
 | `customer` | `apps/customer` | `/(.*)` (catch-all) | Vite static SPA at the domain root |
-| `partner` | `apps/partner` | `/partner`, `/partner/(.*)` | Vite SPA; built with `base: /partner/`, router basename `/partner`; service-internal `request.path` transform strips the prefix |
-| `admin` | `apps/admin` | `/admin`, `/admin/(.*)` | Same scheme with `/admin` |
+| `partner` | `apps/partner` | `/partner`, `/partner/(.*)` | Vite SPA; built with `base: /partner/`, router basename `/partner`; build nests output under `dist/partner/` because static lookup uses the original request path (`request.path` transforms only affect function code, not static files) |
+| `admin` | `apps/admin` | `/admin`, `/admin/(.*)` | Same scheme with `/admin` (`dist/admin/`) |
 | `api` | `apps/api` | `/api/(.*)` and `/health` | Express on the Node runtime, entry `dist/app.js` (esbuild ESM bundle; the default export of `app.ts` is a `(req, res)` request listener, no `listen()`) |
 
 - Rewrites are ordered most-specific first: `/api/*` and `/health` → `api`, then the

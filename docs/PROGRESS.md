@@ -159,7 +159,13 @@ Built against `docs/API_REFERENCE.md` (written first as the shared contract):
    self-contained file, writes `dist/package.json` (`type: module`), and copies
    swagger-ui's static assets beside it. Also: SPA history fallback is **not**
    automatic in services mode — each SPA service declares `handle: filesystem` +
-   → `/index.html` explicitly.
+   → `index.html` explicitly. And `request.path` transforms do NOT affect static
+   file lookup (it always uses the original URL path), which had left every
+   `/partner/*` and `/admin/*` asset serving fallback HTML (JS/CSS got
+   `text/html` → apps never booted). Fixed by physically nesting those builds
+   under `dist/<prefix>/` (`scripts/nest-dist.mjs`) with fallbacks rewritten to
+   `/<prefix>/index.html`; verified by content-type + a full browser sweep of
+   all 98 route visits (auth: 50/50 clean).
 3. Post-MVP candidates: Cloudinary image storage for production, real payment provider
    keys (Razorpay/Stripe), email delivery via Resend, `idPrefix` fix for onboarding
    address fields.

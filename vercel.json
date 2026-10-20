@@ -17,16 +17,9 @@
       "buildCommand": "pnpm --filter @bmw/partner build",
       "outputDirectory": "dist",
       "routes": [
-        {
-          "src": "/partner/(.*)",
-          "transforms": [{ "type": "request.path", "op": "set", "args": "/$1" }]
-        },
-        {
-          "src": "/partner",
-          "transforms": [{ "type": "request.path", "op": "set", "args": "/" }]
-        },
         { "handle": "filesystem" },
-        { "src": "/(.*)", "destination": "/index.html" }
+        { "src": "/partner", "destination": "/partner/index.html" },
+        { "src": "/partner/(.*)", "destination": "/partner/index.html" }
       ]
     },
     "admin": {
@@ -35,16 +28,9 @@
       "buildCommand": "pnpm --filter @bmw/admin build",
       "outputDirectory": "dist",
       "routes": [
-        {
-          "src": "/admin/(.*)",
-          "transforms": [{ "type": "request.path", "op": "set", "args": "/$1" }]
-        },
-        {
-          "src": "/admin",
-          "transforms": [{ "type": "request.path", "op": "set", "args": "/" }]
-        },
         { "handle": "filesystem" },
-        { "src": "/(.*)", "destination": "/index.html" }
+        { "src": "/admin", "destination": "/admin/index.html" },
+        { "src": "/admin/(.*)", "destination": "/admin/index.html" }
       ]
     },
     "api": {
