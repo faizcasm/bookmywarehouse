@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { validateRegister, hasErrors, type FieldErrors } from '../lib/validation';
 import { errorMessage } from '../lib/api';
+import { CUSTOMER_APP_URL } from '../lib/app-links';
 import { useToast } from '../components/Toast';
 
 export function RegisterPage() {
@@ -155,7 +156,7 @@ export function RegisterPage() {
         </form>
 
         <p className="auth-card__footer">
-          Want to book warehouses instead? <a href="http://localhost:5173">Customer app ↗</a>
+          Want to book warehouses instead? <a href={CUSTOMER_APP_URL}>Customer app ↗</a>
         </p>
       </div>
     </div>

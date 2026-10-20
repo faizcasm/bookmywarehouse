@@ -139,6 +139,15 @@ Built against `docs/API_REFERENCE.md` (written first as the shared contract):
 ## Outstanding / next
 
 1. ~~`git init` → initial commit → push~~ — done; see repo history.
-2. Post-MVP candidates: Cloudinary image storage for production, real payment provider
+2. **Vercel multi-service deploy config** — done: root `vercel.json` deploys the repo as
+   one Vercel project with four services (`customer` @ `/`, `partner` @ `/partner`,
+   `admin` @ `/admin`, `api` @ `/api/*` + `/health`). Added `apps/api/src/serverless.ts`
+   (Express app as request listener, `globalThis`-cached Mongo connection), Vite
+   `base` + router `basename` for the prefixed apps (keyed off `VERCEL` env so local
+   dev/E2E are unchanged), same-origin `/api/v1` API default in production builds, and
+   env-driven cross-app links. No service bindings needed — no server-to-server calls
+   exist (SPAs call the API from the browser over the public route). Deployment details
+   in `docs/DEPLOYMENT.md`.
+3. Post-MVP candidates: Cloudinary image storage for production, real payment provider
    keys (Razorpay/Stripe), email delivery via Resend, `idPrefix` fix for onboarding
    address fields.

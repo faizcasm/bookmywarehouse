@@ -9,9 +9,12 @@ import './styles.css';
 const container = document.getElementById('root');
 if (!container) throw new Error('Root element #root not found');
 
+// Match the router to the Vite base (/partner/ on Vercel, / locally).
+const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '');
+
 createRoot(container).render(
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={routerBasename || undefined}>
       <ToastProvider>
         <AuthProvider>
           <App />

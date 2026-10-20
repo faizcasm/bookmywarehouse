@@ -22,8 +22,10 @@ import { UsersPage } from './pages/UsersPage';
 import { VerificationQueuePage } from './pages/VerificationQueuePage';
 
 export function App() {
+  // Match the router to the Vite base (/admin/ on Vercel, / locally).
+  const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '');
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={routerBasename || undefined}>
       <ToastProvider>
         <AuthProvider>
           <Routes>

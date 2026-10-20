@@ -39,7 +39,8 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-export const PARTNER_APP_URL = 'http://localhost:5174';
+export const PARTNER_APP_URL =
+  import.meta.env.VITE_PARTNER_APP_URL ?? (import.meta.env.DEV ? 'http://localhost:5174' : '/partner');
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserDTO | null>(null);

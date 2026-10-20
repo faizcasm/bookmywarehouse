@@ -4,29 +4,34 @@ Design for hosting BookMyWarehouse on Vercel's free ("Hobby") plan for a persona
 non-commercial development setup. Review current Vercel plan limits before deploying —
 free tiers change quotas, and the Hobby plan prohibits commercial use.
 
-## Topology
+## Topology — one Vercel project, four services
 
-Four Vercel projects from one monorepo:
+The repo deploys as a **single Vercel project using [services](https://vercel.com/docs/services)**
+(configured in the root `vercel.json`). Each app is an independently built service on one
+shared domain:
 
-| Project | Root directory | Build command | Output |
+| Service | Root | Public path | Notes |
 | --- | --- | --- | --- |
-| `bmw-customer` | `apps/customer` | `pnpm install --frozen-lockfile && pnpm --filter @bmw/shared-types --filter @bmw/validation build && pnpm --filter @bmw/customer build` | `apps/customer/dist` (static) |
-| `bmw-partner` | `apps/partner` | same pattern with `@bmw/partner` | `apps/partner/dist` (static) |
-| `bmw-admin` | `apps/admin` | same pattern with `@bmw/admin` | `apps/admin/dist` (static) |
-| `bmw-api` | `apps/api` | `pnpm install --frozen-lockfile && pnpm --filter @bmw/shared-types --filter @bmw/validation build && pnpm --filter @bmw/api build` | Node serverless function |
+| `customer` | `apps/customer` | `/(.*)` (catch-all) | Vite static SPA at the domain root |
+| `partner` | `apps/partner` | `/partner`, `/partner/(.*)` | Vite SPA; built with `base: /partner/`, router basename `/partner`; service-internal `request.path` transform strips the prefix |
+| `admin` | `apps/admin` | `/admin`, `/admin/(.*)` | Same scheme with `/admin` |
+| `api` | `apps/api` | `/api/(.*)` and `/health` | Express on the Node runtime, entry `dist/serverless.js` (exports the app as a request listener; no `listen()`) |
 
-- Frontends are pure static SPAs → Vercel serves them from the CDN; no server needed.
-- The API uses Vercel's **Node.js runtime** with `api/index.ts` → `api/index.ts` exports the
-  Express `app` (Vercel's Node builder wraps it). To add: a thin `apps/api/api/index.ts`
-  that does `export default app` after importing `../src/app.js`, plus a `vercel.json`
-  in `apps/api` routing `/api/(.*)` to it. This has not been wired in the repo yet —
-  locally the API runs the long-lived `node dist/server.js` process.
+- Rewrites are ordered most-specific first: `/api/*` and `/health` → `api`, then the
+  `/partner` and `/admin` prefixes, then the catch-all → `customer`.
+- Vite builds key off the `VERCEL` env var: prefixed `base` only on Vercel, `/` locally,
+  so `pnpm dev` and the Playwright E2E suite (which use the apps at their own ports)
+  are unchanged.
+- The frontends reach the API same-origin at `/api/v1` in production builds
+  (`VITE_API_URL` overrides), which makes the httpOnly refresh cookie work without any
+  cross-site configuration.
+- **No service bindings are used**: nothing calls another service server-side. The SPAs
+  call the API from the browser over the public `/api/v1` route; the API never calls a
+  frontend. (A binding would only be needed if, e.g., the API rendered pages
+  server-side or called an internal service.)
+- `vercel dev` runs all four services locally with the same routing.
 
-Suggested domains (subject to availability — do not assume these are owned):
-`bookmywarehouse.com`, `partner.bookmywarehouse.com`, `admin.bookmywarehouse.com`,
-`api.bookmywarehouse.com`. Any `*.vercel.app` domain works for development.
-
-## Serverless constraints and how they're handled
+### Serverless constraints and how they're handled
 
 - **No long-lived process** — the API already distinguishes `app.ts` (Express app factory)
   from `server.ts` (the local listener), so a serverless entry can export the app without a
@@ -45,28 +50,33 @@ Suggested domains (subject to availability — do not assume these are owned):
   single small VPS/Render free web service running `pnpm --filter @bmw/api start` —
   documented as the simplest alternative rather than forcing unsupported infrastructure.
 
-## Environment variables (set in each Vercel project's dashboard, not in Git)
+## Environment variables (set in the Vercel project dashboard, not in Git)
 
-API project: `MONGODB_URI`, `ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_SECRET`, `SESSION_SECRET`,
+Services share one project-level environment scope, so one set of variables feeds all four:
+
+`MONGODB_URI`, `ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_SECRET`, `SESSION_SECRET`,
 `API_BASE_URL`, `CUSTOMER_APP_URL`, `PARTNER_APP_URL`, `ADMIN_APP_URL`, `CORS_ORIGINS`,
 `EMAIL_PROVIDER`, `EMAIL_PROVIDER_API_KEY`, `EMAIL_FROM`, `PAYMENT_PROVIDER`,
 `PAYMENT_PUBLIC_KEY`, `PAYMENT_SECRET_KEY`, `PAYMENT_WEBHOOK_SECRET`, `LOG_LEVEL=info`,
 `TRUST_PROXY=1`, `NODE_ENV=production`.
 
-Frontend projects: `VITE_API_URL` (e.g. `https://api.bookmywarehouse.com/api/v1`).
+The frontends need no API variable by default: production builds call same-origin
+`/api/v1`. Set `VITE_API_URL` only if the API is ever hosted on a different origin.
+`VITE_CUSTOMER_APP_URL` / `VITE_PARTNER_APP_URL` likewise override the cross-app links
+(same-origin `/` and `/partner` by default on Vercel).
 
 Secrets are generated per environment (e.g. `openssl rand -base64 32`) and never committed;
 `.env` is gitignored, `.env.example` contains placeholders only.
 
 ## CORS & cookies in production
 
-- `CORS_ORIGINS` must list exactly the three deployed frontend origins — the API reads it
-  as a comma-separated allowlist.
-- The refresh cookie is `httpOnly`, `SameSite=Lax`, `Secure` in production, and scoped to
-  `/api/v1/auth`; therefore the API must be served from a **same-site** parent domain as the
-  frontends (the `*.bookmywarehouse.com` scheme) OR the cookie policy must be relaxed to
-  `SameSite=None; Secure` for cross-site `*.vercel.app` hosting. The same-site domain
-  arrangement is strongly preferred.
+- With the single-domain services deployment, all three SPAs and the API share **one
+  origin**, so browser requests are same-origin: no CORS preflight occurs and the
+  `httpOnly`, `SameSite=Lax`, `Secure` refresh cookie (scoped to `/api/v1/auth`) works
+  unchanged. No `SameSite=None` relaxation is needed.
+- `CORS_ORIGINS` only matters if you later split the frontends onto different origins;
+  keep it set to the deployed origin as a safety net (unknown origins get a permissive
+  CORS header + credential rejection).
 - `TRUST_PROXY=1` so Express sees the original client IP behind Vercel's proxy (rate
   limiting and audit logs depend on it).
 
@@ -86,12 +96,13 @@ Secrets are generated per environment (e.g. `openssl rand -base64 32`) and never
 
 ## Deployment steps
 
-1. Push the repo to GitHub and import the four projects into Vercel.
-2. Set each project's root directory + build command (table above); set the API framework
-   preset to "Other" with the Node runtime.
-3. Add the environment variables per project.
-4. Attach custom domains (or use `*.vercel.app`), and point DNS per Vercel's instructions.
-5. Run `pnpm seed` and `pnpm db:indexes` **once** against the production Atlas database from
+1. Push the repo to GitHub; in Vercel create **one** project linked to it. Vercel
+   auto-detects the root `vercel.json` `services` configuration — no per-service project
+   setup is needed.
+2. Add the environment variables listed above to the project (Production + Preview).
+3. Deploy. The single deployment domain serves all four apps (see the routing table);
+   attach a custom domain if desired, and point DNS per Vercel's instructions.
+4. Run `pnpm seed` and `pnpm db:indexes` **once** against the production Atlas database from
    a trusted machine (`MONGODB_URI` = production URI), never from CI logs.
 6. Verify: `/health`, register/login on each app, a full booking round-trip, and a sandbox
    payment.

@@ -12,7 +12,8 @@
 import type { ApiErrorIssue, EnvelopeMeta } from './types';
 
 export const API_BASE: string =
-  (import.meta.env?.VITE_API_URL as string | undefined) ?? 'http://localhost:4000/api/v1';
+  (import.meta.env?.VITE_API_URL as string | undefined) ??
+  (import.meta.env.DEV ? 'http://localhost:4000/api/v1' : '/api/v1');
 
 export const TOKEN_STORAGE_KEY = 'bmw_access_token';
 export const CSRF_COOKIE_NAME = 'bmw_csrf';

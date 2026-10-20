@@ -135,7 +135,7 @@ docs/
 
 ## Deployment (Vercel free tier)
 
-See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for the full design: four Vercel projects
+See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for the full design: one Vercel project with four [services](https://vercel.com/docs/services)
 (three static frontends + one Node API serverless function), Atlas connection reuse,
 environment variables, CORS/cookie configuration, webhook security, and rollback guidance.
 

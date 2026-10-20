@@ -213,7 +213,7 @@ export function RegisterPage() {
           </div>
           {role === 'PARTNER' ? (
             <p className="field-hint">
-              After registering you&apos;ll continue onboarding in the partner portal (localhost:5174).
+              After registering you&apos;ll continue onboarding in the partner portal.
             </p>
           ) : null}
           <button type="submit" className="btn btn-primary btn-block" disabled={busy}>

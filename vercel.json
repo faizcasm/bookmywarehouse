@@ -1,0 +1,58 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "customer": {
+      "root": "apps/customer",
+      "framework": "vite",
+      "buildCommand": "pnpm --filter @bmw/customer build",
+      "outputDirectory": "dist"
+    },
+    "partner": {
+      "root": "apps/partner",
+      "framework": "vite",
+      "buildCommand": "pnpm --filter @bmw/partner build",
+      "outputDirectory": "dist",
+      "routes": [
+        {
+          "src": "/partner/(.*)",
+          "transforms": [{ "type": "request.path", "op": "set", "args": "/$1" }]
+        },
+        {
+          "src": "/partner",
+          "transforms": [{ "type": "request.path", "op": "set", "args": "/" }]
+        }
+      ]
+    },
+    "admin": {
+      "root": "apps/admin",
+      "framework": "vite",
+      "buildCommand": "pnpm --filter @bmw/admin build",
+      "outputDirectory": "dist",
+      "routes": [
+        {
+          "src": "/admin/(.*)",
+          "transforms": [{ "type": "request.path", "op": "set", "args": "/$1" }]
+        },
+        {
+          "src": "/admin",
+          "transforms": [{ "type": "request.path", "op": "set", "args": "/" }]
+        }
+      ]
+    },
+    "api": {
+      "root": "apps/api",
+      "framework": "express",
+      "entrypoint": "dist/serverless.js",
+      "buildCommand": "pnpm --filter @bmw/api... build"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": { "service": "api" } },
+    { "source": "/health", "destination": { "service": "api" } },
+    { "source": "/partner", "destination": { "service": "partner" } },
+    { "source": "/partner/(.*)", "destination": { "service": "partner" } },
+    { "source": "/admin", "destination": { "service": "admin" } },
+    { "source": "/admin/(.*)", "destination": { "service": "admin" } },
+    { "source": "/(.*)", "destination": { "service": "customer" } }
+  ]
+}

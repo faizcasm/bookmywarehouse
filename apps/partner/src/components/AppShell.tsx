@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { api } from '../lib/api';
+import { CUSTOMER_APP_URL } from '../lib/app-links';
 import { initials, mapNotificationLink, relativeTime } from '../lib/format';
 import type { NotificationDTO } from '../lib/types';
 
@@ -122,7 +123,7 @@ export function AppShell() {
           ))}
         </nav>
         <div className="shell__sidebar-footer">
-          <a href="http://localhost:5173" target="_blank" rel="noreferrer" className="shell__customer-link">
+          <a href={CUSTOMER_APP_URL} target="_blank" rel="noreferrer" className="shell__customer-link">
             Customer marketplace ↗
           </a>
         </div>

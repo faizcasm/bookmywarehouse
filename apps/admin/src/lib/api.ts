@@ -10,7 +10,9 @@
  *  - typed ApiError with status/code/message/issues
  */
 
-export const API_BASE: string = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api/v1';
+export const API_BASE: string =
+  import.meta.env.VITE_API_URL ??
+  (import.meta.env.DEV ? 'http://localhost:4000/api/v1' : '/api/v1');
 
 const TOKEN_KEY = 'bmw_access_token';
 const CSRF_COOKIE = 'bmw_csrf';
@@ -154,7 +156,9 @@ export interface RequestOptions {
 }
 
 function buildUrl(path: string, query?: RequestOptions['query']): string {
-  const url = new URL(`${API_BASE}${path}`);
+  // API_BASE may be a same-origin path (e.g. "/api/v1") in production — give
+  // URL() an explicit base so relative values do not throw.
+  const url = new URL(`${API_BASE}${path}`, window.location.origin);
   if (query) {
     for (const [key, value] of Object.entries(query)) {
       if (value === undefined || value === null || value === '') continue;
