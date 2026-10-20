@@ -11,7 +11,10 @@ export function InvoicesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number.parseInt(searchParams.get('page') ?? '1', 10) || 1;
 
-  const invoices = useAsyncData(() => api.getWithMeta<InvoiceDTO[]>('/payments/invoices', { page, limit: 10 }), [page]);
+  const invoices = useAsyncData(
+    () => api.getWithMeta<{ items: InvoiceDTO[] }>('/payments/invoices', { page, limit: 10 }),
+    [page],
+  );
 
   return (
     <div className="container page">
@@ -24,7 +27,7 @@ export function InvoicesPage() {
         <PageLoader label="Loading invoices…" />
       ) : invoices.error ? (
         <ErrorState message={invoices.error.message} onRetry={invoices.reload} />
-      ) : (invoices.data?.data ?? []).length === 0 ? (
+      ) : (invoices.data?.data?.items ?? []).length === 0 ? (
         <EmptyState
           title="No invoices yet"
           message="Invoices are generated automatically once a booking payment succeeds."
@@ -52,7 +55,7 @@ export function InvoicesPage() {
                 </tr>
               </thead>
               <tbody>
-                {(invoices.data?.data ?? []).map((invoice) => (
+                {(invoices.data?.data?.items ?? []).map((invoice) => (
                   <tr key={invoice.id}>
                     <td className="mono">{invoice.invoiceNumber}</td>
                     <td className="mono">{invoice.bookingReference}</td>

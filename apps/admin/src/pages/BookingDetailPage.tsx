@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { ReasonDialog } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
 import { ErrorState, PageHeader, Skeleton } from '../components/States';
@@ -53,7 +54,8 @@ export function BookingDetailPage() {
         actions={
           <>
             <Link to="/bookings" className="btn btn--ghost btn--sm">
-              ← All bookings
+              <ArrowLeft aria-hidden="true" />
+              All bookings
             </Link>
             {CANCELLABLE.includes(b.status) ? (
               <button type="button" className="btn btn--danger btn--sm" onClick={() => setCancelOpen(true)}>

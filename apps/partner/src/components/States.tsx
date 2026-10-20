@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { AlertTriangle, Inbox } from 'lucide-react';
 import { errorMessage } from '../lib/api';
 
 export function Skeleton({
@@ -52,7 +53,7 @@ export function EmptyState({
   return (
     <div className="empty-state">
       <div className="empty-state__icon" aria-hidden="true">
-        {icon ?? '□'}
+        {icon ?? <Inbox size={26} strokeWidth={1.8} />}
       </div>
       <h3 className="empty-state__title">{title}</h3>
       {description ? <p className="empty-state__description">{description}</p> : null}
@@ -65,7 +66,7 @@ export function ErrorState({ error, onRetry, title = 'Could not load data' }: { 
   return (
     <div className="error-state" role="alert">
       <div className="error-state__icon" aria-hidden="true">
-        !
+        <AlertTriangle size={18} strokeWidth={2.2} />
       </div>
       <div className="error-state__body">
         <strong>{title}</strong>

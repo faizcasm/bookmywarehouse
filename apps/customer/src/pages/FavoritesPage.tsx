@@ -8,7 +8,10 @@ import { useToast } from '../components/Toast';
 
 export function FavoritesPage() {
   const toast = useToast();
-  const favorites = useAsyncData(() => api.getWithMeta<FavoriteDTO[]>('/favorites', { limit: 24 }), []);
+  const favorites = useAsyncData(
+    () => api.getWithMeta<{ items: FavoriteDTO[] }>('/favorites', { limit: 24 }),
+    [],
+  );
 
   const onToggleFavorite = async (listing: ListingSummaryDTO) => {
     try {
@@ -31,7 +34,7 @@ export function FavoritesPage() {
         <PageLoader label="Loading favorites…" />
       ) : favorites.error ? (
         <ErrorState message={favorites.error.message} onRetry={favorites.reload} />
-      ) : (favorites.data?.data ?? []).length === 0 ? (
+      ) : (favorites.data?.data?.items ?? []).length === 0 ? (
         <EmptyState
           title="No favorites yet"
           message="Tap the heart on any listing to save it here."
@@ -43,7 +46,7 @@ export function FavoritesPage() {
         />
       ) : (
         <div className="grid grid-cards">
-          {(favorites.data?.data ?? []).map((favorite) => (
+          {(favorites.data?.data?.items ?? []).map((favorite) => (
             <ListingCard
               key={favorite.id}
               listing={{ ...favorite.listing, isFavorite: true }}

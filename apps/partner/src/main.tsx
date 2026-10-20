@@ -1,6 +1,8 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
+import { MotionConfig } from 'motion/react';
+import { ThemeProvider } from '@bmw/ui';
 import { App } from './App';
 import { AuthProvider } from './auth/AuthContext';
 import { ToastProvider } from './components/Toast';
@@ -15,12 +17,16 @@ const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 createRoot(container).render(
   <StrictMode>
-    <BrowserRouter basename={routerBasename || undefined}>
-      <ToastProvider>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </ToastProvider>
-    </BrowserRouter>
+    <ThemeProvider>
+      <MotionConfig reducedMotion="user">
+        <BrowserRouter basename={routerBasename || undefined}>
+          <ToastProvider>
+            <AuthProvider>
+              <App />
+            </AuthProvider>
+          </ToastProvider>
+        </BrowserRouter>
+      </MotionConfig>
+    </ThemeProvider>
   </StrictMode>,
 );

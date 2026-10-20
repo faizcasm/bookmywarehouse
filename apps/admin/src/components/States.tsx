@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { AlertTriangle, Inbox } from 'lucide-react';
 import { ApiError } from '../lib/api';
 
 export function Skeleton({ rows = 5 }: { rows?: number }) {
@@ -15,7 +16,7 @@ export function EmptyState({ title, hint, action }: { title: string; hint?: stri
   return (
     <div className="empty-state">
       <div className="empty-state__icon" aria-hidden="true">
-        ∅
+        <Inbox strokeWidth={1.5} />
       </div>
       <h3 className="empty-state__title">{title}</h3>
       {hint ? <p className="empty-state__hint">{hint}</p> : null}
@@ -30,7 +31,7 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
   return (
     <div className="error-state" role="alert">
       <div className="error-state__icon" aria-hidden="true">
-        !
+        <AlertTriangle strokeWidth={1.75} />
       </div>
       <div>
         <h3 className="error-state__title">Couldn&apos;t load this view</h3>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Star } from 'lucide-react';
 import { Modal } from '../components/Modal';
 import { Pagination } from '../components/Pagination';
 import { StatusBadge } from '../components/StatusBadge';
@@ -10,6 +11,21 @@ import { apiSend } from '../lib/api';
 import { errorMessage, usePagedList } from '../lib/hooks';
 import { formatDate, shortenId } from '../lib/format';
 import type { RawReviewDoc } from '../lib/types';
+
+/**
+ * The reviews endpoint returns a hydrated DTO (`id`, `listingId`, `bookingId`,
+ * `author: { id, name, … }`) while older payloads used raw ObjectIds. Render
+ * both shapes safely.
+ */
+type ReviewRow = Omit<RawReviewDoc, '_id' | 'id' | 'author' | 'listing' | 'booking'> &
+  Partial<Pick<RawReviewDoc, '_id' | 'id' | 'listing' | 'booking'>> & {
+    author: string | { id?: string; name?: string | null };
+    listingId?: string;
+    bookingId?: string;
+    listingTitle?: string;
+  };
+
+const reviewId = (r?: ReviewRow | null): string => r?.id ?? r?._id ?? '';
 
 const REVIEW_TABS = [
   { id: '', label: 'All' },
@@ -28,7 +44,7 @@ export function ReviewsPage() {
   const limit = Number(params.get('limit') ?? '20') || 20;
   const toast = useToast();
 
-  const { items, pagination, loading, error, reload } = usePagedList<RawReviewDoc>('/admin/reviews', {
+  const { items, pagination, loading, error, reload } = usePagedList<ReviewRow>('/admin/reviews', {
     page,
     limit,
   });
@@ -45,7 +61,7 @@ export function ReviewsPage() {
   const filtered = status ? items.filter((r) => r.status === status) : items;
 
   // ---- moderation (reviewModerationSchema) ----
-  const [target, setTarget] = useState<{ review: RawReviewDoc; status: ModerationStatus } | null>(null);
+  const [target, setTarget] = useState<{ review: ReviewRow; status: ModerationStatus } | null>(null);
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -55,7 +71,7 @@ export function ReviewsPage() {
     setBusy(true);
     setServerError(null);
     try {
-      await apiSend('POST', `/admin/reviews/${target.review._id}/moderate`, {
+      await apiSend('POST', `/admin/reviews/${reviewId(target.review)}/moderate`, {
         status: target.status,
         note: note.trim() || null,
       });
@@ -88,20 +104,32 @@ export function ReviewsPage() {
         ) : (
           <div className="review-list">
             {filtered.map((r) => (
-              <article key={r._id} className="review-item">
+              <article key={reviewId(r)} className="review-item">
                 <div className="review-item__main">
                   <div className="review-item__head">
                     <span className="review-item__stars" aria-label={`${r.rating} out of 5`}>
-                      {'★'.repeat(r.rating)}
-                      {'☆'.repeat(5 - r.rating)}
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star
+                          key={i}
+                          size={15}
+                          aria-hidden="true"
+                          className={i < r.rating ? 'star star--on' : 'star'}
+                          fill={i < r.rating ? 'currentColor' : 'none'}
+                        />
+                      ))}
                     </span>
                     <StatusBadge status={r.status} tone={r.status === 'PUBLISHED' ? 'success' : r.status === 'REMOVED' ? 'danger' : 'warning'} />
                     <span className="muted">{formatDate(r.createdAt)}</span>
                   </div>
                   <p className="review-item__comment">{r.comment ?? <em className="muted">No comment.</em>}</p>
                   <p className="review-item__meta muted">
-                    Listing <code>{shortenId(r.listing)}</code> · booking <code>{shortenId(r.booking)}</code> · author{' '}
-                    <code>{shortenId(r.author)}</code>
+                    Listing <code>{shortenId(r.listing ?? r.listingId)}</code> · booking{' '}
+                    <code>{shortenId(r.booking ?? r.bookingId)}</code> · author{' '}
+                    <code>
+                      {typeof r.author === 'string'
+                        ? shortenId(r.author)
+                        : (r.author?.name ?? shortenId(r.author?.id))}
+                    </code>
                   </p>
                   {r.response ? <p className="review-item__response">Partner response: {r.response.text}</p> : null}
                 </div>
@@ -157,7 +185,7 @@ export function ReviewsPage() {
         }
       >
         <p className="confirm-message">
-          Review <code>{shortenId(target?.review._id)}</code> will be marked{' '}
+          Review <code>{shortenId(reviewId(target?.review))}</code> will be marked{' '}
           <strong>{target?.status.toLowerCase()}</strong>.
         </p>
         <div className="field">

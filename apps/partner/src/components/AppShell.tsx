@@ -1,5 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { AnimatePresence, motion } from 'motion/react';
+import {
+  Bell,
+  BadgeCheck,
+  CalendarClock,
+  ChevronDown,
+  ExternalLink,
+  IndianRupee,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  MessageSquare,
+  ShieldCheck,
+  Star,
+  User,
+  UserRound,
+  Warehouse,
+  X,
+} from 'lucide-react';
+import { ThemeToggle, pageTransition } from '@bmw/ui';
 import { useAuth } from '../auth/AuthContext';
 import { api } from '../lib/api';
 import { CUSTOMER_APP_URL } from '../lib/app-links';
@@ -9,20 +29,20 @@ import type { NotificationDTO } from '../lib/types';
 interface NavItem {
   to: string;
   label: string;
-  icon: string;
+  icon: typeof Warehouse;
   end?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: '/', label: 'Dashboard', icon: '▤', end: true },
-  { to: '/listings', label: 'Listings', icon: '▦' },
-  { to: '/bookings', label: 'Bookings', icon: '◷' },
-  { to: '/earnings', label: 'Earnings', icon: '₹' },
-  { to: '/reviews', label: 'Reviews', icon: '★' },
-  { to: '/messages', label: 'Messages', icon: '✉' },
-  { to: '/notifications', label: 'Notifications', icon: '◔' },
-  { to: '/onboarding', label: 'Onboarding & KYC', icon: '✓' },
-  { to: '/profile', label: 'Profile', icon: '☰' },
+  { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/listings', label: 'Listings', icon: Warehouse },
+  { to: '/bookings', label: 'Bookings', icon: CalendarClock },
+  { to: '/earnings', label: 'Earnings', icon: IndianRupee },
+  { to: '/reviews', label: 'Reviews', icon: Star },
+  { to: '/messages', label: 'Messages', icon: MessageSquare },
+  { to: '/notifications', label: 'Notifications', icon: Bell },
+  { to: '/onboarding', label: 'Onboarding & KYC', icon: BadgeCheck },
+  { to: '/profile', label: 'Profile', icon: UserRound },
 ];
 
 const PAGE_TITLES: { match: RegExp; title: string }[] = [
@@ -109,24 +129,27 @@ export function AppShell() {
           </div>
         </div>
         <nav className="shell__nav" aria-label="Main navigation">
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                `shell__nav-link ${isActive ? 'shell__nav-link--active' : ''}`
-              }
-            >
-              <span className="shell__nav-icon" aria-hidden="true">
-                {item.icon}
-              </span>
-              {item.label}
-              {item.to === '/notifications' && unread > 0 ? (
-                <span className="shell__nav-badge">{unread}</span>
-              ) : null}
-            </NavLink>
-          ))}
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) =>
+                  `shell__nav-link ${isActive ? 'shell__nav-link--active' : ''}`
+                }
+              >
+                <span className="shell__nav-icon" aria-hidden="true">
+                  <Icon size={18} strokeWidth={2} />
+                </span>
+                {item.label}
+                {item.to === '/notifications' && unread > 0 ? (
+                  <span className="shell__nav-badge">{unread}</span>
+                ) : null}
+              </NavLink>
+            );
+          })}
         </nav>
         <div className="shell__sidebar-footer">
           <a
@@ -135,7 +158,8 @@ export function AppShell() {
             rel="noreferrer"
             className="shell__customer-link"
           >
-            Customer marketplace ↗
+            Customer marketplace
+            <ExternalLink size={14} strokeWidth={2} aria-hidden="true" />
           </a>
         </div>
       </div>
@@ -153,10 +177,11 @@ export function AppShell() {
             aria-expanded={drawerOpen}
             onClick={() => setDrawerOpen((open) => !open)}
           >
-            ☰
+            {drawerOpen ? <X size={20} strokeWidth={2} /> : <Menu size={20} strokeWidth={2} />}
           </button>
           <h1 className="shell__title">{pageTitle(location.pathname)}</h1>
           <div className="shell__topbar-actions">
+            <ThemeToggle className="shell__theme-toggle" />
             <div className="bell" ref={bellRef}>
               <button
                 type="button"
@@ -164,7 +189,7 @@ export function AppShell() {
                 aria-label={`Notifications${unread > 0 ? ` (${unread} unread)` : ''}`}
                 onClick={() => setBellOpen((open) => !open)}
               >
-                ◔
+                <Bell size={19} strokeWidth={2} aria-hidden="true" />
                 {unread > 0 ? (
                   <span className="bell__badge">{unread > 99 ? '99+' : unread}</span>
                 ) : null}
@@ -206,7 +231,7 @@ export function AppShell() {
                 <span className="avatar avatar--sm">{initials(user?.name)}</span>
                 <span className="user-menu__name">{user?.name}</span>
                 <span className="user-menu__caret" aria-hidden="true">
-                  ▾
+                  <ChevronDown size={16} strokeWidth={2} />
                 </span>
               </button>
               {menuOpen ? (
@@ -216,9 +241,11 @@ export function AppShell() {
                     <span>{user?.email}</span>
                   </div>
                   <Link to="/profile" className="user-menu__item" role="menuitem">
+                    <User size={15} strokeWidth={2} aria-hidden="true" />
                     Profile
                   </Link>
                   <Link to="/onboarding" className="user-menu__item" role="menuitem">
+                    <ShieldCheck size={15} strokeWidth={2} aria-hidden="true" />
                     Onboarding & KYC
                   </Link>
                   <button
@@ -227,6 +254,7 @@ export function AppShell() {
                     role="menuitem"
                     onClick={() => void handleLogout()}
                   >
+                    <LogOut size={15} strokeWidth={2} aria-hidden="true" />
                     Sign out
                   </button>
                 </div>
@@ -235,9 +263,17 @@ export function AppShell() {
           </div>
         </header>
         <main className="shell__content">
-          <div key={location.pathname} className="page-transition">
-            <Outlet />
-          </div>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={location.pathname}
+              variants={pageTransition}
+              initial="hidden"
+              animate="show"
+              exit="exit"
+            >
+              <Outlet />
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
     </div>

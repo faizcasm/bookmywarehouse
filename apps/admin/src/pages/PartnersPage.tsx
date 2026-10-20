@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 import { DataTable, type Column } from '../components/DataTable';
 import { Pagination } from '../components/Pagination';
 import { StatusBadge } from '../components/StatusBadge';
@@ -103,7 +104,8 @@ export function PartnersPage() {
           ))}
         </select>
         <Link to="/verification-queue" className="btn btn--ghost btn--sm">
-          Verification queue →
+          Verification queue
+          <ArrowRight aria-hidden="true" />
         </Link>
       </div>
 

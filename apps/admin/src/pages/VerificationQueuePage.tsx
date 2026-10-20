@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { motion } from 'motion/react';
+import { fadeSoft, stagger } from '@bmw/ui';
+import { Eye, Gavel } from 'lucide-react';
 import { Pagination } from '../components/Pagination';
 import { PartnerDecisionDialog, type PartnerDecision } from '../components/PartnerDecisionDialog';
 import { StatusBadge } from '../components/StatusBadge';
@@ -78,9 +81,9 @@ export function VerificationQueuePage() {
       ) : items.length === 0 ? (
         <EmptyState title="Queue is clear" hint={`No partners with status ${status.toLowerCase().replace('_', ' ')}.`} />
       ) : (
-        <div className="queue-list">
+        <motion.div className="queue-list" variants={stagger(0.06)} initial="hidden" animate="show">
           {items.map((p) => (
-            <article key={p.partnerId} className="card queue-item">
+            <motion.article key={p.partnerId} className="card queue-item" variants={fadeSoft}>
               <div className="queue-item__main">
                 <div className="queue-item__head">
                   <Link to={`/partners/${p.partnerId}`} className="cell-link">
@@ -98,6 +101,7 @@ export function VerificationQueuePage() {
               </div>
               <div className="queue-item__actions">
                 <Link to={`/partners/${p.partnerId}`} className="btn btn--ghost btn--sm">
+                  <Eye aria-hidden="true" />
                   Review docs
                 </Link>
                 <button
@@ -108,12 +112,13 @@ export function VerificationQueuePage() {
                     setTarget(p);
                   }}
                 >
+                  <Gavel aria-hidden="true" />
                   Decide
                 </button>
               </div>
-            </article>
+            </motion.article>
           ))}
-        </div>
+        </motion.div>
       )}
 
       <Pagination meta={pagination} limit={limit} onPageChange={setPage} />

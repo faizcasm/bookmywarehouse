@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { motion } from 'motion/react';
+import { fadeUp, transition } from '@bmw/ui';
 import { useAuth } from '../auth/AuthContext';
 import { ApiError } from '../lib/api';
 
@@ -52,7 +54,15 @@ export function LoginPage() {
 
   return (
     <div className="login-page">
-      <form className="login-card" onSubmit={onSubmit} noValidate>
+      <motion.form
+        className="login-card"
+        onSubmit={onSubmit}
+        noValidate
+        variants={fadeUp}
+        initial="hidden"
+        animate="show"
+        transition={transition(0.5)}
+      >
         <div className="login-card__brand">
           <span className="sidebar__logo" aria-hidden="true">
             BMW
@@ -118,7 +128,7 @@ export function LoginPage() {
         <p className="login-card__hint">
           Demo admin: <code>admin@bookmywarehouse.dev</code> / <code>Demo@1234</code>
         </p>
-      </form>
+      </motion.form>
     </div>
   );
 }

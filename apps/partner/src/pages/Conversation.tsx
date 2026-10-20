@@ -140,7 +140,7 @@ export function ConversationPage() {
 
       <div className="chat-thread card" role="log" aria-label="Message thread">
         {messages.length === 0 ? (
-          <p className="muted chat-thread__empty">No messages yet — say hello 👋</p>
+          <p className="muted chat-thread__empty">No messages yet — say hello!</p>
         ) : (
           messages.map((message) => {
             const mine = message.sender.id === user?.id;

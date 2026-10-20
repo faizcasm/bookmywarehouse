@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { motion } from 'motion/react';
+import { fadeSoft, stagger } from '@bmw/ui';
+import { Package } from 'lucide-react';
 import { Pagination } from '../components/Pagination';
 import { ReasonDialog } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
@@ -140,14 +143,19 @@ export function ListingsPage() {
         <EmptyState title="No listings" hint="No listings match the current filters." />
       ) : (
         <>
-          <div className="listing-grid listing-grid--admin">
+          <motion.div
+            className="listing-grid listing-grid--admin"
+            variants={stagger(0.05)}
+            initial="hidden"
+            animate="show"
+          >
             {items.map((l) => (
-              <article key={l.id} className="card listing-card">
+              <motion.article key={l.id} className="card listing-card" variants={fadeSoft}>
                 {l.coverImage ? (
                   <img src={l.coverImage} alt="" className="listing-card__img" loading="lazy" />
                 ) : (
                   <div className="listing-card__img listing-card__img--placeholder" aria-hidden="true">
-                    📦
+                    <Package strokeWidth={1.25} />
                   </div>
                 )}
                 <div className="listing-card__body">
@@ -186,9 +194,9 @@ export function ListingsPage() {
                     ))}
                   </div>
                 </div>
-              </article>
+              </motion.article>
             ))}
-          </div>
+          </motion.div>
           <Pagination
             meta={pagination}
             limit={limit}

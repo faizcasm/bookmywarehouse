@@ -72,6 +72,21 @@ export function shortenId(id: string | null | undefined, len = 8): string {
   return id.length <= len ? id : `${id.slice(0, len)}…`;
 }
 
+/** Compact "just now / 4m ago / 2h ago" label for the notification bell. */
+export function formatRelativeTime(value?: string | number | Date | null): string {
+  const date = typeof value === 'string' || typeof value === 'number' ? new Date(value) : value;
+  if (!date || Number.isNaN(date.getTime())) return '—';
+  const diffMs = Date.now() - date.getTime();
+  const minutes = Math.round(diffMs / 60000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 export type BadgeTone = 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'accent';
 
 export function statusLabel(status: string): string {

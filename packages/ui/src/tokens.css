@@ -1,0 +1,272 @@
+/* =============================================================================
+   BookMyWarehouse design tokens — single source of truth for all three apps.
+   Light on :root, dark on [data-theme="dark"] (set by the theme bootstrap
+   script + ThemeProvider). Semantic vars flip wholesale, so components use
+   one vocabulary (bg-surface, text-muted, ...) in both themes.
+   Tailwind v4: @theme inline maps tokens -> utilities that read the live CSS
+   var, so switching data-theme recolors the entire UI with no rebuild.
+   ============================================================================= */
+
+:root {
+  color-scheme: light;
+
+  /* Surfaces — crisp neutrals with a faint blue tint */
+  --bg: #f3f6fc;
+  --bg-grid: radial-gradient(circle at 1px 1px, rgb(15 23 42 / 0.05) 1px, transparent 0);
+  --surface: #ffffff;
+  --surface-2: #f7f9fd;
+  --surface-3: #eef2f9;
+  --glass: rgb(255 255 255 / 0.72);
+  --glass-border: rgb(255 255 255 / 0.55);
+
+  /* Ink — deep navy text scale */
+  --fg: #0b1220;
+  --fg-strong: #030712;
+  --muted: #56627a;
+  --faint: #8a94ab;
+
+  /* Lines */
+  --line: #e2e8f4;
+  --line-strong: #cdd7e8;
+
+  /* Brand — electric blue (primary actions) */
+  --brand: #2563eb;
+  --brand-hover: #1d4ed8;
+  --brand-active: #1e40af;
+  --brand-fg: #ffffff;
+  --brand-soft: #e8efff;
+  --brand-soft-fg: #1d4ed8;
+  --grad-brand: linear-gradient(135deg, #2563eb 0%, #4f46e5 55%, #4338ca 100%);
+  --grad-hero: radial-gradient(1200px 600px at 70% -10%, #dbe6ff 0%, transparent 60%),
+    radial-gradient(900px 500px at 100% 30%, #e7e5ff 0%, transparent 55%), var(--bg);
+  --shadow-brand: 0 10px 24px -10px rgb(37 99 235 / 0.55);
+  --shadow-brand-lg: 0 18px 40px -14px rgb(37 99 235 / 0.5);
+
+  /* Accent — teal (brand heritage: highlights, links, verified) */
+  --accent: #0d9488;
+  --accent-soft: #d9f5f1;
+  --accent-soft-fg: #0f766e;
+
+  /* Status */
+  --success: #16a34a;
+  --success-soft: #dcfce7;
+  --success-soft-fg: #15803d;
+  --warning: #d97706;
+  --warning-soft: #fef3c7;
+  --warning-soft-fg: #b45309;
+  --danger: #dc2626;
+  --danger-soft: #fee2e2;
+  --danger-soft-fg: #b91c1c;
+  --info: #0284c7;
+  --info-soft: #e0f2fe;
+  --info-soft-fg: #0369a1;
+  --neutral-soft: #eef2f8;
+  --neutral-soft-fg: #475569;
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgb(11 18 32 / 0.06);
+  --shadow-md: 0 2px 4px rgb(11 18 32 / 0.04), 0 12px 28px -14px rgb(11 18 32 / 0.18);
+  --shadow-lg: 0 4px 8px rgb(11 18 32 / 0.04), 0 28px 60px -22px rgb(11 18 32 / 0.28);
+  --shadow-float: 0 32px 70px -28px rgb(30 41 59 / 0.35);
+  --ring: 0 0 0 3px rgb(37 99 235 / 0.35);
+
+  /* Radii */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+
+  /* Motion */
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 150ms;
+  --duration-base: 240ms;
+  --duration-slow: 420ms;
+
+  /* Type */
+  --font: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: #070b16;
+  --bg-grid: radial-gradient(circle at 1px 1px, rgb(148 163 184 / 0.07) 1px, transparent 0);
+  --surface: #0d1424;
+  --surface-2: #121b30;
+  --surface-3: #18233d;
+  --glass: rgb(13 20 36 / 0.72);
+  --glass-border: rgb(148 163 184 / 0.16);
+
+  --fg: #e9eefb;
+  --fg-strong: #f8fafc;
+  --muted: #9aa7c0;
+  --faint: #67738d;
+
+  --line: rgb(148 163 184 / 0.16);
+  --line-strong: rgb(148 163 184 / 0.3);
+
+  --brand: #3b82f6;
+  --brand-hover: #60a5fa;
+  --brand-active: #93c5fd;
+  --brand-fg: #041024;
+  --brand-soft: rgb(59 130 246 / 0.16);
+  --brand-soft-fg: #93c5fd;
+  --grad-brand: linear-gradient(135deg, #3b82f6 0%, #6366f1 55%, #4f46e5 100%);
+  --grad-hero: radial-gradient(1200px 600px at 70% -10%, rgb(37 99 235 / 0.18) 0%, transparent 60%),
+    radial-gradient(900px 500px at 100% 30%, rgb(99 102 241 / 0.14) 0%, transparent 55%), var(--bg);
+  --shadow-brand: 0 10px 26px -10px rgb(59 130 246 / 0.6);
+  --shadow-brand-lg: 0 18px 44px -14px rgb(59 130 246 / 0.55);
+
+  --accent: #2dd4bf;
+  --accent-soft: rgb(45 212 191 / 0.14);
+  --accent-soft-fg: #5eead4;
+
+  --success: #4ade80;
+  --success-soft: rgb(74 222 128 / 0.14);
+  --success-soft-fg: #86efac;
+  --warning: #fbbf24;
+  --warning-soft: rgb(251 191 36 / 0.14);
+  --warning-soft-fg: #fcd34d;
+  --danger: #f87171;
+  --danger-soft: rgb(248 113 113 / 0.14);
+  --danger-soft-fg: #fca5a5;
+  --info: #38bdf8;
+  --info-soft: rgb(56 189 248 / 0.14);
+  --info-soft-fg: #7dd3fc;
+  --neutral-soft: rgb(148 163 184 / 0.14);
+  --neutral-soft-fg: #b6c2d8;
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 2px 4px rgb(0 0 0 / 0.3), 0 12px 28px -14px rgb(0 0 0 / 0.5);
+  --shadow-lg: 0 4px 8px rgb(0 0 0 / 0.3), 0 28px 60px -22px rgb(0 0 0 / 0.6);
+  --shadow-float: 0 32px 70px -28px rgb(0 0 0 / 0.7);
+  --ring: 0 0 0 3px rgb(96 165 250 / 0.45);
+}
+
+/* -----------------------------------------------------------------------------
+   Tailwind v4 theme mapping. `inline` keeps utilities pointing at the live
+   vars, so [data-theme="dark"] flips every color utility instantly.
+   ----------------------------------------------------------------------------- */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-fg: var(--fg);
+  --color-fg-strong: var(--fg-strong);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-active: var(--brand-active);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-soft-fg: var(--brand-soft-fg);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-soft-fg: var(--accent-soft-fg);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-soft-fg: var(--success-soft-fg);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-soft-fg: var(--warning-soft-fg);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-soft-fg: var(--danger-soft-fg);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-soft-fg: var(--info-soft-fg);
+  --color-neutral-soft: var(--neutral-soft);
+  --color-neutral-soft-fg: var(--neutral-soft-fg);
+
+  --font-sans: var(--font);
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-float: var(--shadow-float);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+
+  --ease-smooth: var(--ease-smooth);
+  --ease-spring: var(--ease-spring);
+  --duration-fast: var(--duration-fast);
+  --duration-base: var(--duration-base);
+  --duration-slow: var(--duration-slow);
+}
+
+/* Opt-in dark: variant for the rare utility that must differ beyond tokens. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/* -----------------------------------------------------------------------------
+   Base layer — global element defaults shared by all three apps.
+   ----------------------------------------------------------------------------- */
+@layer base {
+  * {
+    border-color: var(--line);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--fg);
+    font-family: var(--font);
+    font-feature-settings: 'cv11', 'ss01';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--brand) 26%, transparent);
+  }
+
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--ring);
+    border-radius: var(--radius-sm);
+  }
+
+  ::placeholder {
+    color: var(--faint);
+    opacity: 1;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: color-mix(in oklab, var(--muted) 34%, transparent);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in oklab, var(--muted) 55%, transparent);
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import { RequireAdmin, RequireGuest } from './auth/RouteGuard';
 import { AppShell } from './components/AppShell';

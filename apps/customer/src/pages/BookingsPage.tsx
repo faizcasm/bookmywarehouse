@@ -25,10 +25,10 @@ export function BookingsPage() {
   const status = searchParams.get('status') ?? '';
   const page = Number.parseInt(searchParams.get('page') ?? '1', 10) || 1;
 
-  const bookings = useAsyncData(() => api.getWithMeta<BookingDTO[]>('/bookings', { status: status || undefined, page, limit: 10 }), [
-    status,
-    page,
-  ]);
+  const bookings = useAsyncData(
+    () => api.getWithMeta<{ items: BookingDTO[] }>('/bookings', { status: status || undefined, page, limit: 10 }),
+    [status, page],
+  );
 
   const tabs = useMemo(() => STATUS_TABS, []);
 
@@ -65,7 +65,7 @@ export function BookingsPage() {
         <PageLoader label="Loading bookings…" />
       ) : bookings.error ? (
         <ErrorState message={bookings.error.message} onRetry={bookings.reload} />
-      ) : (bookings.data?.data ?? []).length === 0 ? (
+      ) : (bookings.data?.data?.items ?? []).length === 0 ? (
         <EmptyState
           title={status ? 'No bookings with this status' : 'No bookings yet'}
           message={status ? 'Try another status tab.' : 'When you request a booking it will show up here.'}
@@ -78,7 +78,7 @@ export function BookingsPage() {
       ) : (
         <>
           <ul className="booking-list">
-            {(bookings.data?.data ?? []).map((booking) => (
+            {(bookings.data?.data?.items ?? []).map((booking) => (
               <li key={booking.id} className="card booking-row">
                 <div className="booking-row-media">
                   {booking.listing.coverImage ? (

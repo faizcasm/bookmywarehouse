@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState, type DragEvent } from 'react';
+import { Upload, X } from 'lucide-react';
 import { uploadFile, errorMessage } from '../lib/api';
 
 export interface UploadEntry {
@@ -144,7 +145,7 @@ export function FileUpload({
         aria-label={label}
       >
         <span className="dropzone__icon" aria-hidden="true">
-          ⬆
+          <Upload size={22} strokeWidth={1.9} />
         </span>
         <span className="dropzone__text">Drop files here or click to browse</span>
         <input
@@ -181,7 +182,7 @@ export function FileUpload({
                 aria-label={`Remove ${entry.name}`}
                 disabled={entry.status === 'uploading'}
               >
-                ×
+                <X size={14} strokeWidth={2.4} />
               </button>
             </li>
           ))}

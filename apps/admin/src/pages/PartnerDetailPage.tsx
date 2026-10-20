@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { ArrowLeft, Package } from 'lucide-react';
 import { PartnerDecisionDialog, type PartnerDecision } from '../components/PartnerDecisionDialog';
 import { StatusBadge } from '../components/StatusBadge';
 import { ErrorState, PageHeader, Skeleton } from '../components/States';
@@ -47,7 +48,8 @@ export function PartnerDetailPage() {
         actions={
           <>
             <Link to="/partners" className="btn btn--ghost btn--sm">
-              ← All partners
+              <ArrowLeft aria-hidden="true" />
+              All partners
             </Link>
             <button type="button" className="btn btn--primary btn--sm" onClick={() => setDecisionOpen(true)}>
               Record decision
@@ -221,7 +223,7 @@ export function PartnerDetailPage() {
                   <img src={l.coverImage} alt="" className="listing-card__img" loading="lazy" />
                 ) : (
                   <div className="listing-card__img listing-card__img--placeholder" aria-hidden="true">
-                    📦
+                    <Package strokeWidth={1.25} />
                   </div>
                 )}
                 <div className="listing-card__body">

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Bell, Menu, X, Search } from 'lucide-react';
+import { ThemeToggle } from '@bmw/ui';
 import { useAuth, PARTNER_APP_URL } from '../auth/AuthContext';
 import { api } from '../lib/api';
 import { formatRelativeTime } from '../lib/format';
@@ -123,6 +125,7 @@ export function Header() {
             onChange={(event) => setQuery(event.target.value)}
           />
           <button type="submit" className="btn btn-primary btn-sm" aria-label="Search">
+            <Search size={14} aria-hidden="true" />
             Search
           </button>
         </form>
@@ -149,6 +152,8 @@ export function Header() {
         </nav>
 
         <div className="header-actions">
+          <ThemeToggle />
+
           {user ? (
             <>
               <div className="dropdown-anchor">
@@ -162,7 +167,7 @@ export function Header() {
                     setMenuOpen(false);
                   }}
                 >
-                  🔔
+                  <Bell size={17} aria-hidden="true" />
                   {unread > 0 ? <span className="badge-count">{unread > 99 ? '99+' : unread}</span> : null}
                 </button>
                 {bellOpen ? (
@@ -257,7 +262,11 @@ export function Header() {
             aria-expanded={mobileOpen}
             onClick={() => setMobileOpen((v) => !v)}
           >
-            ☰
+            {mobileOpen ? (
+              <X size={18} aria-hidden="true" />
+            ) : (
+              <Menu size={18} aria-hidden="true" />
+            )}
           </button>
         </div>
       </div>

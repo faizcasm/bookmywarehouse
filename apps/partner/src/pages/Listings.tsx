@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { Plus } from 'lucide-react';
 import { api, type Pagination as PaginationMeta } from '../lib/api';
 import { formatDayShort, formatMoney } from '../lib/format';
 import { LISTING_STATUSES, LISTING_TYPES, type ListingStatus, type ListingSummaryDTO, type ListingType } from '../lib/types';
@@ -238,8 +239,9 @@ export function ListingsPage() {
             </button>
           ) : null}
         </form>
-        <Link to="/listings/new" className="btn btn--primary">
-          + New listing
+        <Link to="/listings/new" className="btn btn--primary" aria-label="+ New listing">
+          <Plus size={16} strokeWidth={2.4} aria-hidden="true" />
+          New listing
         </Link>
       </div>
 

@@ -1,4 +1,5 @@
 import type { Pagination as PaginationMeta } from '../lib/api';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface PaginationProps {
   meta: PaginationMeta | undefined | null;
@@ -42,7 +43,8 @@ export function Pagination({ meta, onPageChange, onLimitChange, limit }: Paginat
           onClick={() => onPageChange(page - 1)}
           disabled={!hasPreviousPage}
         >
-          ← Prev
+          <ChevronLeft className="icon icon--sm" aria-hidden="true" />
+          Prev
         </button>
         <button
           type="button"
@@ -50,7 +52,8 @@ export function Pagination({ meta, onPageChange, onLimitChange, limit }: Paginat
           onClick={() => onPageChange(page + 1)}
           disabled={!hasNextPage}
         >
-          Next →
+          Next
+          <ChevronRight className="icon icon--sm" aria-hidden="true" />
         </button>
       </div>
     </div>

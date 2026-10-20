@@ -1,5 +1,6 @@
-import { useState, type FormEvent } from 'react';
+import { lazy, Suspense, useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Forklift, HardHat, Megaphone, ShieldCheck, Warehouse, Zap, Lock, LifeBuoy, ArrowRight, Search } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAsyncData } from '../lib/useAsyncData';
 import { EMPTY_FILTERS, buildSearchQuery } from '../lib/searchFilters';
@@ -8,36 +9,69 @@ import type { CategoryDTO, ListingSummaryDTO, PlatformSettingsDTO } from '../lib
 import { ListingCard } from '../components/ListingCard';
 import { EmptyState, ErrorState, SkeletonGrid } from '../components/Skeleton';
 
+const HeroScene = lazy(() => import('../components/HeroScene'));
+
 const TYPE_TABS = ['', 'WAREHOUSE', 'EQUIPMENT', 'SERVICE'] as const;
 
 const VALUE_PROPS = [
   {
-    icon: '✓',
+    icon: ShieldCheck,
     title: 'Verified partners',
     body: 'Every partner goes through KYC and document checks before their listings go live.',
   },
   {
-    icon: '⚡',
+    icon: Zap,
     title: 'Live quotes',
     body: 'See subtotal, platform fee and taxes instantly — before you request a booking.',
   },
   {
-    icon: '🔒',
+    icon: Lock,
     title: 'Sandbox-secured payments',
     body: 'Pay only after the partner accepts. Every payment generates a GST-ready invoice.',
   },
   {
-    icon: '🛡️',
+    icon: LifeBuoy,
     title: 'Dispute support',
     body: 'If something goes wrong, open a dispute and our team reviews it with both parties.',
   },
 ];
+
+const TYPE_ICONS = {
+  WAREHOUSE: Warehouse,
+  EQUIPMENT: Forklift,
+  SERVICE: HardHat,
+} as const;
+
+/**
+ * Decide whether the 3D hero scene can run. Conservative: mobile, reduced
+ * motion, low device memory, data-saver, or no WebGL fall back to the CSS
+ * visual (which is always rendered while `mode === 'check'`).
+ */
+function useHeroSceneMode(): 'check' | '3d' | 'fallback' {
+  const [mode, setMode] = useState<'check' | '3d' | 'fallback'>('check');
+  useEffect(() => {
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const mobile = window.innerWidth < 768;
+    const nav = navigator as Navigator & { deviceMemory?: number; connection?: { saveData?: boolean } };
+    const lowPower = typeof nav.deviceMemory === 'number' && nav.deviceMemory <= 4;
+    const saveData = nav.connection?.saveData === true;
+    let webgl: boolean;
+    try {
+      webgl = Boolean(document.createElement('canvas').getContext('webgl2'));
+    } catch {
+      webgl = false;
+    }
+    setMode(!reduced && !mobile && !lowPower && !saveData && webgl ? '3d' : 'fallback');
+  }, []);
+  return mode;
+}
 
 export function HomePage() {
   const navigate = useNavigate();
   const [keyword, setKeyword] = useState('');
   const [city, setCity] = useState('');
   const [type, setType] = useState<(typeof TYPE_TABS)[number]>('');
+  const sceneMode = useHeroSceneMode();
 
   const settings = useAsyncData<PlatformSettingsDTO>(() => api.get('/catalog/settings'), []);
   // `GET /catalog/categories` answers with a pagination envelope `{ items }`.
@@ -59,64 +93,100 @@ export function HomePage() {
   return (
     <div className="home-page">
       <section className="hero">
-        <div className="container hero-inner">
-          <h1 className="hero-title">
-            Find warehouses, equipment &amp; logistics services near you
-          </h1>
-          <p className="hero-subtitle">
-            Compare verified listings, get live quotes with taxes up-front, and book with
-            confidence.
-          </p>
+        <div className="container hero-inner hero-grid">
+          <div className="hero-copy">
+            <p className="hero-eyebrow">
+              <span aria-hidden="true">◆</span> India&apos;s logistics marketplace
+            </p>
+            <h1 className="hero-title">
+              Find warehouses, equipment &amp; logistics services <span className="grad">near you</span>
+            </h1>
+            <p className="hero-subtitle">
+              Compare verified listings, get live quotes with taxes up-front, and book with
+              confidence.
+            </p>
 
-          <form className="hero-search card" onSubmit={onSearch} role="search">
-            <div className="hero-tabs" role="tablist" aria-label="Listing type">
-              {TYPE_TABS.map((tab) => (
-                <button
-                  key={tab || 'ALL'}
-                  type="button"
-                  role="tab"
-                  aria-selected={type === tab}
-                  className={`hero-tab ${type === tab ? 'is-active' : ''}`}
-                  onClick={() => setType(tab)}
-                >
-                  {tab ? listingTypeLabel(tab) : 'All'}
+            <form className="hero-search" onSubmit={onSearch} role="search">
+              <div className="hero-tabs" role="tablist" aria-label="Listing type">
+                {TYPE_TABS.map((tab) => (
+                  <button
+                    key={tab || 'ALL'}
+                    type="button"
+                    role="tab"
+                    aria-selected={type === tab}
+                    className={`hero-tab ${type === tab ? 'is-active' : ''}`}
+                    onClick={() => setType(tab)}
+                  >
+                    {tab ? listingTypeLabel(tab) : 'All'}
+                  </button>
+                ))}
+              </div>
+              <div className="hero-fields">
+                <div className="field">
+                  <label htmlFor="hero-keyword">What are you looking for?</label>
+                  <input
+                    id="hero-keyword"
+                    className="input"
+                    type="search"
+                    placeholder="Cold storage, forklift hire, packing crew…"
+                    value={keyword}
+                    onChange={(event) => setKeyword(event.target.value)}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="hero-city">City</label>
+                  <input
+                    id="hero-city"
+                    className="input"
+                    type="text"
+                    placeholder="e.g. Pune"
+                    value={city}
+                    onChange={(event) => setCity(event.target.value)}
+                  />
+                </div>
+                <button type="submit" className="btn btn-primary btn-lg hero-submit">
+                  <Search size={17} aria-hidden="true" />
+                  Search
                 </button>
-              ))}
-            </div>
-            <div className="hero-fields">
-              <div className="field">
-                <label htmlFor="hero-keyword">What are you looking for?</label>
-                <input
-                  id="hero-keyword"
-                  className="input"
-                  type="search"
-                  placeholder="Cold storage, forklift hire, packing crew…"
-                  value={keyword}
-                  onChange={(event) => setKeyword(event.target.value)}
-                />
               </div>
-              <div className="field">
-                <label htmlFor="hero-city">City</label>
-                <input
-                  id="hero-city"
-                  className="input"
-                  type="text"
-                  placeholder="e.g. Pune"
-                  value={city}
-                  onChange={(event) => setCity(event.target.value)}
-                />
-              </div>
-              <button type="submit" className="btn btn-primary btn-lg hero-submit">
-                Search
-              </button>
-            </div>
-          </form>
+            </form>
 
-          {settings.data?.announcement ? (
-            <div className="announcement" role="status">
-              <span aria-hidden="true">📣</span> {settings.data.announcement}
+            <div className="hero-trust" aria-label="Why book with us">
+              <span className="hero-trust-chip">
+                <ShieldCheck size={14} aria-hidden="true" /> KYC-verified partners
+              </span>
+              <span className="hero-trust-chip">
+                <Zap size={14} aria-hidden="true" /> Instant live quotes
+              </span>
+              <span className="hero-trust-chip">
+                <Lock size={14} aria-hidden="true" /> GST-ready invoices
+              </span>
             </div>
-          ) : null}
+
+            {settings.data?.announcement ? (
+              <div className="announcement" role="status">
+                <Megaphone size={16} aria-hidden="true" /> {settings.data.announcement}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="hero-scene">
+            {sceneMode === '3d' ? (
+              <Suspense
+                fallback={
+                  <div className="hero-scene-fallback" aria-hidden="true">
+                    <Warehouse size={64} />
+                  </div>
+                }
+              >
+                <HeroScene />
+              </Suspense>
+            ) : (
+              <div className="hero-scene-fallback" aria-hidden="true">
+                <Warehouse size={64} />
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
@@ -142,33 +212,32 @@ export function HomePage() {
           />
         ) : (
           <div className="grid grid-categories">
-            {(categories.data ?? []).map((category) => (
-              <Link
-                key={category.id}
-                to={`/search?categoryId=${category.id}&type=${category.type}`}
-                className="card category-card"
-              >
-                <span className="category-icon" aria-hidden="true">
-                  {category.type === 'WAREHOUSE'
-                    ? '🏭'
-                    : category.type === 'EQUIPMENT'
-                      ? '🚜'
-                      : '👷'}
-                </span>
-                <div>
-                  <h3 className="category-name">{category.name}</h3>
-                  {category.description ? (
-                    <p className="category-desc">{category.description}</p>
-                  ) : null}
-                  <span className="category-count">
-                    {listingTypeLabel(category.type)}
-                    {typeof category.listingCount === 'number'
-                      ? ` · ${category.listingCount} listing${category.listingCount === 1 ? '' : 's'}`
-                      : ''}
+            {(categories.data ?? []).map((category) => {
+              const CategoryIcon = TYPE_ICONS[category.type] ?? Warehouse;
+              return (
+                <Link
+                  key={category.id}
+                  to={`/search?categoryId=${category.id}&type=${category.type}`}
+                  className="card category-card"
+                >
+                  <span className="category-icon" aria-hidden="true">
+                    <CategoryIcon size={26} />
                   </span>
-                </div>
-              </Link>
-            ))}
+                  <div>
+                    <h3 className="category-name">{category.name}</h3>
+                    {category.description ? (
+                      <p className="category-desc">{category.description}</p>
+                    ) : null}
+                    <span className="category-count">
+                      {listingTypeLabel(category.type)}
+                      {typeof category.listingCount === 'number'
+                        ? ` · ${category.listingCount} listing${category.listingCount === 1 ? '' : 's'}`
+                        : ''}
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         )}
       </section>
@@ -177,7 +246,7 @@ export function HomePage() {
         <div className="section-head">
           <h2 id="featured-heading">Featured listings</h2>
           <Link to="/search?sort=rating_desc" className="link-btn">
-            View all →
+            View all <ArrowRight size={14} aria-hidden="true" style={{ verticalAlign: -2 }} />
           </Link>
         </div>
         {featured.loading ? (
@@ -212,7 +281,7 @@ export function HomePage() {
             {VALUE_PROPS.map((prop) => (
               <div className="prop-card" key={prop.title}>
                 <span className="prop-icon" aria-hidden="true">
-                  {prop.icon}
+                  <prop.icon size={20} />
                 </span>
                 <h3>{prop.title}</h3>
                 <p>{prop.body}</p>

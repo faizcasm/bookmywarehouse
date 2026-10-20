@@ -46,8 +46,13 @@ export default tseslint.config(
     },
   },
   {
-    // Frontend apps run in the browser.
-    files: ['apps/customer/**/*.{ts,tsx}', 'apps/partner/**/*.{ts,tsx}', 'apps/admin/**/*.{ts,tsx}'],
+    // Frontend apps + the shared UI package run in the browser.
+    files: [
+      'apps/customer/**/*.{ts,tsx}',
+      'apps/partner/**/*.{ts,tsx}',
+      'apps/admin/**/*.{ts,tsx}',
+      'packages/ui/**/*.{ts,tsx}',
+    ],
     languageOptions: {
       globals: { ...globals.browser },
     },

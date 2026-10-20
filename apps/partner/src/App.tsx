@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { PublicOnly, RequireAuth } from './auth/RouteGuard';
 import { AppShell } from './components/AppShell';
 import { LoginPage } from './pages/Login';
@@ -18,8 +18,10 @@ import { NotificationsPage } from './pages/Notifications';
 import { ProfilePage } from './pages/Profile';
 
 export function App() {
+  const location = useLocation();
+
   return (
-    <Routes>
+    <Routes location={location}>
       <Route
         path="/login"
         element={

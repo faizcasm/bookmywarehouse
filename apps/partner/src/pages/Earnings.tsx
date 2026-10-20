@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { CircleDollarSign, TrendingDown, Wallet } from 'lucide-react';
+import { Stat } from '@bmw/ui';
 import { api, type Pagination as PaginationMeta } from '../lib/api';
 import { formatDate, formatMoney } from '../lib/format';
 import type { EarningRowDTO, PartnerProfileDTO } from '../lib/types';
 import { DataTable, type Column } from '../components/DataTable';
 import { Pagination } from '../components/Pagination';
-import { StatCard } from '../components/StatCard';
 import { StatusBadge } from '../components/StatusBadge';
 import { EmptyState, ErrorState, ListSkeleton } from '../components/States';
 
@@ -71,9 +72,27 @@ export function EarningsPage() {
   return (
     <div className="page">
       <div className="stat-grid stat-grid--3">
-        <StatCard label="Gross collected (loaded)" value={formatMoney(totals.gross, currency)} tone="info" />
-        <StatCard label="Platform fees" value={`-${formatMoney(totals.fees, currency)}`} tone="warning" />
-        <StatCard label="Net earnings (loaded)" value={formatMoney(totals.net, currency)} tone="success" />
+        <Stat
+          label="Gross collected (loaded)"
+          value={totals.gross}
+          format={(n) => formatMoney(Math.round(n), currency)}
+          icon={CircleDollarSign}
+          hint="Sum of loaded rows"
+        />
+        <Stat
+          label="Platform fees"
+          value={totals.fees}
+          format={(n) => `-${formatMoney(Math.round(n), currency)}`}
+          icon={TrendingDown}
+          hint="10% platform commission"
+        />
+        <Stat
+          label="Net earnings (loaded)"
+          value={totals.net}
+          format={(n) => formatMoney(Math.round(n), currency)}
+          icon={Wallet}
+          hint="Paid to your account"
+        />
       </div>
 
       {profile ? (

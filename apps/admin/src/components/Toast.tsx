@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Check, Info, X } from 'lucide-react';
 
 export type ToastTone = 'success' | 'error' | 'info';
 
@@ -49,7 +50,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map((t) => (
           <div key={t.id} className={`toast toast--${t.tone}`} role="status">
             <span className="toast__icon" aria-hidden="true">
-              {t.tone === 'success' ? '✓' : t.tone === 'error' ? '✕' : 'ℹ'}
+              {t.tone === 'success' ? (
+                <Check strokeWidth={2.5} />
+              ) : t.tone === 'error' ? (
+                <X strokeWidth={2.5} />
+              ) : (
+                <Info strokeWidth={2.25} />
+              )}
             </span>
             <span className="toast__message">{t.message}</span>
             <button
@@ -58,7 +65,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               aria-label="Dismiss notification"
               onClick={() => remove(t.id)}
             >
-              ×
+              <X strokeWidth={2.25} aria-hidden="true" />
             </button>
           </div>
         ))}

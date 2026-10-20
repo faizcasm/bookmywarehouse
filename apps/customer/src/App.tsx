@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import { Link, Route, Routes, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'motion/react';
+import { pageTransition } from '@bmw/ui';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { RequireAuth } from './components/RouteGuard';
@@ -88,8 +90,15 @@ export default function App() {
       </a>
       <Header />
       <main id="main" className="app-main">
-        <div key={location.pathname} className="page-transition">
-          <Routes location={location}>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={location.pathname}
+            variants={pageTransition}
+            initial="hidden"
+            animate="show"
+            exit="exit"
+          >
+            <Routes location={location}>
             <Route path="/" element={<HomePage />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/listing/:slug" element={<ListingPage />} />
@@ -195,7 +204,8 @@ export default function App() {
             />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
-        </div>
+          </motion.div>
+        </AnimatePresence>
       </main>
       <Footer />
     </div>

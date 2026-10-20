@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { AlertCircle, Check, Info, X } from 'lucide-react';
 import { errorMessage, isApiError } from '../lib/api';
 
 export type ToastKind = 'success' | 'error' | 'info';
@@ -81,11 +82,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map((item) => (
           <div key={item.id} className={`toast toast--${item.kind}`}>
             <span className="toast__icon" aria-hidden="true">
-              {item.kind === 'success' ? '✓' : item.kind === 'error' ? '!' : 'i'}
+              {item.kind === 'success' ? (
+                <Check size={15} strokeWidth={2.6} />
+              ) : item.kind === 'error' ? (
+                <AlertCircle size={15} strokeWidth={2.4} />
+              ) : (
+                <Info size={15} strokeWidth={2.4} />
+              )}
             </span>
             <span className="toast__message">{item.message}</span>
             <button type="button" className="toast__close" onClick={() => dismiss(item.id)} aria-label="Dismiss notification">
-              ×
+              <X size={15} strokeWidth={2.2} />
             </button>
           </div>
         ))}

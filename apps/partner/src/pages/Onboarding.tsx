@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { Plus } from 'lucide-react';
 import { api, errorMessage, isApiError } from '../lib/api';
 import type { PartnerProfileDTO } from '../lib/types';
 import { BUSINESS_TYPES } from '../lib/types';
@@ -299,8 +300,10 @@ function VerificationSection({ profile, onSaved }: { profile: PartnerProfileDTO;
               className="btn btn--secondary btn--sm"
               onClick={() => setDocuments((current) => [...current, { id: docRowId++, label: '', url: '', uploading: false }])}
               disabled={blocked || documents.length >= 10}
+              aria-label="+ Add document"
             >
-              + Add document
+              <Plus size={15} strokeWidth={2.4} aria-hidden="true" />
+              Add document
             </button>
           </div>
         </div>
