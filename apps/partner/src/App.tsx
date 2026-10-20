@@ -23,17 +23,21 @@ export function App() {
       <Route
         path="/login"
         element={
-          <PublicOnly>
-            <LoginPage />
-          </PublicOnly>
+          <div className="page-transition">
+            <PublicOnly>
+              <LoginPage />
+            </PublicOnly>
+          </div>
         }
       />
       <Route
         path="/register"
         element={
-          <PublicOnly>
-            <RegisterPage />
-          </PublicOnly>
+          <div className="page-transition">
+            <PublicOnly>
+              <RegisterPage />
+            </PublicOnly>
+          </div>
         }
       />
 

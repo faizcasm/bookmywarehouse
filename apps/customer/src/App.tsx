@@ -46,122 +46,156 @@ function ScrollToTop() {
   return null;
 }
 
+/**
+ * Scroll-reveal: adds `is-in` to `.reveal` sections as they enter the viewport
+ * (see .reveal in styles.css). Re-runs per navigation; degrades to visible if
+ * IntersectionObserver is unavailable.
+ */
+function ScrollReveal() {
+  const { key } = useLocation();
+  useEffect(() => {
+    const els = Array.from(document.querySelectorAll<HTMLElement>('.reveal'));
+    if (els.length === 0) return undefined;
+    if (typeof IntersectionObserver === 'undefined') {
+      els.forEach((el) => el.classList.add('is-in'));
+      return undefined;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-in');
+            observer.unobserve(entry.target);
+          }
+        }
+      },
+      { rootMargin: '0px 0px -8% 0px', threshold: 0.08 },
+    );
+    els.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [key]);
+  return null;
+}
+
 export default function App() {
   const location = useLocation();
   return (
     <div className="app-shell">
       <ScrollToTop />
+      <ScrollReveal />
       <a href="#main" className="skip-link">
         Skip to main content
       </a>
       <Header />
       <main id="main" className="app-main">
-        <Routes location={location}>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/search" element={<SearchPage />} />
-          <Route path="/listing/:slug" element={<ListingPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route
-            path="/bookings"
-            element={
-              <RequireAuth>
-                <BookingsPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/bookings/:id"
-            element={
-              <RequireAuth>
-                <BookingDetailPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/pay/:bookingId"
-            element={
-              <RequireAuth>
-                <PayPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/invoices"
-            element={
-              <RequireAuth>
-                <InvoicesPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/invoices/:id"
-            element={
-              <RequireAuth>
-                <InvoiceDetailPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/favorites"
-            element={
-              <RequireAuth>
-                <FavoritesPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/reviews"
-            element={
-              <RequireAuth>
-                <ReviewsPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/messages"
-            element={
-              <RequireAuth>
-                <MessagesPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/messages/:id"
-            element={
-              <RequireAuth>
-                <ConversationPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/notifications"
-            element={
-              <RequireAuth>
-                <NotificationsPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/disputes"
-            element={
-              <RequireAuth>
-                <DisputesPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <RequireAuth>
-                <ProfilePage />
-              </RequireAuth>
-            }
-          />
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
+        <div key={location.pathname} className="page-transition">
+          <Routes location={location}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/search" element={<SearchPage />} />
+            <Route path="/listing/:slug" element={<ListingPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route
+              path="/bookings"
+              element={
+                <RequireAuth>
+                  <BookingsPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/bookings/:id"
+              element={
+                <RequireAuth>
+                  <BookingDetailPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/pay/:bookingId"
+              element={
+                <RequireAuth>
+                  <PayPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/invoices"
+              element={
+                <RequireAuth>
+                  <InvoicesPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/invoices/:id"
+              element={
+                <RequireAuth>
+                  <InvoiceDetailPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/favorites"
+              element={
+                <RequireAuth>
+                  <FavoritesPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/reviews"
+              element={
+                <RequireAuth>
+                  <ReviewsPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/messages"
+              element={
+                <RequireAuth>
+                  <MessagesPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/messages/:id"
+              element={
+                <RequireAuth>
+                  <ConversationPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/notifications"
+              element={
+                <RequireAuth>
+                  <NotificationsPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/disputes"
+              element={
+                <RequireAuth>
+                  <DisputesPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <RequireAuth>
+                  <ProfilePage />
+                </RequireAuth>
+              }
+            />
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </div>
       </main>
       <Footer />
     </div>

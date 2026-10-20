@@ -30,7 +30,14 @@ export function App() {
         <AuthProvider>
           <Routes>
             <Route element={<RequireGuest />}>
-              <Route path="/login" element={<LoginPage />} />
+              <Route
+                path="/login"
+                element={
+                  <div className="page-transition">
+                    <LoginPage />
+                  </div>
+                }
+              />
             </Route>
             <Route element={<RequireAdmin />}>
               <Route element={<AppShell />}>

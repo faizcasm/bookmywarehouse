@@ -166,6 +166,19 @@ Built against `docs/API_REFERENCE.md` (written first as the shared contract):
    under `dist/<prefix>/` (`scripts/nest-dist.mjs`) with fallbacks rewritten to
    `/<prefix>/index.html`; verified by content-type + a full browser sweep of
    all 98 route visits (auth: 50/50 clean).
-3. Post-MVP candidates: Cloudinary image storage for production, real payment provider
+3. **Modern SaaS design refresh across all three SPAs** — done: one shared token
+   language everywhere (Inter Variable bundled via `@fontsource-variable/inter` —
+   admin referenced `Inter` without shipping it; layered slate/teal shadows,
+   10/14/20px radii, `--ease-out`/`--dur` motion tokens, gradient brand + focus
+   rings), gradient primary buttons with lift/press micro-interactions, glass
+   sticky headers/topbars, animated customer hero (floating gradient orbs +
+   staggered entrance), card hover lifts with teal border tint, dropdown/modal
+   pop-ins, pathname-keyed page-transition wrappers (`App.tsx` / `AppShell.tsx`),
+   scroll-reveal home sections (IntersectionObserver in customer `App.tsx`), and
+   `prefers-reduced-motion` guards in all three apps. E2E uses only `#id`
+   selectors, so restyling was test-safe — verified by lint/typecheck/test
+   149/149, E2E 12/12, and local + production screenshots.
+   **Shipped 2026-10-20.**
+4. Post-MVP candidates: Cloudinary image storage for production, real payment provider
    keys (Razorpay/Stripe), email delivery via Resend, `idPrefix` fix for onboarding
    address fields.

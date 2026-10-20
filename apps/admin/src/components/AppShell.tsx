@@ -167,7 +167,9 @@ export function AppShell() {
           </div>
         </header>
         <main className="content">
-          <Outlet />
+          <div key={location.pathname} className="page-transition">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

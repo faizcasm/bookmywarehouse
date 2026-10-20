@@ -60,7 +60,9 @@ export function AppShell() {
 
   const loadNotifications = useCallback(async () => {
     try {
-      const data = await api.get<{ unread: number; items: NotificationDTO[] }>('/notifications', { limit: 5 });
+      const data = await api.get<{ unread: number; items: NotificationDTO[] }>('/notifications', {
+        limit: 5,
+      });
       setUnread(data.unread ?? 0);
       setRecent(Array.isArray(data.items) ? data.items.slice(0, 5) : []);
     } catch {
@@ -112,23 +114,34 @@ export function AppShell() {
               key={item.to}
               to={item.to}
               end={item.end}
-              className={({ isActive }) => `shell__nav-link ${isActive ? 'shell__nav-link--active' : ''}`}
+              className={({ isActive }) =>
+                `shell__nav-link ${isActive ? 'shell__nav-link--active' : ''}`
+              }
             >
               <span className="shell__nav-icon" aria-hidden="true">
                 {item.icon}
               </span>
               {item.label}
-              {item.to === '/notifications' && unread > 0 ? <span className="shell__nav-badge">{unread}</span> : null}
+              {item.to === '/notifications' && unread > 0 ? (
+                <span className="shell__nav-badge">{unread}</span>
+              ) : null}
             </NavLink>
           ))}
         </nav>
         <div className="shell__sidebar-footer">
-          <a href={CUSTOMER_APP_URL} target="_blank" rel="noreferrer" className="shell__customer-link">
+          <a
+            href={CUSTOMER_APP_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="shell__customer-link"
+          >
             Customer marketplace ↗
           </a>
         </div>
       </div>
-      {drawerOpen ? <div className="shell__scrim" onClick={() => setDrawerOpen(false)} role="presentation" /> : null}
+      {drawerOpen ? (
+        <div className="shell__scrim" onClick={() => setDrawerOpen(false)} role="presentation" />
+      ) : null}
 
       <div className="shell__main">
         <header className="shell__topbar">
@@ -152,7 +165,9 @@ export function AppShell() {
                 onClick={() => setBellOpen((open) => !open)}
               >
                 ◔
-                {unread > 0 ? <span className="bell__badge">{unread > 99 ? '99+' : unread}</span> : null}
+                {unread > 0 ? (
+                  <span className="bell__badge">{unread > 99 ? '99+' : unread}</span>
+                ) : null}
               </button>
               {bellOpen ? (
                 <div className="bell__dropdown" role="menu" aria-label="Recent notifications">
@@ -181,7 +196,13 @@ export function AppShell() {
             </div>
 
             <div className="user-menu" ref={menuRef}>
-              <button type="button" className="user-menu__button" onClick={() => setMenuOpen((open) => !open)} aria-haspopup="menu" aria-expanded={menuOpen}>
+              <button
+                type="button"
+                className="user-menu__button"
+                onClick={() => setMenuOpen((open) => !open)}
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+              >
                 <span className="avatar avatar--sm">{initials(user?.name)}</span>
                 <span className="user-menu__name">{user?.name}</span>
                 <span className="user-menu__caret" aria-hidden="true">
@@ -200,7 +221,12 @@ export function AppShell() {
                   <Link to="/onboarding" className="user-menu__item" role="menuitem">
                     Onboarding & KYC
                   </Link>
-                  <button type="button" className="user-menu__item user-menu__item--danger" role="menuitem" onClick={() => void handleLogout()}>
+                  <button
+                    type="button"
+                    className="user-menu__item user-menu__item--danger"
+                    role="menuitem"
+                    onClick={() => void handleLogout()}
+                  >
                     Sign out
                   </button>
                 </div>
@@ -209,7 +235,9 @@ export function AppShell() {
           </div>
         </header>
         <main className="shell__content">
-          <Outlet />
+          <div key={location.pathname} className="page-transition">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

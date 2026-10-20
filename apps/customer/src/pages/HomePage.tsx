@@ -60,9 +60,12 @@ export function HomePage() {
     <div className="home-page">
       <section className="hero">
         <div className="container hero-inner">
-          <h1 className="hero-title">Find warehouses, equipment &amp; logistics services near you</h1>
+          <h1 className="hero-title">
+            Find warehouses, equipment &amp; logistics services near you
+          </h1>
           <p className="hero-subtitle">
-            Compare verified listings, get live quotes with taxes up-front, and book with confidence.
+            Compare verified listings, get live quotes with taxes up-front, and book with
+            confidence.
           </p>
 
           <form className="hero-search card" onSubmit={onSearch} role="search">
@@ -117,7 +120,7 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="section container" aria-labelledby="categories-heading">
+      <section className="section container reveal" aria-labelledby="categories-heading">
         <div className="section-head">
           <h2 id="categories-heading">Browse by category</h2>
         </div>
@@ -133,7 +136,10 @@ export function HomePage() {
         ) : categories.error ? (
           <ErrorState message={categories.error.message} onRetry={categories.reload} />
         ) : (categories.data ?? []).length === 0 ? (
-          <EmptyState title="No categories yet" message="Categories will appear once they are published." />
+          <EmptyState
+            title="No categories yet"
+            message="Categories will appear once they are published."
+          />
         ) : (
           <div className="grid grid-categories">
             {(categories.data ?? []).map((category) => (
@@ -143,14 +149,22 @@ export function HomePage() {
                 className="card category-card"
               >
                 <span className="category-icon" aria-hidden="true">
-                  {category.type === 'WAREHOUSE' ? '🏭' : category.type === 'EQUIPMENT' ? '🚜' : '👷'}
+                  {category.type === 'WAREHOUSE'
+                    ? '🏭'
+                    : category.type === 'EQUIPMENT'
+                      ? '🚜'
+                      : '👷'}
                 </span>
                 <div>
                   <h3 className="category-name">{category.name}</h3>
-                  {category.description ? <p className="category-desc">{category.description}</p> : null}
+                  {category.description ? (
+                    <p className="category-desc">{category.description}</p>
+                  ) : null}
                   <span className="category-count">
                     {listingTypeLabel(category.type)}
-                    {typeof category.listingCount === 'number' ? ` · ${category.listingCount} listing${category.listingCount === 1 ? '' : 's'}` : ''}
+                    {typeof category.listingCount === 'number'
+                      ? ` · ${category.listingCount} listing${category.listingCount === 1 ? '' : 's'}`
+                      : ''}
                   </span>
                 </div>
               </Link>
@@ -159,7 +173,7 @@ export function HomePage() {
         )}
       </section>
 
-      <section className="section container" aria-labelledby="featured-heading">
+      <section className="section container reveal" aria-labelledby="featured-heading">
         <div className="section-head">
           <h2 id="featured-heading">Featured listings</h2>
           <Link to="/search?sort=rating_desc" className="link-btn">
@@ -189,7 +203,7 @@ export function HomePage() {
         )}
       </section>
 
-      <section className="section value-props" aria-labelledby="why-heading">
+      <section className="section value-props reveal" aria-labelledby="why-heading">
         <div className="container">
           <div className="section-head section-head-center">
             <h2 id="why-heading">Why BookMyWarehouse?</h2>
