@@ -179,6 +179,18 @@ Built against `docs/API_REFERENCE.md` (written first as the shared contract):
    selectors, so restyling was test-safe — verified by lint/typecheck/test
    149/149, E2E 12/12, and local + production screenshots.
    **Shipped 2026-10-20.**
-4. Post-MVP candidates: Cloudinary image storage for production, real payment provider
+4. **Git → Vercel auto-deploys fixed** — pushes to `main` were failing seconds after each
+   manual deploy with `[ENTRYPOINT_NOT_FOUND] Service "api" has entrypoint "dist/app.js"
+   but that path does not exist`: Vercel resolves a service's `entrypoint` against the
+   *source* tree during service detection, which runs **before** `buildCommand`, so build
+   output can never satisfy it on a clean clone (CLI deploys passed only because the
+   locally built `dist/` rode along in the upload). Fixed by pointing `entrypoint` at a
+   committed wrapper, `apps/api/server.js` (`export { default } from './dist/app.js'`),
+   which re-exports the bundled handler — the packaged function is unchanged (handler
+   `app.js`, `dist/*` staged flat, ESM marker + swagger assets beside it). Verified with
+   a `dist/`-less local `vercel build`, then a real Git-triggered production deploy and
+   full production checks; lint/typecheck/test 149/149.
+   **Shipped 2026-10-20.**
+5. Post-MVP candidates: Cloudinary image storage for production, real payment provider
    keys (Razorpay/Stripe), email delivery via Resend, `idPrefix` fix for onboarding
    address fields.

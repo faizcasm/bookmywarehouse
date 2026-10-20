@@ -35,7 +35,7 @@
     },
     "api": {
       "root": "apps/api",
-      "entrypoint": "dist/app.js",
+      "entrypoint": "server.js",
       "buildCommand": "pnpm --filter @bmw/api... build"
     }
   },

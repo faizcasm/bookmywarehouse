@@ -15,7 +15,7 @@ shared domain:
 | `customer` | `apps/customer` | `/(.*)` (catch-all) | Vite static SPA at the domain root |
 | `partner` | `apps/partner` | `/partner`, `/partner/(.*)` | Vite SPA; built with `base: /partner/`, router basename `/partner`; build nests output under `dist/partner/` because static lookup uses the original request path (`request.path` transforms only affect function code, not static files) |
 | `admin` | `apps/admin` | `/admin`, `/admin/(.*)` | Same scheme with `/admin` (`dist/admin/`) |
-| `api` | `apps/api` | `/api/(.*)` and `/health` | Express on the Node runtime, entry `dist/app.js` (esbuild ESM bundle; the default export of `app.ts` is a `(req, res)` request listener, no `listen()`) |
+| `api` | `apps/api` | `/api/(.*)` and `/health` | Express on the Node runtime, `entrypoint` `server.js` — a committed wrapper re-exporting the default handler of the esbuild ESM bundle `dist/app.js` (service detection resolves `entrypoint` against the source tree *before* `buildCommand`, so it cannot point at build output); the default export of `app.ts` is a `(req, res)` request listener, no `listen()` |
 
 - Rewrites are ordered most-specific first: `/api/*` and `/health` → `api`, then the
   `/partner` and `/admin` prefixes, then the catch-all → `customer`.
@@ -44,6 +44,14 @@ shared domain:
   without which Node loads the ESM bundle as CommonJS) and copies swagger-ui's static
   assets next to the bundle, because `swagger-ui-express` serves them from its inlined
   `__dirname`.
+- **The entrypoint must exist in Git** — Vercel resolves a service's `entrypoint` during
+  service detection, which runs *before* `buildCommand`, so on a clean clone build output
+  (`dist/app.js`) does not exist yet and the build dies instantly with
+  `[ENTRYPOINT_NOT_FOUND]`. The api service therefore points `entrypoint` at
+  `apps/api/server.js`, a committed one-liner (`export { default } from './dist/app.js'`).
+  The function that ships is unchanged — Vercel still stages `dist/*` flat at the lambda
+  root with `handler: app.js` (bundle + ESM marker + swagger assets beside it). Manual
+  CLI deploys only ever passed because a locally built `dist/` rode along in the upload.
 - **No in-memory state** — sessions are stateless JWTs; refresh sessions live in MongoDB;
   nothing critical is kept in process memory. Horizontal scaling is safe.
 - **No WebSocket/background workers** — the design doesn't rely on any. Email delivery is
@@ -108,8 +116,11 @@ Secrets are generated per environment (e.g. `openssl rand -base64 32`) and never
    auto-detects the root `vercel.json` `services` configuration — no per-service project
    setup is needed.
 2. Add the environment variables listed above to the project (Production + Preview).
-3. Deploy. The single deployment domain serves all four apps (see the routing table);
-   attach a custom domain if desired, and point DNS per Vercel's instructions.
+3. Deploy — pushing to the production branch auto-builds through Vercel's Git
+   integration, and `npx vercel deploy --prod` works from a clean clone (all builds run
+   remotely; no local `dist/` needed). The single deployment domain serves all four apps
+   (see the routing table); attach a custom domain if desired, and point DNS per Vercel's
+   instructions.
 4. Run `pnpm seed` and `pnpm db:indexes` **once** against the production Atlas database from
    a trusted machine (`MONGODB_URI` = production URI), never from CI logs.
 6. Verify: `/health`, register/login on each app, a full booking round-trip, and a sandbox
