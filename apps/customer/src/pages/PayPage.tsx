@@ -1,15 +1,42 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { CreditCard, Loader2, Lock } from 'lucide-react';
 import { ApiError, api } from '../lib/api';
 import { useAsyncData } from '../lib/useAsyncData';
 import { formatMoney } from '../lib/format';
-import type { BookingDTO, PaymentInitiateDTO } from '../lib/types';
+import type { BookingDTO, PaymentConfigDTO, PaymentInitiateDTO } from '../lib/types';
 import { StatusBadge } from '../components/StatusBadge';
 import { useToast } from '../components/Toast';
 import { ErrorState, PageLoader } from '../components/Skeleton';
 
 const POLL_INTERVAL_MS = 1500;
 const MAX_POLLS = 20;
+
+declare global {
+  interface Window {
+    Razorpay?: new (options: Record<string, unknown>) => { open(): void };
+  }
+}
+
+/** Injects Razorpay Checkout.js once; resolves when the global is available. */
+function loadRazorpayScript(): Promise<void> {
+  if (window.Razorpay) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const existing = document.getElementById('rzp-checkout-js');
+    if (existing) {
+      existing.addEventListener('load', () => resolve());
+      existing.addEventListener('error', () => reject(new Error('Could not load Razorpay Checkout')));
+      return;
+    }
+    const script = document.createElement('script');
+    script.id = 'rzp-checkout-js';
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Could not load Razorpay Checkout'));
+    document.body.appendChild(script);
+  });
+}
 
 export function PayPage() {
   const { bookingId = '' } = useParams();
@@ -18,6 +45,8 @@ export function PayPage() {
 
   const bookingState = useAsyncData<BookingDTO>(() => api.get(`/bookings/${bookingId}`), [bookingId]);
   const booking = bookingState.data;
+  const configState = useAsyncData<PaymentConfigDTO>(() => api.get('/payments/config'), []);
+  const config = configState.data;
 
   const [payment, setPayment] = useState<PaymentInitiateDTO | null>(null);
   const [busy, setBusy] = useState<'initiate' | 'success' | 'failure' | null>(null);
@@ -31,19 +60,6 @@ export function PayPage() {
     },
     [],
   );
-
-  const onInitiate = async () => {
-    setBusy('initiate');
-    setError(null);
-    try {
-      const result = await api.post<PaymentInitiateDTO>(`/payments/bookings/${bookingId}/initiate`, {});
-      setPayment(result);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not initiate the payment.');
-    } finally {
-      setBusy(null);
-    }
-  };
 
   const startPolling = () => {
     setPolling(true);
@@ -71,6 +87,7 @@ export function PayPage() {
     }, POLL_INTERVAL_MS);
   };
 
+  /** Sandbox: simulate the gateway result through the signed webhook pipeline. */
   const onSimulate = async (outcome: 'SUCCESS' | 'FAILURE') => {
     if (!payment) return;
     setBusy(outcome === 'SUCCESS' ? 'success' : 'failure');
@@ -89,7 +106,66 @@ export function PayPage() {
     }
   };
 
-  if (bookingState.loading) return <PageLoader label="Loading checkout…" />;
+  /** Live Razorpay: open the hosted Checkout modal, then confirm the signature. */
+  const openRazorpay = async (initiated: PaymentInitiateDTO) => {
+    if (!initiated.razorpay || !config?.razorpayKeyId) return;
+    await loadRazorpayScript();
+    const rzp = new window.Razorpay!({
+      key: config.razorpayKeyId,
+      order_id: initiated.razorpay.orderId,
+      amount: initiated.payment.amount,
+      currency: initiated.payment.currency,
+      name: 'BookMyWarehouse',
+      description: booking?.reference,
+      theme: { color: '#2563eb' },
+      handler: async (response: { order_id: string; payment_id: string; signature: string }) => {
+        setBusy('success');
+        setError(null);
+        try {
+          await api.post('/payments/verify', {
+            orderId: response.order_id,
+            paymentId: response.payment_id,
+            signature: response.signature,
+          });
+          startPolling();
+        } catch (err) {
+          setError(
+            err instanceof ApiError
+              ? err.message
+              : 'The payment could not be confirmed. Refresh the page or contact support with your reference.',
+          );
+        } finally {
+          setBusy(null);
+        }
+      },
+      modal: {
+        ondismiss: () => {
+          setBusy(null);
+          setPayment(null);
+          toast.push('Checkout closed — you can retry whenever you are ready.', 'info');
+        },
+      },
+    });
+    rzp.open();
+  };
+
+  const onPay = async () => {
+    setBusy('initiate');
+    setError(null);
+    try {
+      const result = await api.post<PaymentInitiateDTO>(`/payments/bookings/${bookingId}/initiate`, {});
+      setPayment(result);
+      if (result.razorpay) {
+        await openRazorpay(result);
+      }
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not start the payment.');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  if (bookingState.loading || (configState.loading && !config)) return <PageLoader label="Loading checkout…" />;
   if (bookingState.error || !booking) {
     return (
       <div className="container page">
@@ -99,14 +175,17 @@ export function PayPage() {
   }
 
   const alreadyPaid = booking.status !== 'AWAITING_PAYMENT';
+  const isSandbox = config?.sandbox ?? true;
 
   return (
     <div className="container page pay-page">
       <div className="card auth-card pay-card">
-        <div className="sandbox-banner" role="note">
-          <strong>Sandbox checkout — no real money moves.</strong>
-          <span>Payments are simulated end-to-end for the demo environment.</span>
-        </div>
+        {isSandbox ? (
+          <div className="sandbox-banner" role="note">
+            <strong>Sandbox checkout — no real money moves.</strong>
+            <span>Payments are simulated end-to-end until a live gateway is configured.</span>
+          </div>
+        ) : null}
 
         <h1>Complete your payment</h1>
         <div className="pay-booking-ref">
@@ -142,11 +221,30 @@ export function PayPage() {
                 {error}
               </p>
             ) : null}
-            <button type="button" className="btn btn-primary btn-block" onClick={onInitiate} disabled={busy === 'initiate'}>
-              {busy === 'initiate' ? 'Initiating…' : `Pay ${formatMoney(booking.pricing.total, booking.pricing.currency)}`}
+            <button
+              type="button"
+              className="btn btn-primary btn-block"
+              onClick={() => void onPay()}
+              disabled={busy === 'initiate'}
+            >
+              {busy === 'initiate' ? (
+                <>
+                  <Loader2 className="spin" size={16} aria-hidden="true" /> Starting checkout…
+                </>
+              ) : (
+                <>
+                  <Lock size={15} aria-hidden="true" /> Pay {formatMoney(booking.pricing.total, booking.pricing.currency)}
+                </>
+              )}
             </button>
+            {isSandbox ? null : (
+              <p className="field-hint pay-secure-hint">
+                <CreditCard size={13} aria-hidden="true" /> Payments are processed securely by Razorpay — UPI, cards,
+                netbanking and wallets.
+              </p>
+            )}
           </>
-        ) : (
+        ) : payment.sandbox ? (
           <>
             <section className="payment-box" aria-label="Payment details">
               <dl className="summary-list">
@@ -157,7 +255,8 @@ export function PayPage() {
                 <div>
                   <dt>Provider</dt>
                   <dd>
-                    {payment.payment.provider} {payment.sandbox ? <span className="badge tone-warn">Sandbox</span> : null}
+                    {payment.payment.provider}{' '}
+                    {payment.sandbox ? <span className="badge tone-warn">Sandbox</span> : null}
                   </dd>
                 </div>
                 <div>
@@ -203,6 +302,56 @@ export function PayPage() {
             ) : null}
             <p className="field-hint">
               Sandbox webhooks drive the booking state machine exactly like production.
+            </p>
+          </>
+        ) : (
+          <>
+            <section className="payment-box" aria-label="Payment details">
+              <dl className="summary-list">
+                <div>
+                  <dt>Payment reference</dt>
+                  <dd className="mono">{payment.payment.reference}</dd>
+                </div>
+                <div>
+                  <dt>Status</dt>
+                  <dd>{payment.payment.status}</dd>
+                </div>
+                <div>
+                  <dt>Amount</dt>
+                  <dd>{formatMoney(payment.payment.amount, payment.payment.currency)}</dd>
+                </div>
+              </dl>
+            </section>
+
+            {error ? (
+              <p className="form-error" role="alert">
+                {error}
+              </p>
+            ) : null}
+
+            <button
+              type="button"
+              className="btn btn-primary btn-block"
+              onClick={() => void onPay()}
+              disabled={busy !== null || polling}
+            >
+              {busy === 'initiate' || polling ? (
+                <>
+                  <Loader2 className="spin" size={16} aria-hidden="true" /> {polling ? 'Confirming payment…' : 'Opening checkout…'}
+                </>
+              ) : (
+                <>
+                  <Lock size={15} aria-hidden="true" /> Retry payment
+                </>
+              )}
+            </button>
+            {polling ? (
+              <p className="muted" role="status">
+                Confirming payment with the server…
+              </p>
+            ) : null}
+            <p className="field-hint pay-secure-hint">
+              <CreditCard size={13} aria-hidden="true" /> You will complete the payment on Razorpay's secure checkout.
             </p>
           </>
         )}

@@ -1,6 +1,8 @@
 import type { NotificationType } from '@bmw/shared-types';
-import { Notification } from '../models/index.js';
+import { Notification, User } from '../models/index.js';
 import { logger } from '../lib/logger.js';
+import { sendEmail } from './email.service.js';
+import { buildEmailForNotification, EMAIL_TEMPLATES } from './email-templates.js';
 
 export interface NotifyInput {
   userId: string;
@@ -11,8 +13,29 @@ export interface NotifyInput {
 }
 
 /**
- * Creates an in-app notification. Transactional email is sent separately by the
- * calling service, which is the only place that holds the recipient address.
+ * Sends the transactional email for a curated notification type. Fire-and-forget:
+ * every failure is logged and swallowed so it can never break the calling flow.
+ */
+async function sendNotificationEmail(input: NotifyInput): Promise<void> {
+  try {
+    const user = await User.findById(input.userId).select('email role').lean();
+    if (!user?.email) return;
+    const message = buildEmailForNotification(input, { email: user.email, role: user.role });
+    if (!message) return;
+    await sendEmail(message);
+  } catch (error) {
+    logger.warn('Failed to send notification email', {
+      type: input.type,
+      userId: input.userId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+/**
+ * Creates an in-app notification. For curated types (see EMAIL_TEMPLATES) a
+ * transactional email is fired and forgotten after the notification persists —
+ * an email failure never fails the business flow.
  */
 export async function notify(input: NotifyInput): Promise<void> {
   try {
@@ -28,6 +51,10 @@ export async function notify(input: NotifyInput): Promise<void> {
       type: input.type,
       error: error instanceof Error ? error.message : String(error),
     });
+    return;
+  }
+  if (EMAIL_TEMPLATES[input.type]) {
+    void sendNotificationEmail(input);
   }
 }
 

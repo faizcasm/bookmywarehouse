@@ -5,7 +5,6 @@ import { Modal } from '../components/Modal';
 import { Pagination } from '../components/Pagination';
 import { StatusBadge } from '../components/StatusBadge';
 import { EmptyState, ErrorState, PageHeader, Skeleton } from '../components/States';
-import { Tabs } from '../components/Tabs';
 import { useToast } from '../components/Toast';
 import { apiSend } from '../lib/api';
 import { errorMessage, usePagedList } from '../lib/hooks';
@@ -27,19 +26,10 @@ type ReviewRow = Omit<RawReviewDoc, '_id' | 'id' | 'author' | 'listing' | 'booki
 
 const reviewId = (r?: ReviewRow | null): string => r?.id ?? r?._id ?? '';
 
-const REVIEW_TABS = [
-  { id: '', label: 'All' },
-  { id: 'PUBLISHED', label: 'Published' },
-  { id: 'PENDING', label: 'Pending' },
-  { id: 'HIDDEN', label: 'Hidden' },
-  { id: 'REMOVED', label: 'Removed' },
-];
-
 type ModerationStatus = 'PUBLISHED' | 'HIDDEN' | 'REMOVED';
 
 export function ReviewsPage() {
   const [params, setParams] = useSearchParams();
-  const status = params.get('status') ?? '';
   const page = Number(params.get('page') ?? '1') || 1;
   const limit = Number(params.get('limit') ?? '20') || 20;
   const toast = useToast();
@@ -49,16 +39,13 @@ export function ReviewsPage() {
     limit,
   });
 
-  const setStatus = (next: string) => {
-    const nextParams = new URLSearchParams(params);
-    if (next) nextParams.set('status', next);
-    else nextParams.delete('status');
-    nextParams.delete('page');
-    setParams(nextParams, { replace: true });
+  const setParam = (key: string, value: string) => {
+    const next = new URLSearchParams(params);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    if (key !== 'page') next.delete('page');
+    setParams(next, { replace: true });
   };
-
-  // status filter is client-side: the endpoint only supports page/limit.
-  const filtered = status ? items.filter((r) => r.status === status) : items;
 
   // ---- moderation (reviewModerationSchema) ----
   const [target, setTarget] = useState<{ review: ReviewRow; status: ModerationStatus } | null>(null);
@@ -91,77 +78,86 @@ export function ReviewsPage() {
 
   return (
     <>
-      <PageHeader title="Reviews" subtitle="Moderate customer reviews across the marketplace" />
-      <Tabs tabs={REVIEW_TABS} active={status} onChange={setStatus} ariaLabel="Review status" />
+      <PageHeader
+        title="Reviews"
+        subtitle="Moderate customer reviews across the marketplace"
+        actions={
+          <select className="select select--sm" value={''} onChange={(e) => setParam('status', e.target.value)} aria-label="Filter by status (server-side not supported)" disabled>
+            <option value="">All statuses (client-side filter unavailable)</option>
+          </select>
+        }
+      />
 
       <section className="card">
         {loading ? (
           <Skeleton rows={5} />
         ) : error ? (
           <ErrorState error={error} onRetry={reload} />
-        ) : filtered.length === 0 ? (
-          <EmptyState title="No reviews" hint="Nothing matches the current filter." />
+        ) : items.length === 0 ? (
+          <EmptyState title="No reviews" hint="No reviews have been submitted yet." />
         ) : (
-          <div className="review-list">
-            {filtered.map((r) => (
-              <article key={reviewId(r)} className="review-item">
-                <div className="review-item__main">
-                  <div className="review-item__head">
-                    <span className="review-item__stars" aria-label={`${r.rating} out of 5`}>
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star
-                          key={i}
-                          size={15}
-                          aria-hidden="true"
-                          className={i < r.rating ? 'star star--on' : 'star'}
-                          fill={i < r.rating ? 'currentColor' : 'none'}
-                        />
-                      ))}
-                    </span>
-                    <StatusBadge status={r.status} tone={r.status === 'PUBLISHED' ? 'success' : r.status === 'REMOVED' ? 'danger' : 'warning'} />
-                    <span className="muted">{formatDate(r.createdAt)}</span>
+          <>
+            <div className="review-list">
+              {items.map((r) => (
+                <article key={reviewId(r)} className="review-item">
+                  <div className="review-item__main">
+                    <div className="review-item__head">
+                      <span className="review-item__stars" aria-label={`${r.rating} out of 5`}>
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star
+                            key={i}
+                            size={15}
+                            aria-hidden="true"
+                            className={i < r.rating ? 'star star--on' : 'star'}
+                            fill={i < r.rating ? 'currentColor' : 'none'}
+                          />
+                        ))}
+                      </span>
+                      <StatusBadge status={r.status} tone={r.status === 'PUBLISHED' ? 'success' : r.status === 'REMOVED' ? 'danger' : 'warning'} />
+                      <span className="muted">{formatDate(r.createdAt)}</span>
+                    </div>
+                    <p className="review-item__comment">{r.comment ?? <em className="muted">No comment.</em>}</p>
+                    <p className="review-item__meta muted">
+                      Listing <code>{shortenId(r.listing ?? r.listingId)}</code> · booking{' '}
+                      <code>{shortenId(r.booking ?? r.bookingId)}</code> · author{' '}
+                      <code>
+                        {typeof r.author === 'string'
+                          ? shortenId(r.author)
+                          : (r.author?.name ?? shortenId(r.author?.id))}
+                      </code>
+                    </p>
+                    {r.response ? <p className="review-item__response">Partner response: {r.response.text}</p> : null}
                   </div>
-                  <p className="review-item__comment">{r.comment ?? <em className="muted">No comment.</em>}</p>
-                  <p className="review-item__meta muted">
-                    Listing <code>{shortenId(r.listing ?? r.listingId)}</code> · booking{' '}
-                    <code>{shortenId(r.booking ?? r.bookingId)}</code> · author{' '}
-                    <code>
-                      {typeof r.author === 'string'
-                        ? shortenId(r.author)
-                        : (r.author?.name ?? shortenId(r.author?.id))}
-                    </code>
-                  </p>
-                  {r.response ? <p className="review-item__response">Partner response: {r.response.text}</p> : null}
-                </div>
-                <div className="review-item__actions">
-                  {statusActions(r.status).map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      className={`btn btn--sm ${s === 'PUBLISHED' ? 'btn--primary' : 'btn--danger-ghost'}`}
-                      onClick={() => {
-                        setServerError(null);
-                        setNote('');
-                        setTarget({ review: r, status: s });
-                      }}
-                    >
-                      {s === 'PUBLISHED' ? 'Publish' : s === 'HIDDEN' ? 'Hide' : 'Remove'}
-                    </button>
-                  ))}
-                </div>
-              </article>
-            ))}
-          </div>
+                  <div className="review-item__actions">
+                    {statusActions(r.status).map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        className={`btn btn--sm ${s === 'PUBLISHED' ? 'btn--primary' : 'btn--danger-ghost'}`}
+                        onClick={() => {
+                          setServerError(null);
+                          setNote('');
+                          setTarget({ review: r, status: s });
+                        }}
+                      >
+                        {s === 'PUBLISHED' ? 'Publish' : s === 'HIDDEN' ? 'Hide' : 'Remove'}
+                      </button>
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </div>
+            <Pagination
+              meta={pagination}
+              limit={limit}
+              onPageChange={(p) => {
+                const next = new URLSearchParams(params);
+                next.set('page', String(p));
+                setParams(next, { replace: true });
+              }}
+            />
+          </>
         )}
-        <Pagination
-          meta={pagination}
-          limit={limit}
-          onPageChange={(p) => {
-            const next = new URLSearchParams(params);
-            next.set('page', String(p));
-            setParams(next, { replace: true });
-          }}
-        />
       </section>
 
       <Modal

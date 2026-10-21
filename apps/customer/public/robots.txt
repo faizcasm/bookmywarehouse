@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /partner/
+Sitemap: https://bookmywarehouse.vercel.app/api/sitemap.xml

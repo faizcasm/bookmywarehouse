@@ -1,11 +1,13 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { useAuth } from '../auth/AuthContext';
 import { validateLogin, type FieldErrors } from '../lib/validation';
 import { hasErrors } from '../lib/validation';
 import { errorMessage } from '../lib/api';
 import { CUSTOMER_APP_URL } from '../lib/app-links';
 import { useToast } from '../components/Toast';
+import { AuthShell } from '../components/AuthShell';
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -13,14 +15,13 @@ export function LoginPage() {
   const toast = useToast();
   const [searchParams] = useSearchParams();
   const next = searchParams.get('next');
+  const safeNext = next && next.startsWith('/') && !next.startsWith('//') ? next : '/';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  const safeNext = next && next.startsWith('/') && !next.startsWith('//') ? next : '/';
 
   async function onSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -43,8 +44,13 @@ export function LoginPage() {
   }
 
   return (
-    <div className="auth-layout">
-      <div className="auth-card card">
+    <AuthShell>
+      <motion.div
+        className="auth-card card"
+        initial={{ opacity: 0, y: 22 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      >
         <div className="auth-card__brand">
           <span className="shell__brand-mark" aria-hidden="true">
             BMW
@@ -78,7 +84,6 @@ export function LoginPage() {
               className={`input ${errors.email ? 'input--invalid' : ''}`}
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="partner@bookmywarehouse.dev"
               aria-invalid={Boolean(errors.email)}
             />
             {errors.email ? <span className="field__error">{errors.email}</span> : null}
@@ -109,8 +114,8 @@ export function LoginPage() {
         <p className="auth-card__footer">
           Want to book warehouses instead? <a href={CUSTOMER_APP_URL}>Customer app ↗</a>
         </p>
-      </div>
-    </div>
+      </motion.div>
+    </AuthShell>
   );
 }
 

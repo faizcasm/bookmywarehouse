@@ -21,9 +21,20 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [unread, setUnread] = useState(0);
   const [recent, setRecent] = useState<NotificationsPayload['items']>([]);
   const rootRef = useRef<HTMLElement>(null);
+  const mobileMenuTriggerRef = useRef<HTMLButtonElement>(null);
+
+  // Track scroll to solidify header
+  useEffect(() => {
+    const onScroll = () => {
+      setScrolled(window.scrollY > 8);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   useEffect(() => {
     setMenuOpen(false);
@@ -57,18 +68,27 @@ export function Header() {
     };
   }, [user]);
 
+  // Close dropdowns on outside click / Escape; restore focus to trigger on mobile close
   useEffect(() => {
-    if (!menuOpen && !bellOpen) return undefined;
+    if (!menuOpen && !bellOpen && !mobileOpen) return undefined;
     const onClick = (event: MouseEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) {
         setMenuOpen(false);
         setBellOpen(false);
+        if (mobileOpen) {
+          setMobileOpen(false);
+          mobileMenuTriggerRef.current?.focus();
+        }
       }
     };
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setMenuOpen(false);
         setBellOpen(false);
+        if (mobileOpen) {
+          setMobileOpen(false);
+          mobileMenuTriggerRef.current?.focus();
+        }
       }
     };
     document.addEventListener('mousedown', onClick);
@@ -77,7 +97,10 @@ export function Header() {
       document.removeEventListener('mousedown', onClick);
       document.removeEventListener('keydown', onKey);
     };
-  }, [menuOpen, bellOpen]);
+  }, [menuOpen, bellOpen, mobileOpen]);
+
+  // Mobile menu: aria-controls / aria-expanded wiring
+  const mobileMenuId = 'mobile-nav';
 
   const onSearch = (event: FormEvent) => {
     event.preventDefault();
@@ -101,7 +124,11 @@ export function Header() {
   };
 
   return (
-    <header className="site-header" ref={rootRef}>
+    <header
+      className={`site-header ${scrolled ? 'scrolled' : ''}`}
+      ref={rootRef}
+      role="banner"
+    >
       <div className="container header-inner">
         <Link to="/" className="brand" aria-label="BookMyWarehouse home">
           <span className="brand-mark" aria-hidden="true">
@@ -130,7 +157,13 @@ export function Header() {
           </button>
         </form>
 
-        <nav className={`header-nav ${mobileOpen ? 'is-open' : ''}`} aria-label="Main navigation">
+        <nav
+          id={mobileMenuId}
+          className={`header-nav ${mobileOpen ? 'is-open' : ''}`}
+          aria-label="Main navigation"
+          aria-expanded={mobileOpen}
+          aria-controls={mobileMenuId}
+        >
           {NAV_LINKS.filter((link) => !link.auth || user).map((link) => (
             <NavLink key={link.to} to={link.to} className="nav-link">
               {link.label}
@@ -162,6 +195,7 @@ export function Header() {
                   className="icon-btn bell-btn"
                   aria-label={`Notifications${unread > 0 ? ` (${unread} unread)` : ''}`}
                   aria-expanded={bellOpen}
+                  aria-controls={bellOpen ? 'notifications-dropdown' : undefined}
                   onClick={() => {
                     setBellOpen((v) => !v);
                     setMenuOpen(false);
@@ -171,7 +205,12 @@ export function Header() {
                   {unread > 0 ? <span className="badge-count">{unread > 99 ? '99+' : unread}</span> : null}
                 </button>
                 {bellOpen ? (
-                  <div className="dropdown bell-dropdown" role="menu" aria-label="Recent notifications">
+                  <div
+                    id="notifications-dropdown"
+                    className="dropdown bell-dropdown"
+                    role="menu"
+                    aria-label="Recent notifications"
+                  >
                     <div className="dropdown-head">
                       <strong>Notifications</strong>
                       {unread > 0 ? (
@@ -208,6 +247,7 @@ export function Header() {
                   className="user-btn"
                   aria-label="Account menu"
                   aria-expanded={menuOpen}
+                  aria-controls={menuOpen ? 'user-dropdown' : undefined}
                   onClick={() => {
                     setMenuOpen((v) => !v);
                     setBellOpen(false);
@@ -223,7 +263,12 @@ export function Header() {
                   <span className="user-btn-name">{user.name.split(' ')[0]}</span>
                 </button>
                 {menuOpen ? (
-                  <div className="dropdown user-dropdown" role="menu" aria-label="Account">
+                  <div
+                    id="user-dropdown"
+                    className="dropdown user-dropdown"
+                    role="menu"
+                    aria-label="Account"
+                  >
                     <div className="dropdown-head">
                       <strong>{user.name}</strong>
                       <span className="muted">{user.email}</span>
@@ -257,9 +302,11 @@ export function Header() {
 
           <button
             type="button"
+            ref={mobileMenuTriggerRef}
             className="icon-btn mobile-menu-btn"
             aria-label="Toggle navigation menu"
             aria-expanded={mobileOpen}
+            aria-controls={mobileMenuId}
             onClick={() => setMobileOpen((v) => !v)}
           >
             {mobileOpen ? (

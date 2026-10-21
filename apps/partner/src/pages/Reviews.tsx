@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { motion } from 'motion/react';
 import { api, errorMessage, isApiError, type Pagination as PaginationMeta } from '../lib/api';
 import { formatDate, formatNumber } from '../lib/format';
 import type { ReviewDTO } from '../lib/types';
@@ -7,6 +8,7 @@ import { Modal } from '../components/Modal';
 import { RatingStars, StatusBadge } from '../components/StatusBadge';
 import { EmptyState, ErrorState, ListSkeleton } from '../components/States';
 import { useToast } from '../components/Toast';
+import { fadeUp, stagger } from '@bmw/ui';
 
 export function ReviewsPage() {
   const toast = useToast();
@@ -70,30 +72,41 @@ export function ReviewsPage() {
 
   return (
     <div className="page">
-      <section className="card reviews-summary" aria-label="Rating summary">
+      <motion.section
+        className="card reviews-summary"
+        aria-label="Rating summary"
+        variants={fadeUp}
+        initial="hidden"
+        animate="show"
+      >
         <div className="reviews-summary__score">
           <span className="reviews-summary__number">{average !== null && average > 0 ? average.toFixed(1) : '—'}</span>
           <RatingStars value={average ?? 0} count={pagination?.total ?? 0} />
         </div>
         <p className="muted">
           Reviews are left by customers on completed bookings and apply to your listings.
-          {pagination ? ` ${formatNumber(pagination.total)} review${pagination.total === 1 ? '' : 's'} in total.` : ''}
+          {pagination ? ` {formatNumber(pagination.total)} review{pagination.total === 1 ? '' : 's'} in total.` : ''}
         </p>
-      </section>
+      </motion.section>
 
       {loading ? (
         <ListSkeleton rows={4} />
       ) : error ? (
         <ErrorState error={error} onRetry={() => void load()} title="Could not load reviews" />
       ) : items.length === 0 ? (
-        <div className="card">
+        <motion.div className="card" variants={fadeUp} initial="hidden" animate="show">
           <EmptyState title="No reviews yet" description="Reviews appear after customers complete bookings on your listings." />
-        </div>
+        </motion.div>
       ) : (
         <>
-          <div className="review-list">
+          <motion.div
+            className="review-list"
+            variants={stagger(0.06)}
+            initial="hidden"
+            animate="show"
+          >
             {items.map((review) => (
-              <article key={review.id} className="card review-card">
+              <motion.article key={review.id} className="card review-card" variants={fadeUp}>
                 <header className="review-card__header">
                   <div>
                     <RatingStars value={review.rating} />
@@ -119,16 +132,18 @@ export function ReviewsPage() {
                     {review.response ? 'Edit response' : 'Respond'}
                   </button>
                 </div>
-              </article>
+              </motion.article>
             ))}
-          </div>
-          <Pagination pagination={pagination} onPage={setPage} />
+          </motion.div>
+          <motion.div variants={fadeUp} initial="hidden" animate="show" transition={{ delay: 0.2 }}>
+            <Pagination pagination={pagination} onPage={setPage} />
+          </motion.div>
         </>
       )}
 
       <Modal
         open={Boolean(respondTarget)}
-        title={respondTarget ? `Respond to ${respondTarget.author?.name ?? 'customer'}` : ''}
+        title={respondTarget ? `Respond to {respondTarget.author?.name ?? 'customer'}` : ''}
         onClose={() => setRespondTarget(null)}
         footer={
           <>

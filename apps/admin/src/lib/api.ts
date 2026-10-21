@@ -261,3 +261,41 @@ export async function apiList<T>(
   const res = await apiRequest<{ items: T[] }>(path, { method: 'GET', query, signal });
   return { items: res.data?.items ?? [], meta: res.meta };
 }
+
+/**
+ * GET a raw binary payload (e.g. a CSV export) with the same auth + refresh
+ * semantics as the JSON helpers. No envelope parsing — errors still throw
+ * ApiError so callers can surface them like any other failed request.
+ */
+export async function apiGetBlob(path: string, signal?: AbortSignal): Promise<Blob> {
+  const send = (): Promise<Response> => {
+    const headers: Record<string, string> = {};
+    const token = getAccessToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return fetch(buildUrl(path), {
+      method: 'GET',
+      headers,
+      credentials: 'include',
+      signal,
+    });
+  };
+
+  let res = await send();
+  if (res.status === 401) {
+    const refreshed = await refreshSession();
+    if (refreshed) {
+      res = await send();
+    } else {
+      unauthorizedHandler?.();
+    }
+  }
+
+  if (!res.ok) {
+    throw new ApiError(
+      res.status,
+      `HTTP_${res.status}`,
+      `Download failed with status ${res.status}`,
+    );
+  }
+  return res.blob();
+}

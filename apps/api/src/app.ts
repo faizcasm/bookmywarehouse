@@ -22,6 +22,7 @@ import { paymentRoutes } from './routes/payment.routes.js';
 import { socialRoutes } from './routes/social.routes.js';
 import { partnerRoutes } from './routes/partner.routes.js';
 import { adminRoutes } from './routes/admin.routes.js';
+import { publicRoutes } from './routes/public.routes.js';
 import { healthHandler } from './controllers/catalog.controller.js';
 import { openapiSpec } from './docs/openapi.js';
 
@@ -79,6 +80,10 @@ export function createApp(): Express {
 
   // Liveness probe (no auth, no DB).
   app.get('/health', asyncHandlerHealth);
+
+  // Public crawler endpoints (sitemap.xml / robots.txt) — no auth, no rate limit,
+  // answerable both at the domain root and under /api/ (Vercel API rewrite).
+  app.use(publicRoutes());
 
   // API documentation — public (no auth, no rate limit; GET-only so CSRF passes
   // it through). The HTML route is registered before the static file handlers so

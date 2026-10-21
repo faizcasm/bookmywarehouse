@@ -1,5 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { motion } from 'motion/react';
+import { fadeUp, stagger } from '@bmw/ui';
 import { DataTable, type Column } from '../components/DataTable';
 import { Modal, ReasonDialog } from '../components/Modal';
 import { Pagination } from '../components/Pagination';
@@ -203,17 +205,19 @@ export function UsersPage() {
 
   return (
     <>
-      <PageHeader
-        title="Users"
-        subtitle="Search, moderate and create marketplace accounts"
-        actions={
-          <button type="button" className="btn btn--primary btn--sm" onClick={() => setCreateOpen(true)}>
-            + Create customer
-          </button>
-        }
-      />
+      <motion.header variants={fadeUp} initial="hidden" animate="show">
+        <PageHeader
+          title="Users"
+          subtitle="Search, moderate and create marketplace accounts"
+          actions={
+            <button type="button" className="btn btn--primary btn--sm" onClick={() => setCreateOpen(true)}>
+              + Create customer
+            </button>
+          }
+        />
+      </motion.header>
 
-      <div className="toolbar">
+      <motion.div className="toolbar glass-inset" variants={stagger(0.05)} initial="hidden" animate="show">
         <form
           className="toolbar__search"
           onSubmit={(e) => {
@@ -247,9 +251,9 @@ export function UsersPage() {
             </option>
           ))}
         </select>
-      </div>
+      </motion.div>
 
-      <section className="card">
+      <motion.section className="card" variants={fadeUp} initial="hidden" animate="show">
         {loading ? (
           <Skeleton rows={6} />
         ) : error ? (
@@ -270,7 +274,7 @@ export function UsersPage() {
             />
           </>
         )}
-      </section>
+      </motion.section>
 
       {/* Create modal */}
       <Modal

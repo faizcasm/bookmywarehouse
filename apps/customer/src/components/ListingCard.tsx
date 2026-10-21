@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { ListingSummaryDTO } from '../lib/types';
 import { formatNumber, listingTypeLabel } from '../lib/format';
+import { placeholderCover } from '../lib/placeholderCover';
 import { PriceTag } from './PriceTag';
 import { RatingStars } from './RatingStars';
 
@@ -17,7 +18,7 @@ export function ListingCard({ listing, onToggleFavorite }: ListingCardProps) {
           {listing.coverImage ? (
             <img src={listing.coverImage} alt="" loading="lazy" />
           ) : (
-            <div className="listing-media-placeholder">{listingTypeLabel(listing.type)}</div>
+            <img src={placeholderCover(listing.type, listing.title)} alt="" loading="lazy" />
           )}
         </Link>
         <span className="badge tone-accent listing-type-badge">{listingTypeLabel(listing.type)}</span>

@@ -521,6 +521,14 @@ fieldset.field {
   -webkit-backdrop-filter: saturate(1.8) blur(16px);
   backdrop-filter: saturate(1.8) blur(16px);
   border-bottom: 1px solid var(--glass-border);
+  transition: background var(--duration-base) var(--ease-smooth), border-color var(--duration-base) var(--ease-smooth), box-shadow var(--duration-base) var(--ease-smooth);
+}
+
+/* Scrolled state: solidify with stronger glass + subtle shadow */
+.site-header.scrolled {
+  background: var(--glass-strong);
+  border-bottom-color: var(--glass-border);
+  box-shadow: var(--shadow-md);
 }
 .header-inner {
   height: var(--header-h);
@@ -1481,6 +1489,7 @@ fieldset.field {
   grid-template-columns: 290px 1fr;
   gap: 1.4rem;
   align-items: start;
+  position: relative;
 }
 .filter-sidebar {
   padding: 1.15rem 1.25rem;
@@ -1496,6 +1505,9 @@ fieldset.field {
 .filter-head h2 {
   font-size: 1.05rem;
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .search-results {
@@ -1504,6 +1516,103 @@ fieldset.field {
 .results-note {
   margin-bottom: 0.9rem;
   color: var(--muted);
+}
+
+/* Active filter chips bar */
+.active-filters-bar {
+  overflow: hidden;
+}
+.active-filters-scroll {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+.active-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding-right: 0.5rem;
+}
+.filter-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 0;
+  padding: 0.1rem;
+  margin-left: 0.2rem;
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.filter-chip-remove:hover {
+  opacity: 1;
+  background: color-mix(in oklab, var(--brand) 15%, transparent);
+}
+
+/* Mobile filter drawer */
+.mobile-filters-trigger {
+  display: none;
+}
+.mobile-filters-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgb(2 6 23 / 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: flex-end;
+}
+.mobile-filters-drawer {
+  width: min(380px, 100vw);
+  height: 100%;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+  overflow: hidden;
+}
+.mobile-filters-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+}
+.mobile-filters-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+.mobile-filters-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Mobile breakpoint for search layout */
+@media (max-width: 900px) {
+  .search-layout {
+    grid-template-columns: 1fr;
+  }
+  .filter-sidebar {
+    display: none;
+  }
+  .mobile-filters-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
 }
 
 /* ------------------------------- listing page ----------------------------- */
@@ -1812,6 +1921,13 @@ fieldset.field {
   flex-direction: column;
   gap: 0.35rem;
 }
+.booking-panel.glass-strong {
+  background: color-mix(in oklab, var(--surface) 88%, transparent);
+  backdrop-filter: blur(calc(var(--blur-glass) * 1.5)) saturate(170%);
+  -webkit-backdrop-filter: blur(calc(var(--blur-glass) * 1.5)) saturate(170%);
+  border: 1px solid color-mix(in oklab, var(--glass-border) 85%, var(--line));
+  box-shadow: var(--glass-sheen), var(--shadow-lg);
+}
 .booking-price {
   display: flex;
   flex-direction: column;
@@ -1824,6 +1940,13 @@ fieldset.field {
   border-radius: var(--radius-md);
   padding: 0.8rem 0.9rem;
   margin-block: 0.5rem;
+}
+
+/* Gallery wrapper for motion */
+.gallery-wrapper {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: linear-gradient(135deg, #0b1220, #142244);
 }
 .quote-availability {
   display: flex;
@@ -2234,55 +2357,6 @@ fieldset.field {
   color: var(--success-soft-fg);
 }
 
-/* Demo credentials callout (login only). */
-.demo-callout {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.7rem;
-  flex-wrap: wrap;
-  margin-top: 1.15rem;
-  padding: 0.65rem 0.85rem;
-  border: 1px dashed color-mix(in oklab, var(--brand) 38%, transparent);
-  border-radius: var(--radius-md);
-  background: color-mix(in oklab, var(--brand-soft) 70%, transparent);
-  font-size: 0.83rem;
-  color: var(--muted);
-}
-.demo-callout span {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  min-width: 0;
-  flex-wrap: wrap;
-}
-.demo-callout code {
-  padding: 0.1rem 0.4rem;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: var(--surface);
-  color: var(--fg);
-  font-size: 0.78rem;
-  word-break: break-all;
-}
-.demo-fill {
-  padding: 0.35rem 0.75rem;
-  border: 1px solid var(--line-strong);
-  border-radius: 9px;
-  background: var(--surface);
-  color: var(--brand-soft-fg);
-  font-weight: 600;
-  font-size: 0.8rem;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-smooth);
-}
-.demo-fill:hover {
-  border-color: var(--brand);
-  background: var(--brand-soft);
-  transform: translateY(-1px);
-}
-
 /* Submit buttons: arrow nudge + spinning loader. */
 .auth-submit {
   margin-top: 0.35rem;
@@ -2613,6 +2687,12 @@ fieldset.field {
 .pay-card {
   width: min(520px, 100%);
 }
+.pay-secure-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
+}
 .sandbox-banner {
   background: var(--warning-soft);
   border: 1px solid color-mix(in oklab, var(--warning) 35%, transparent);
@@ -2692,6 +2772,7 @@ fieldset.field {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
+  flex-wrap: wrap;
 }
 .conversation-head time {
   font-size: 0.8rem;
@@ -2709,35 +2790,57 @@ fieldset.field {
   text-overflow: ellipsis;
 }
 
+/* ConversationPage — premium chat layout */
+.conversation-page {
+  max-width: 880px;
+}
 .chat-card {
   display: flex;
   flex-direction: column;
-  height: min(70vh, 640px);
+  height: min(75vh, 720px);
+  min-height: 520px;
+  overflow: hidden;
 }
 .chat-scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 1.1rem;
+  padding: 1.25rem 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  background: var(--surface-2);
+  gap: 0.7rem;
+  background:
+    radial-gradient(400px 300px at 50% 0%, color-mix(in oklab, var(--brand) 4%, transparent), transparent 60%),
+    var(--surface);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 .chat-older {
   align-self: center;
+  margin-top: 0.5rem;
 }
 .chat-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
   text-align: center;
-  margin: auto;
+  color: var(--muted);
+  gap: 0.5rem;
 }
+.chat-empty svg {
+  opacity: 0.5;
+}
+
 .chat-bubble {
-  max-width: min(75%, 520px);
-  padding: 0.58rem 0.9rem;
-  border-radius: var(--radius-lg);
+  max-width: min(78%, 560px);
+  padding: 0.7rem 1rem;
+  border-radius: var(--radius-xl);
   background: var(--surface);
   border: 1px solid var(--line);
   box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 .chat-bubble.mine {
   align-self: flex-end;
@@ -2745,38 +2848,93 @@ fieldset.field {
   border-color: transparent;
   color: #fff;
   box-shadow: var(--shadow-brand);
-}
-.chat-bubble.mine .chat-bubble-meta time {
-  color: rgb(255 255 255 / 0.75);
+  border-bottom-right-radius: 4px;
 }
 .chat-bubble.theirs {
   align-self: flex-start;
+  border-bottom-left-radius: 4px;
+}
+.chat-bubble.first-of-sender .chat-bubble-content {
+  padding-top: 0.15rem;
+}
+.chat-bubble-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.chat-bubble.mine .chat-bubble-content {
+  align-items: flex-end;
 }
 .chat-bubble p {
-  margin: 0.15rem 0 0;
+  margin: 0;
   white-space: pre-line;
+  line-height: 1.5;
 }
 .chat-bubble-meta {
   display: flex;
   align-items: baseline;
-  gap: 0.6rem;
-  font-size: 0.8rem;
+  gap: 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.chat-bubble.mine .chat-bubble-meta {
+  flex-direction: row-reverse;
 }
 .chat-bubble-meta time {
   color: var(--faint);
 }
+.chat-bubble.mine .chat-bubble-meta time {
+  color: rgb(255 255 255 / 0.7);
+}
+.chat-bubble-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-bottom: 0.15rem;
+}
+.chat-bubble-avatar .avatar,
+.chat-bubble-avatar .avatar-fallback {
+  width: 28px;
+  height: 28px;
+  font-size: 0.7rem;
+}
+
 .chat-composer {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 0.7rem;
   align-items: end;
-  padding: 0.9rem 1rem;
+  padding: 1rem 1.25rem;
   border-top: 1px solid var(--line);
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  background: color-mix(in oklab, var(--surface) 92%, transparent);
 }
 .chat-composer .text-danger {
   grid-column: 1 / -1;
   margin: 0;
+}
+.chat-composer .textarea {
+  min-height: 52px;
+  max-height: 140px;
+  resize: vertical;
+}
+
+/* Mobile: ensure chat stays usable */
+@media (max-width: 640px) {
+  .chat-card {
+    height: min(78vh, 680px);
+  }
+  .chat-bubble {
+    max-width: 85%;
+  }
+  .chat-scroll {
+    padding: 1rem;
+  }
+  .chat-composer {
+    padding: 0.85rem 1rem;
+    gap: 0.5rem;
+  }
 }
 
 /* ------------------------------- notifications ---------------------------- */
@@ -3430,5 +3588,164 @@ fieldset.field {
   }
   .hero-stats {
     gap: 1.4rem;
+  }
+
+  /* Table responsive: stacked mode with data-label */
+  .table-wrap {
+    overflow-x: visible;
+    border: 0;
+    background: transparent;
+  }
+  .table,
+  .table thead,
+  .table tbody,
+  .table th,
+  .table td,
+  .table tr {
+    display: block;
+    width: 100%;
+  }
+  .table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .table tr {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+  }
+  .table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px dashed var(--line);
+    text-align: right;
+    gap: 1rem;
+  }
+  .table td:last-child {
+    border-bottom: 0;
+  }
+  .table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--muted);
+    font-size: 0.85rem;
+    text-align: left;
+    flex: 1;
+  }
+  .table td:only-child::before,
+  .table td:first-child:last-child::before {
+    display: none;
+  }
+}
+
+/* Ensure zero horizontal overflow at 360px */
+@media (max-width: 360px) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+  .container {
+    width: 100%;
+    margin-inline: 0;
+    padding-inline: 1rem;
+  }
+  .header-inner {
+    padding-inline: 0.5rem;
+  }
+}
+
+/* ---------------------------------- print ---------------------------------- */
+/* Invoice printing: `window.print()` shows ONLY `.invoice-print-area` —
+   the site header, footer, toasts, buttons and any other chrome stay hidden.
+   Colors are forced to black-on-white so dark mode prints legibly. */
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  /* Belt and braces: drop the known app chrome from the print flow entirely. */
+  .site-header,
+  .site-footer,
+  .toast-stack {
+    display: none !important;
+  }
+
+  /* Hide everything, then reveal only the invoice subtree. */
+  body * {
+    visibility: hidden;
+  }
+  .invoice-print-area,
+  .invoice-print-area * {
+    visibility: visible;
+  }
+
+  /* Pin the invoice to the top-left so hidden-but-in-flow chrome leaves no gap. */
+  .invoice-print-area {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  /* No buttons, controls or screen-only hints on paper. */
+  .invoice-print-area .btn,
+  .invoice-print-area button,
+  .invoice-print-area .field-hint {
+    display: none !important;
+  }
+
+  /* Flat, high-contrast cards; keep each card/row whole across page breaks. */
+  .invoice-print-area .card,
+  .invoice-print-area .section-card {
+    background: #fff !important;
+    border-color: #c9d2e3 !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+  .invoice-print-area tr,
+  .invoice-print-area .summary-list > div,
+  .invoice-print-area h1,
+  .invoice-print-area h2 {
+    break-inside: avoid;
+    break-after: avoid;
+  }
+
+  .invoice-print-area,
+  .invoice-print-area .muted {
+    color: #000 !important;
+  }
+
+  /* Links print underlined; external URLs are spelled out, internal app
+     links (relative paths) stay clean. */
+  .invoice-print-area a {
+    color: #000 !important;
+    text-decoration: underline;
+  }
+  .invoice-print-area a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    word-break: break-all;
   }
 }

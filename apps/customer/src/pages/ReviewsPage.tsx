@@ -1,5 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import { ApiError, api } from '../lib/api';
 import { useAsyncData } from '../lib/useAsyncData';
 import { formatDate, formatDayRange } from '../lib/format';
@@ -9,11 +10,18 @@ import { Pagination } from '../components/Pagination';
 import { Modal } from '../components/Modal';
 import { useToast } from '../components/Toast';
 import { EmptyState, ErrorState, PageLoader } from '../components/Skeleton';
+import { useDocumentMeta } from '../lib/useDocumentMeta';
+import { fadeUp, stagger } from '@bmw/ui';
 
 export function ReviewsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number.parseInt(searchParams.get('page') ?? '1', 10) || 1;
   const toast = useToast();
+
+  useDocumentMeta({
+    title: 'My reviews — BookMyWarehouse',
+    description: 'Reviews you have written after completed bookings.',
+  });
 
   const reviewsState = useAsyncData(
     () => api.getWithMeta<{ items: ReviewDTO[]; average?: number }>('/me/reviews', { page, limit: 10 }),
@@ -69,71 +77,87 @@ export function ReviewsPage() {
 
   return (
     <div className="container page">
-      <div className="page-head booking-detail-head">
+      <motion.div className="page-head booking-detail-head reveal" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
         <div>
           <h1>My reviews</h1>
           <p className="muted">Reviews you have written after completed bookings.</p>
         </div>
-        <button
+        <motion.button
           type="button"
           className="btn btn-primary"
           onClick={() => openModal()}
           disabled={completedState.loading || reviewableBookings.length === 0}
           title={reviewableBookings.length === 0 ? 'All your completed bookings already have a review' : undefined}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
         >
           Write a review
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
 
-      {reviewsState.loading ? (
-        <PageLoader label="Loading reviews…" />
-      ) : reviewsState.error ? (
-        <ErrorState message={reviewsState.error.message} onRetry={reviewsState.reload} />
-      ) : (reviewsState.data?.data?.items ?? []).length === 0 ? (
-        <EmptyState
-          title="No reviews yet"
-          message="Once a booking is completed you can review it here."
-          action={
+      <AnimatePresence mode="wait">
+        {reviewsState.loading ? (
+          <PageLoader key="loading" label="Loading reviews…" />
+        ) : reviewsState.error ? (
+          <ErrorState key="error" message={reviewsState.error.message} onRetry={reviewsState.reload} />
+        ) : (reviewsState.data?.data?.items ?? []).length === 0 ? (
+          <motion.div
+            key="empty"
+            className="state-block reveal"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <div className="state-icon" aria-hidden="true">
+              ⭐
+            </div>
+            <h3 className="state-title">No reviews yet</h3>
+            <p className="state-message">Once a booking is completed you can review it here.</p>
             <Link to="/bookings" className="btn btn-outline">
               View my bookings
             </Link>
-          }
-        />
-      ) : (
-        <>
-          <ul className="review-list card-list">
-            {(reviewsState.data?.data?.items ?? []).map((review) => (
-              <li key={review.id} className="card section-card review-item">
-                <div className="review-head">
-                  <Link to={`/listing/${review.listingId}`} className="booking-title">
-                    {review.listingTitle}
-                  </Link>
-                  <RatingStars value={review.rating} />
-                  <time className="muted" dateTime={review.createdAt}>
-                    {formatDate(review.createdAt)}
-                  </time>
-                </div>
-                {review.comment ? <p>{review.comment}</p> : null}
-                {review.response ? (
-                  <div className="review-response">
-                    <strong>Partner response:</strong>
-                    <p>{review.response.text}</p>
+          </motion.div>
+        ) : (
+          <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
+            <motion.ul className="review-list card-list" variants={stagger(0.06)} initial="hidden" animate="show">
+              {(reviewsState.data?.data?.items ?? []).map((review) => (
+                <motion.li key={review.id} className="card section-card review-item" variants={fadeUp} whileHover={{ y: -2, boxShadow: 'var(--shadow-md)' }}>
+                  <div className="review-head">
+                    <Link to={`/listing/${review.listingId}`} className="booking-title">
+                      {review.listingTitle}
+                    </Link>
+                    <RatingStars value={review.rating} />
+                    <time className="muted" dateTime={review.createdAt}>
+                      {formatDate(review.createdAt)}
+                    </time>
                   </div>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-          <Pagination
-            pagination={reviewsState.data?.meta?.pagination ?? null}
-            onPageChange={(next) => {
-              const params = new URLSearchParams(searchParams);
-              if (next > 1) params.set('page', String(next));
-              else params.delete('page');
-              setSearchParams(params);
-            }}
-          />
-        </>
-      )}
+                  {review.comment ? <p>{review.comment}</p> : null}
+                  {review.response ? (
+                    <div className="review-response">
+                      <strong>Partner response:</strong>
+                      <p>{review.response.text}</p>
+                    </div>
+                  ) : null}
+                </motion.li>
+              ))}
+            </motion.ul>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+              <Pagination
+                pagination={reviewsState.data?.meta?.pagination ?? null}
+                onPageChange={(next) => {
+                  const params = new URLSearchParams(searchParams);
+                  if (next > 1) params.set('page', String(next));
+                  else params.delete('page');
+                  setSearchParams(params);
+                }}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <Modal
         open={modalOpen}
@@ -144,18 +168,27 @@ export function ReviewsPage() {
             <button type="button" className="btn btn-outline" onClick={() => setModalOpen(false)}>
               Cancel
             </button>
-            <button type="submit" form="review-form" className="btn btn-primary" disabled={busy}>
+            <motion.button
+              type="submit"
+              form="review-form"
+              className="btn btn-primary"
+              disabled={busy}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
               {busy ? 'Submitting…' : 'Submit review'}
-            </button>
+            </motion.button>
           </>
         }
       >
         <form id="review-form" onSubmit={onSubmit}>
-          {error ? (
-            <p className="form-error" role="alert">
-              {error}
-            </p>
-          ) : null}
+          <AnimatePresence>
+            {error ? (
+              <motion.p className="form-error" role="alert" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+                {error}
+              </motion.p>
+            ) : null}
+          </AnimatePresence>
           <div className="field">
             <label htmlFor="review-booking">Booking</label>
             <select

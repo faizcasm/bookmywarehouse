@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import { api, ApiError } from '../lib/api';
 import { useAsyncData } from '../lib/useAsyncData';
 import { formatDayRange, formatDateTime, formatMoney, humanize, listingTypeLabel } from '../lib/format';
@@ -8,6 +9,8 @@ import { StatusBadge } from '../components/StatusBadge';
 import { Modal } from '../components/Modal';
 import { useToast } from '../components/Toast';
 import { ErrorState, PageLoader } from '../components/Skeleton';
+import { useDocumentMeta } from '../lib/useDocumentMeta';
+import { fadeUp, stagger } from '@bmw/ui';
 
 const DISPUTE_REASONS = [
   'SERVICE_NOT_DELIVERED',
@@ -27,6 +30,11 @@ export function BookingDetailPage() {
 
   const bookingState = useAsyncData<BookingDTO>(() => api.get(`/bookings/${id}`), [id]);
   const booking = bookingState.data;
+
+  useDocumentMeta({
+    title: booking ? `${booking.reference} — Booking — BookMyWarehouse` : 'Booking — BookMyWarehouse',
+    description: booking ? `Booking details for ${booking.listing.title}` : undefined,
+  });
 
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
@@ -99,28 +107,32 @@ export function BookingDetailPage() {
 
   return (
     <div className="container page">
-      <nav className="breadcrumbs" aria-label="Breadcrumb">
+      <motion.nav className="breadcrumbs reveal" aria-label="Breadcrumb" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
         <Link to="/bookings">My bookings</Link> <span aria-hidden="true">/</span>{' '}
         <span aria-current="page">{booking.reference}</span>
-      </nav>
+      </motion.nav>
 
-      <div className="page-head booking-detail-head">
+      <motion.div className="page-head booking-detail-head reveal" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
         <div>
-          <h1>{booking.listing.title}</h1>
-          <p className="muted">
+          <motion.h1 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+            {booking.listing.title}
+          </motion.h1>
+          <motion.p className="muted" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }}>
             {booking.reference} · {listingTypeLabel(booking.type)} · {booking.listing.city}
-          </p>
+          </motion.p>
         </div>
-        <StatusBadge status={booking.status} />
-      </div>
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3, delay: 0.1 }}>
+          <StatusBadge status={booking.status} />
+        </motion.div>
+      </motion.div>
 
-      <div className="detail-layout">
+      <motion.div className="detail-layout reveal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3, delay: 0.15 }}>
         <div className="detail-main">
-          <section className="card section-card" aria-labelledby="timeline-heading">
+          <motion.section className="card section-card reveal" aria-labelledby="timeline-heading" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.5 }}>
             <h2 id="timeline-heading">Status timeline</h2>
-            <ol className="timeline">
+            <motion.ol className="timeline" variants={stagger(0.08)} initial="hidden" animate="show">
               {booking.statusHistory.map((event, index) => (
-                <li key={`${event.status}-${index}`} className="timeline-item">
+                <motion.li key={`${event.status}-${index}`} className="timeline-item" variants={fadeUp}>
                   <span className="timeline-dot" aria-hidden="true" />
                   <div>
                     <strong>{humanize(event.status)}</strong>
@@ -128,18 +140,22 @@ export function BookingDetailPage() {
                     {event.byRole ? <span className="muted"> · by {humanize(event.byRole)}</span> : null}
                     {event.note ? <p className="muted">{event.note}</p> : null}
                   </div>
-                </li>
+                </motion.li>
               ))}
-            </ol>
+            </motion.ol>
             {booking.cancellationReason ? (
-              <p className="text-danger">Cancellation reason: {booking.cancellationReason}</p>
+              <motion.p className="text-danger" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+                Cancellation reason: {booking.cancellationReason}
+              </motion.p>
             ) : null}
             {booking.rejectionReason ? (
-              <p className="text-danger">Rejection reason: {booking.rejectionReason}</p>
+              <motion.p className="text-danger" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+                Rejection reason: {booking.rejectionReason}
+              </motion.p>
             ) : null}
-          </section>
+          </motion.section>
 
-          <section className="card section-card" aria-labelledby="items-heading">
+          <motion.section className="card section-card reveal" aria-labelledby="items-heading" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.5, delay: 0.05 }}>
             <h2 id="items-heading">Booking items</h2>
             <div className="table-wrap">
               <table className="table">
@@ -154,20 +170,18 @@ export function BookingDetailPage() {
                 <tbody>
                   {booking.items.map((item) => (
                     <tr key={item.id}>
-                      <td>{item.listingTitle}</td>
-                      <td>
-                        {item.quantity} {item.unitLabel ?? ''}
-                      </td>
-                      <td>{formatMoney(item.unitPrice, item.currency)}</td>
-                      <td>{formatMoney(item.amount, item.currency)}</td>
+                      <td data-label="Item">{item.listingTitle}</td>
+                      <td data-label="Qty">{item.quantity} {item.unitLabel ?? ''}</td>
+                      <td data-label="Unit price">{formatMoney(item.unitPrice, item.currency)}</td>
+                      <td data-label="Amount">{formatMoney(item.amount, item.currency)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </section>
+          </motion.section>
 
-          <section className="card section-card" aria-labelledby="parties-heading">
+          <motion.section className="card section-card reveal" aria-labelledby="parties-heading" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.5, delay: 0.1 }}>
             <h2 id="parties-heading">Parties</h2>
             <div className="parties-grid">
               <div>
@@ -202,95 +216,122 @@ export function BookingDetailPage() {
                 <p>{booking.specialRequirements}</p>
               </>
             ) : null}
-          </section>
+          </motion.section>
         </div>
 
         <aside className="detail-side">
-          <div className="card section-card">
+          <motion.div className="card section-card reveal" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }} variants={stagger(0.06)}>
             <h2>Summary</h2>
             <dl className="summary-list">
-              <div>
+              <motion.div variants={fadeUp}>
                 <dt>Dates</dt>
                 <dd>{formatDayRange(booking.startDate, booking.endDate)}</dd>
-              </div>
-              <div>
+              </motion.div>
+              <motion.div variants={fadeUp}>
                 <dt>Quantity</dt>
                 <dd>{booking.quantity}</dd>
-              </div>
+              </motion.div>
               {booking.requestedCapacity ? (
-                <div>
+                <motion.div variants={fadeUp}>
                   <dt>Capacity</dt>
                   <dd>
                     {booking.requestedCapacity} {booking.capacityUnit ?? ''}
                   </dd>
-                </div>
+                </motion.div>
               ) : null}
             </dl>
             <h3>Pricing</h3>
-            <ul className="quote-breakdown">
+            <motion.ul className="quote-breakdown" variants={stagger(0.04)} initial="hidden" animate="show">
               {booking.pricing.breakdown.map((line, index) => (
-                <li key={index}>
+                <motion.li key={index} variants={fadeUp}>
                   <span>{line.label}</span>
                   <span>{formatMoney(line.amount, booking.pricing.currency)}</span>
-                </li>
+                </motion.li>
               ))}
-            </ul>
+            </motion.ul>
             <dl className="summary-list">
-              <div>
+              <motion.div variants={fadeUp}>
                 <dt>Subtotal</dt>
                 <dd>{formatMoney(booking.pricing.subtotal, booking.pricing.currency)}</dd>
-              </div>
-              <div>
+              </motion.div>
+              <motion.div variants={fadeUp}>
                 <dt>Platform fee</dt>
                 <dd>{formatMoney(booking.pricing.platformFee, booking.pricing.currency)}</dd>
-              </div>
-              <div>
+              </motion.div>
+              <motion.div variants={fadeUp}>
                 <dt>Taxes</dt>
                 <dd>{formatMoney(booking.pricing.taxes, booking.pricing.currency)}</dd>
-              </div>
+              </motion.div>
               {booking.pricing.discount > 0 ? (
-                <div>
+                <motion.div variants={fadeUp}>
                   <dt>Discount</dt>
                   <dd>−{formatMoney(booking.pricing.discount, booking.pricing.currency)}</dd>
-                </div>
+                </motion.div>
               ) : null}
-              <div className="summary-total">
+              <motion.div className="summary-total" variants={fadeUp}>
                 <dt>Total</dt>
                 <dd>{formatMoney(booking.pricing.total, booking.pricing.currency)}</dd>
-              </div>
+              </motion.div>
             </dl>
-            <p className="muted">{booking.pricing.rateDescription}</p>
+            <motion.p className="muted" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.2 }}>
+              {booking.pricing.rateDescription}
+            </motion.p>
 
-            <div className="action-stack">
+            <motion.div className="action-stack" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} variants={stagger(0.06)}>
               {canPay ? (
-                <button type="button" className="btn btn-primary btn-block" onClick={() => navigate(`/pay/${booking.id}`)}>
+                <motion.button
+                  type="button"
+                  className="btn btn-primary btn-block"
+                  onClick={() => navigate(`/pay/${booking.id}`)}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                  variants={fadeUp}
+                >
                   Pay {formatMoney(booking.pricing.total, booking.pricing.currency)}
-                </button>
+                </motion.button>
               ) : null}
               {booking.invoiceId ? (
-                <Link to={`/invoices/${booking.invoiceId}`} className="btn btn-outline btn-block">
-                  View invoice
-                </Link>
+                <motion.div variants={fadeUp} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
+                  <Link to={`/invoices/${booking.invoiceId}`} className="btn btn-outline btn-block">
+                    View invoice
+                  </Link>
+                </motion.div>
               ) : null}
               {canCancel ? (
-                <button type="button" className="btn btn-outline btn-block" onClick={() => setCancelOpen(true)}>
+                <motion.button
+                  type="button"
+                  className="btn btn-outline btn-block"
+                  onClick={() => setCancelOpen(true)}
+                  variants={fadeUp}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                >
                   Cancel booking
-                </button>
+                </motion.button>
               ) : null}
               {canDispute ? (
-                <button type="button" className="btn btn-danger-ghost btn-block" onClick={() => setDisputeOpen(true)}>
+                <motion.button
+                  type="button"
+                  className="btn btn-danger-ghost btn-block"
+                  onClick={() => setDisputeOpen(true)}
+                  variants={fadeUp}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                >
                   Raise a dispute
-                </button>
+                </motion.button>
               ) : null}
               {!booking.reviewId && booking.status === 'COMPLETED' ? (
-                <Link to="/reviews" className="btn btn-outline btn-block">
-                  Write a review
-                </Link>
+                <motion.div variants={fadeUp} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
+                  <Link to="/reviews" className="btn btn-outline btn-block">
+                    Write a review
+                  </Link>
+                </motion.div>
               ) : null}
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </aside>
-      </div>
+      </motion.div>
 
       <Modal
         open={cancelOpen}
@@ -301,18 +342,27 @@ export function BookingDetailPage() {
             <button type="button" className="btn btn-outline" onClick={() => setCancelOpen(false)}>
               Keep booking
             </button>
-            <button type="submit" form="cancel-form" className="btn btn-danger" disabled={cancelBusy}>
+            <motion.button
+              type="submit"
+              form="cancel-form"
+              className="btn btn-danger"
+              disabled={cancelBusy}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
               {cancelBusy ? 'Cancelling…' : 'Cancel booking'}
-            </button>
+            </motion.button>
           </>
         }
       >
         <form id="cancel-form" onSubmit={onCancel}>
-          {cancelError ? (
-            <p className="text-danger" role="alert">
-              {cancelError}
-            </p>
-          ) : null}
+          <AnimatePresence>
+            {cancelError ? (
+              <motion.p className="text-danger" role="alert" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+                {cancelError}
+              </motion.p>
+            ) : null}
+          </AnimatePresence>
           <p className="muted">
             Cancellation is subject to the listing&apos;s cancellation policy. Any refund is
             calculated automatically and initiated with the original payment.
@@ -342,18 +392,27 @@ export function BookingDetailPage() {
             <button type="button" className="btn btn-outline" onClick={() => setDisputeOpen(false)}>
               Cancel
             </button>
-            <button type="submit" form="dispute-form" className="btn btn-primary" disabled={disputeBusy}>
+            <motion.button
+              type="submit"
+              form="dispute-form"
+              className="btn btn-primary"
+              disabled={disputeBusy}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
               {disputeBusy ? 'Submitting…' : 'Submit dispute'}
-            </button>
+            </motion.button>
           </>
         }
       >
         <form id="dispute-form" onSubmit={onRaiseDispute}>
-          {disputeError ? (
-            <p className="text-danger" role="alert">
-              {disputeError}
-            </p>
-          ) : null}
+          <AnimatePresence>
+            {disputeError ? (
+              <motion.p className="text-danger" role="alert" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+                {disputeError}
+              </motion.p>
+            ) : null}
+          </AnimatePresence>
           <div className="field">
             <label htmlFor="dispute-reason">Reason</label>
             <select

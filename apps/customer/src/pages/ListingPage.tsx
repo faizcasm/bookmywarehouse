@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../auth/AuthContext';
 import { ApiError, api } from '../lib/api';
 import { useAsyncData } from '../lib/useAsyncData';
+import { placeholderCover } from '../lib/placeholderCover';
+import { useDocumentMeta } from '../lib/useDocumentMeta';
 import {
   formatDate,
   formatDaysOfWeek,
@@ -25,6 +28,7 @@ import { Pagination } from '../components/Pagination';
 import { Modal } from '../components/Modal';
 import { useToast } from '../components/Toast';
 import { EmptyState, ErrorState, PageLoader } from '../components/Skeleton';
+import { fadeUp, stagger } from '@bmw/ui';
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
@@ -38,6 +42,14 @@ export function ListingPage() {
 
   const listingState = useAsyncData<ListingDetailDTO>(() => api.get(`/catalog/listings/${slug}`), [slug]);
   const listing = listingState.data;
+
+  const listingSnippet = listing?.description
+    ? `${listing.description.slice(0, 157).trimEnd()}…`
+    : undefined;
+  useDocumentMeta({
+    title: listing ? `${listing.title} — BookMyWarehouse` : 'Listing — BookMyWarehouse',
+    description: listingSnippet,
+  });
 
   const availabilityState = useAsyncData<AvailabilityDTO | null>(
     () => (listing ? api.get(`/catalog/listings/${listing.id}/availability`) : Promise.resolve(null)),
@@ -210,10 +222,7 @@ export function ListingPage() {
   if (listingState.error || !listing) {
     return (
       <div className="container page">
-        <ErrorState
-          message={listingState.error?.message ?? 'Listing not found.'}
-          onRetry={listingState.reload}
-        />
+        <ErrorState message={listingState.error?.message ?? 'Listing not found.'} onRetry={listingState.reload} />
         <div className="center-action">
           <Link to="/search" className="btn btn-outline">
             Back to search
@@ -229,15 +238,34 @@ export function ListingPage() {
 
   return (
     <div className="container page listing-page">
-      <nav className="breadcrumbs" aria-label="Breadcrumb">
+      <motion.nav className="breadcrumbs reveal" aria-label="Breadcrumb" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
         <Link to="/">Home</Link> <span aria-hidden="true">/</span>{' '}
         <Link to={`/search?type=${listing.type}`}>{listingTypeLabel(listing.type)}s</Link>{' '}
         <span aria-hidden="true">/</span> <span aria-current="page">{listing.title}</span>
-      </nav>
+      </motion.nav>
 
-      <div className="listing-hero">
-        <ImageGallery images={listing.images?.length ? listing.images : listing.coverImage ? [listing.coverImage] : []} alt={listing.title} />
-        <div className="listing-hero-side">
+      <motion.div className="listing-hero reveal" variants={stagger(0.1)} initial="hidden" animate="show">
+        <motion.div
+          className="gallery-wrapper"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <ImageGallery
+            images={
+              listing.images?.length
+                ? listing.images
+                : [listing.coverImage || placeholderCover(listing.type, listing.title)]
+            }
+            alt={listing.title}
+          />
+        </motion.div>
+        <motion.div
+          className="listing-hero-side"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
           <div className="listing-hero-head">
             <span className="badge tone-accent">{listingTypeLabel(listing.type)}</span>
             {listing.categoryName ? <span className="badge tone-neutral">{listing.categoryName}</span> : null}
@@ -252,11 +280,13 @@ export function ListingPage() {
               {listing.isFavorite ? '♥ Saved' : '♡ Save'}
             </button>
           </div>
-          <h1 className="listing-h1">{listing.title}</h1>
-          <p className="listing-loc">
+          <motion.h1 className="listing-h1" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+            {listing.title}
+          </motion.h1>
+          <motion.p className="listing-loc" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }}>
             📍 {listing.location.addressLine1}, {listing.city}, {listing.state} {listing.location.postalCode}
-          </p>
-          <div className="listing-rating-row">
+          </motion.p>
+          <motion.div className="listing-rating-row" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
             {listing.rating.count > 0 ? (
               <RatingStars value={listing.rating.average} count={listing.rating.count} size="md" />
             ) : (
@@ -265,8 +295,8 @@ export function ListingPage() {
             {listing.availableFrom ? (
               <span className="muted">Available from {formatDate(listing.availableFrom)}</span>
             ) : null}
-          </div>
-          <div className="listing-quickfacts">
+          </motion.div>
+          <motion.div className="listing-quickfacts" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.15 }}>
             {listing.totalCapacity ? (
               <span>
                 <strong>{formatNumber(listing.totalCapacity)}</strong> {listing.capacityUnit ?? 'capacity'}
@@ -282,16 +312,25 @@ export function ListingPage() {
                 <strong>{formatMoney(listing.price.amount, listing.price.currency)}</strong>
               </span>
             )}
-          </div>
-          <button type="button" className="btn btn-outline" onClick={() => setMessageOpen(true)}>
+          </motion.div>
+          <motion.button
+            type="button"
+            className="btn btn-outline"
+            onClick={() => setMessageOpen(true)}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
             ✉️ Message partner
-          </button>
-        </div>
-      </div>
+          </motion.button>
+        </motion.div>
+      </motion.div>
 
-      <div className="listing-layout">
+      <motion.div className="listing-layout reveal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3, delay: 0.2 }}>
         <div className="listing-main">
-          <section className="card section-card" aria-labelledby="about-heading">
+          <motion.section className="card section-card reveal" aria-labelledby="about-heading" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.5 }}>
             <h2 id="about-heading">About this listing</h2>
             <p className="listing-description">{listing.description}</p>
             {listing.amenities.length > 0 ? (
@@ -328,10 +367,10 @@ export function ListingPage() {
                 </ul>
               </>
             ) : null}
-          </section>
+          </motion.section>
 
-          {listing.warehouse || listing.equipment || listing.service ? (
-            <section className="card section-card" aria-labelledby="details-heading">
+          {(listing.warehouse || listing.equipment || listing.service) && (
+            <motion.section className="card section-card reveal" aria-labelledby="details-heading" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.5, delay: 0.05 }}>
               <h2 id="details-heading">{listingTypeLabel(listing.type)} details</h2>
               {listing.warehouse ? (
                 <dl className="spec-list">
@@ -493,10 +532,10 @@ export function ListingPage() {
                   ) : null}
                 </dl>
               ) : null}
-            </section>
-          ) : null}
+            </motion.section>
+          )}
 
-          <section className="card section-card" aria-labelledby="availability-heading">
+          <motion.section className="card section-card reveal" aria-labelledby="availability-heading" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.5, delay: 0.1 }}>
             <h2 id="availability-heading">Availability</h2>
             {availabilityState.loading ? (
               <p className="muted">Loading availability…</p>
@@ -535,9 +574,9 @@ export function ListingPage() {
                 )}
               </>
             )}
-          </section>
+          </motion.section>
 
-          <section className="card section-card" aria-labelledby="cancellation-heading">
+          <motion.section className="card section-card reveal" aria-labelledby="cancellation-heading" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.5, delay: 0.15 }}>
             <h2 id="cancellation-heading">Cancellation terms</h2>
             <p>
               <span className="badge tone-info">{humanize(listing.cancellationTerms.policy)}</span>{' '}
@@ -549,9 +588,9 @@ export function ListingPage() {
               cancel before the start date.
             </p>
             {listing.cancellationTerms.note ? <p className="muted">{listing.cancellationTerms.note}</p> : null}
-          </section>
+          </motion.section>
 
-          <section className="card section-card" aria-labelledby="partner-heading">
+          <motion.section className="card section-card reveal" aria-labelledby="partner-heading" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.5, delay: 0.2 }}>
             <h2 id="partner-heading">About the partner</h2>
             <div className="partner-row">
               {listing.partner.logoUrl ? (
@@ -579,9 +618,9 @@ export function ListingPage() {
                 Message
               </button>
             </div>
-          </section>
+          </motion.section>
 
-          <section className="card section-card" aria-labelledby="reviews-heading">
+          <motion.section className="card section-card reveal" aria-labelledby="reviews-heading" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.5, delay: 0.25 }}>
             <div className="section-head">
               <h2 id="reviews-heading">Reviews</h2>
               {reviewsPayload?.average !== undefined ? (
@@ -619,35 +658,44 @@ export function ListingPage() {
                 <Pagination pagination={reviewsState.data?.meta?.pagination ?? null} onPageChange={setReviewPage} />
               </>
             )}
-          </section>
+          </motion.section>
 
           {similar.length > 0 ? (
-            <section className="section-card" aria-labelledby="similar-heading">
+            <motion.section className="section-card reveal" aria-labelledby="similar-heading" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.5, delay: 0.3 }}>
               <h2 id="similar-heading">Similar listings</h2>
-              <div className="grid grid-similar">
+              <motion.div className="grid grid-similar" variants={stagger(0.08)} initial="hidden" animate="show">
                 {similar.map((item) => (
-                  <Link key={item.id} to={`/listing/${item.slug}`} className="card similar-card">
-                    {item.coverImage ? <img src={item.coverImage} alt="" loading="lazy" /> : null}
-                    <div>
-                      <strong>{item.title}</strong>
-                      <span className="muted">{item.city}</span>
-                      <PriceTag
-                        amount={item.price.amount}
-                        currency={item.price.currency}
-                        unitLabel={item.price.unitLabel}
-                        period={item.price.period}
-                        size="sm"
-                      />
-                    </div>
-                  </Link>
+                  <motion.div key={item.id} variants={fadeUp}>
+                    <Link to={`/listing/${item.slug}`} className="card similar-card">
+                      {item.coverImage ? <img src={item.coverImage} alt="" loading="lazy" /> : null}
+                      <div>
+                        <strong>{item.title}</strong>
+                        <span className="muted">{item.city}</span>
+                        <PriceTag
+                          amount={item.price.amount}
+                          currency={item.price.currency}
+                          unitLabel={item.price.unitLabel}
+                          period={item.price.period}
+                          size="sm"
+                        />
+                      </div>
+                    </Link>
+                  </motion.div>
                 ))}
-              </div>
-            </section>
+              </motion.div>
+            </motion.section>
           ) : null}
         </div>
 
         <aside className="listing-side">
-          <form className="card booking-panel" onSubmit={onRequestBooking} aria-labelledby="booking-heading">
+          <motion.form
+            className="card booking-panel glass-strong"
+            onSubmit={onRequestBooking}
+            aria-labelledby="booking-heading"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+          >
             <h2 id="booking-heading" className="visually-hidden">Request a booking</h2>
             <div className="booking-price">
               <PriceTag
@@ -751,15 +799,21 @@ export function ListingPage() {
               />
             </div>
 
-            <div className="quote-box" aria-live="polite">
+            <AnimatePresence mode="wait">
               {!startDate ? (
-                <p className="muted">Pick your dates {needsCapacity ? 'and capacity ' : ''}to see a live quote.</p>
+                <motion.div key="empty" className="quote-box" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+                  <p className="muted">Pick your dates {needsCapacity ? 'and capacity ' : ''}to see a live quote.</p>
+                </motion.div>
               ) : quoteLoading ? (
-                <p className="muted">Fetching quote…</p>
+                <motion.div key="loading" className="quote-box" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+                  <p className="muted">Fetching quote…</p>
+                </motion.div>
               ) : quoteError ? (
-                <p className="text-danger">{quoteError}</p>
+                <motion.div key="error" className="quote-box" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+                  <p className="text-danger">{quoteError}</p>
+                </motion.div>
               ) : quote ? (
-                <>
+                <motion.div key="quote" className="quote-box" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
                   <div className="quote-availability">
                     {quote.available ? (
                       <span className="badge tone-success">✓ Available</span>
@@ -790,21 +844,21 @@ export function ListingPage() {
                       <p className="quote-rate muted">{quote.pricing.rateDescription}</p>
                     </>
                   ) : null}
-                </>
+                </motion.div>
               ) : null}
-            </div>
+            </AnimatePresence>
 
             {bookingError ? (
-              <p className="text-danger" role="alert">
+              <motion.p className="text-danger" role="alert" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
                 {bookingError.message}
-              </p>
+              </motion.p>
             ) : null}
 
             {!listing.canRequestBooking ? (
               <p className="muted">This listing is not accepting booking requests right now.</p>
             ) : null}
 
-            <button
+            <motion.button
               type="submit"
               className="btn btn-primary btn-block"
               disabled={
@@ -813,21 +867,29 @@ export function ListingPage() {
                 !canQuote ||
                 (quote !== null && !quote.available)
               }
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
             >
               {booking ? 'Sending request…' : 'Request booking'}
-            </button>
+            </motion.button>
             {!user ? (
               <p className="field-hint">
                 You&apos;ll be asked to <Link to={`/login?next=${encodeURIComponent(`/listing/${slug}`)}`}>sign in</Link> first.
               </p>
             ) : null}
             <p className="field-hint">The partner reviews your request before payment.</p>
-            <button type="button" className="btn btn-outline btn-block" onClick={() => setMessageOpen(true)}>
+            <motion.button
+              type="button"
+              className="btn btn-outline btn-block"
+              onClick={() => setMessageOpen(true)}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+            >
               ✉️ Message partner
-            </button>
-          </form>
+            </motion.button>
+          </motion.form>
         </aside>
-      </div>
+      </motion.div>
 
       <Modal
         open={messageOpen}

@@ -1,10 +1,12 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { useAuth } from '../auth/AuthContext';
 import { validateRegister, hasErrors, type FieldErrors } from '../lib/validation';
 import { errorMessage } from '../lib/api';
 import { CUSTOMER_APP_URL } from '../lib/app-links';
 import { useToast } from '../components/Toast';
+import { AuthShell } from '../components/AuthShell';
 
 export function RegisterPage() {
   const { register } = useAuth();
@@ -44,8 +46,13 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="auth-layout">
-      <div className="auth-card card">
+    <AuthShell>
+      <motion.div
+        className="auth-card card"
+        initial={{ opacity: 0, y: 22 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      >
         <div className="auth-card__brand">
           <span className="shell__brand-mark" aria-hidden="true">
             BMW
@@ -158,8 +165,8 @@ export function RegisterPage() {
         <p className="auth-card__footer">
           Want to book warehouses instead? <a href={CUSTOMER_APP_URL}>Customer app ↗</a>
         </p>
-      </div>
-    </div>
+      </motion.div>
+    </AuthShell>
   );
 }
 

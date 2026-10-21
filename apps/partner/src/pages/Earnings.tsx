@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { CircleDollarSign, TrendingDown, Wallet } from 'lucide-react';
 import { Stat } from '@bmw/ui';
@@ -9,6 +10,7 @@ import { DataTable, type Column } from '../components/DataTable';
 import { Pagination } from '../components/Pagination';
 import { StatusBadge } from '../components/StatusBadge';
 import { EmptyState, ErrorState, ListSkeleton } from '../components/States';
+import { fadeUp, stagger } from '@bmw/ui';
 
 /**
  * NOTE: the API's earnings `summary` block currently returns zeros, so totals
@@ -71,32 +73,50 @@ export function EarningsPage() {
 
   return (
     <div className="page">
-      <div className="stat-grid stat-grid--3">
-        <Stat
-          label="Gross collected (loaded)"
-          value={totals.gross}
-          format={(n) => formatMoney(Math.round(n), currency)}
-          icon={CircleDollarSign}
-          hint="Sum of loaded rows"
-        />
-        <Stat
-          label="Platform fees"
-          value={totals.fees}
-          format={(n) => `-${formatMoney(Math.round(n), currency)}`}
-          icon={TrendingDown}
-          hint="10% platform commission"
-        />
-        <Stat
-          label="Net earnings (loaded)"
-          value={totals.net}
-          format={(n) => formatMoney(Math.round(n), currency)}
-          icon={Wallet}
-          hint="Paid to your account"
-        />
-      </div>
+      <motion.div
+        className="stat-grid stat-grid--3"
+        variants={stagger(0.07)}
+        initial="hidden"
+        animate="show"
+      >
+        <motion.div variants={fadeUp}>
+          <Stat
+            label="Gross collected (loaded)"
+            value={totals.gross}
+            format={(n) => formatMoney(Math.round(n), currency)}
+            icon={CircleDollarSign}
+            hint="Sum of loaded rows"
+          />
+        </motion.div>
+        <motion.div variants={fadeUp}>
+          <Stat
+            label="Platform fees"
+            value={totals.fees}
+            format={(n) => `-${formatMoney(Math.round(n), currency)}`}
+            icon={TrendingDown}
+            hint="10% platform commission"
+          />
+        </motion.div>
+        <motion.div variants={fadeUp}>
+          <Stat
+            label="Net earnings (loaded)"
+            value={totals.net}
+            format={(n) => formatMoney(Math.round(n), currency)}
+            icon={Wallet}
+            hint="Paid to your account"
+          />
+        </motion.div>
+      </motion.div>
 
       {profile ? (
-        <section className="card" aria-label="Payout profile">
+        <motion.section
+          className="card"
+          aria-label="Payout profile"
+          variants={fadeUp}
+          initial="hidden"
+          animate="show"
+          transition={{ delay: 0.15 }}
+        >
           <div className="card__header">
             <h3 className="card__title">Payout profile</h3>
             <Link to="/onboarding" className="btn btn--ghost btn--sm">
@@ -123,7 +143,7 @@ export function EarningsPage() {
               <dd className="muted">Bank details are stored masked (e.g. XXXX1234)</dd>
             </div>
           </dl>
-        </section>
+        </motion.section>
       ) : null}
 
       {loading ? (
@@ -132,7 +152,13 @@ export function EarningsPage() {
         <ErrorState error={error} onRetry={() => void load()} title="Could not load earnings" />
       ) : (
         <>
-          <div className="card card--flush">
+          <motion.div
+            className="card card--flush"
+            variants={stagger(0.05)}
+            initial="hidden"
+            animate="show"
+            transition={{ delay: 0.2 }}
+          >
             {items.length === 0 ? (
               <EmptyState
                 title="No earnings yet"
@@ -146,8 +172,10 @@ export function EarningsPage() {
             ) : (
               <DataTable columns={columns} rows={items} rowKey={(row) => row.id} caption="Earnings" />
             )}
-          </div>
-          <Pagination pagination={pagination} onPage={setPage} />
+          </motion.div>
+          <motion.div variants={fadeUp} initial="hidden" animate="show" transition={{ delay: 0.25 }}>
+            <Pagination pagination={pagination} onPage={setPage} />
+          </motion.div>
         </>
       )}
     </div>

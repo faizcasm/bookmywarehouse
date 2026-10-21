@@ -347,7 +347,14 @@ export interface PaymentInitiateDTO {
   };
   checkoutUrl?: string | null;
   sandbox: boolean;
+  razorpay?: { orderId: string } | null;
   message?: string | null;
+}
+
+export interface PaymentConfigDTO {
+  provider: string;
+  sandbox: boolean;
+  razorpayKeyId: string | null;
 }
 
 export interface InvoiceLineItemDTO {

@@ -3,9 +3,10 @@ import { buildPageMeta, clientIp, sendSuccess } from '../lib/http.js';
 import { errors } from '../lib/errors.js';
 import {
   initiatePayment,
-  isSandbox,
+  paymentPublicConfig,
   processWebhookEvent,
   simulateGatewayResult,
+  verifyCheckoutPayment,
 } from '../services/payment.service.js';
 import {
   getInvoiceForViewer,
@@ -45,6 +46,7 @@ export async function initiatePaymentHandler(req: Request, res: Response): Promi
     summary: `Payment initiated for booking ${bookingId}`,
     ip: clientIp(req),
   });
+  const config = paymentPublicConfig();
   sendSuccess(res, {
     payment: {
       id: String(result.payment._id),
@@ -55,11 +57,41 @@ export async function initiatePaymentHandler(req: Request, res: Response): Promi
       provider: result.provider,
     },
     checkoutUrl: result.checkoutUrl,
-    sandbox: isSandbox(),
-    message: isSandbox()
+    sandbox: config.sandbox,
+    razorpay:
+      config.provider === 'RAZORPAY'
+        ? { orderId: result.payment.providerPaymentId }
+        : null,
+    message: config.sandbox
       ? 'Sandbox mode: no real money moves. Complete the simulated checkout to exercise the payment flow.'
       : null,
   });
+}
+
+/** Public checkout config for the payment page (provider, sandbox flag, key id). */
+export async function paymentConfigHandler(req: Request, res: Response): Promise<void> {
+  if (!req.auth) throw errors.unauthenticated();
+  sendSuccess(res, paymentPublicConfig());
+}
+
+/** Confirms a hosted-checkout payment (Razorpay Checkout.js handler payload). */
+export async function verifyPaymentHandler(req: Request, res: Response): Promise<void> {
+  if (!req.auth) throw errors.unauthenticated();
+  const { orderId, paymentId, signature } = req.body as {
+    orderId: string;
+    paymentId: string;
+    signature: string;
+  };
+  const result = await verifyCheckoutPayment(req.auth.userId, { orderId, paymentId, signature });
+  await recordAudit({
+    actorId: req.auth.userId,
+    action: 'payment.verified',
+    entityType: 'Payment',
+    entityId: result.paymentId,
+    summary: `Checkout payment verified (${result.alreadyProcessed ? 'replay' : 'new'})`,
+    ip: clientIp(req),
+  });
+  sendSuccess(res, result);
 }
 
 export async function simulatePaymentHandler(req: Request, res: Response): Promise<void> {
@@ -72,7 +104,12 @@ export async function simulatePaymentHandler(req: Request, res: Response): Promi
 
 export async function webhookHandler(req: Request, res: Response): Promise<void> {
   const rawBody = (req as Request & { rawBody?: string }).rawBody ?? JSON.stringify(req.body ?? {});
-  const signature = (req.headers['x-payments-signature'] as string | undefined) ?? '';
+  // Razorpay signs with x-razorpay-signature; the sandbox signer uses the
+  // generic header — accept either so one endpoint serves every provider.
+  const signature =
+    (req.headers['x-razorpay-signature'] as string | undefined) ??
+    (req.headers['x-payments-signature'] as string | undefined) ??
+    '';
   const result = await processWebhookEvent(rawBody, signature);
   res.status(200).json({ received: true, ...result });
 }

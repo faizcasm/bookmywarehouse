@@ -1,14 +1,12 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowRight, Eye, EyeOff, KeyRound, Loader2, Lock, Mail, Wand2 } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, KeyRound, Loader2, Lock, Mail } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useAuth } from '../auth/AuthContext';
 import { ApiError } from '../lib/api';
 import { AuthShell } from '../components/AuthShell';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const DEMO_EMAIL = 'customer@bookmywarehouse.dev';
-const DEMO_PASSWORD = 'Demo@1234';
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -50,12 +48,6 @@ export function LoginPage() {
     } finally {
       setBusy(false);
     }
-  };
-
-  const fillDemo = () => {
-    setEmail(DEMO_EMAIL);
-    setPassword(DEMO_PASSWORD);
-    setErrors({});
   };
 
   return (
@@ -149,15 +141,6 @@ export function LoginPage() {
             )}
           </button>
         </form>
-
-        <div className="demo-callout">
-          <span>
-            <Wand2 size={15} aria-hidden="true" /> Demo account: <code>{DEMO_EMAIL}</code>
-          </span>
-          <button type="button" className="demo-fill" onClick={fillDemo}>
-            Fill credentials
-          </button>
-        </div>
 
         <div className="auth-links">
           <Link to="/forgot-password">

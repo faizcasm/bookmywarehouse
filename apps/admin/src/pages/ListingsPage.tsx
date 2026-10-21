@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { fadeSoft, stagger } from '@bmw/ui';
+import { fadeUp, fadeSoft, stagger } from '@bmw/ui';
 import { Package } from 'lucide-react';
 import { Pagination } from '../components/Pagination';
 import { ReasonDialog } from '../components/Modal';
@@ -97,9 +97,11 @@ export function ListingsPage() {
 
   return (
     <>
-      <PageHeader title="Listings" subtitle="Moderate marketplace inventory" />
+      <motion.header variants={fadeUp} initial="hidden" animate="show">
+        <PageHeader title="Listings" subtitle="Moderate marketplace inventory" />
+      </motion.header>
 
-      <div className="toolbar">
+      <motion.div className="toolbar glass-inset" variants={stagger(0.05)} initial="hidden" animate="show">
         <form
           className="toolbar__search"
           onSubmit={(e) => {
@@ -133,14 +135,16 @@ export function ListingsPage() {
             </option>
           ))}
         </select>
-      </div>
+      </motion.div>
 
       {loading ? (
         <Skeleton rows={6} />
       ) : error ? (
         <ErrorState error={error} onRetry={reload} />
       ) : items.length === 0 ? (
-        <EmptyState title="No listings" hint="No listings match the current filters." />
+        <motion.div className="card" variants={fadeUp} initial="hidden" animate="show">
+          <EmptyState title="No listings" hint="No listings match the current filters." />
+        </motion.div>
       ) : (
         <>
           <motion.div
@@ -197,17 +201,19 @@ export function ListingsPage() {
               </motion.article>
             ))}
           </motion.div>
-          <Pagination
-            meta={pagination}
-            limit={limit}
-            onPageChange={(p) => setParam('page', String(p))}
-            onLimitChange={(l) => {
-              const next = new URLSearchParams(params);
-              next.set('limit', String(l));
-              next.delete('page');
-              setParams(next, { replace: true });
-            }}
-          />
+          <motion.div variants={fadeUp} initial="hidden" animate="show">
+            <Pagination
+              meta={pagination}
+              limit={limit}
+              onPageChange={(p) => setParam('page', String(p))}
+              onLimitChange={(l) => {
+                const next = new URLSearchParams(params);
+                next.set('limit', String(l));
+                next.delete('page');
+                setParams(next, { replace: true });
+              }}
+            />
+          </motion.div>
         </>
       )}
 

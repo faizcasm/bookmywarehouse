@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { Plus } from 'lucide-react';
 import { api, type Pagination as PaginationMeta } from '../lib/api';
 import { formatDayShort, formatMoney } from '../lib/format';
@@ -11,6 +12,7 @@ import { ConfirmDialog } from '../components/Modal';
 import { EmptyState, ErrorState, ListSkeleton } from '../components/States';
 import { useToast } from '../components/Toast';
 import { enumOptions } from '../lib/listingForm';
+import { fadeUp, stagger } from '@bmw/ui';
 
 type RowAction = 'publish' | 'unpublish' | 'archive' | 'delete';
 
@@ -184,7 +186,12 @@ export function ListingsPage() {
 
   return (
     <div className="page">
-      <div className="page__toolbar">
+      <motion.div className="page__intro" variants={fadeUp} initial="hidden" animate="show">
+        <h2>Listings</h2>
+        <p className="muted">Manage your warehouse, equipment and service listings. Create new ones or edit existing entries.</p>
+      </motion.div>
+
+      <motion.div className="page__toolbar" variants={fadeUp} initial="hidden" animate="show" transition={{ delay: 0.1 }}>
         <form
           className="filters"
           onSubmit={(event) => {
@@ -243,7 +250,7 @@ export function ListingsPage() {
           <Plus size={16} strokeWidth={2.4} aria-hidden="true" />
           New listing
         </Link>
-      </div>
+      </motion.div>
 
       {loading ? (
         <ListSkeleton rows={6} />
@@ -251,7 +258,12 @@ export function ListingsPage() {
         <ErrorState error={error} onRetry={() => void load()} title="Could not load your listings" />
       ) : (
         <>
-          <div className="card card--flush">
+          <motion.div
+            className="card card--flush"
+            variants={stagger(0.05)}
+            initial="hidden"
+            animate="show"
+          >
             {items.length === 0 ? (
               <EmptyState
                 title={q || status || type ? 'No listings match these filters' : 'You have no listings yet'}
@@ -265,12 +277,14 @@ export function ListingsPage() {
             ) : (
               <DataTable columns={columns} rows={items} rowKey={(row) => row.id} caption="Your listings" />
             )}
-          </div>
-          <Pagination
-            pagination={pagination}
-            onPage={(nextPage) => updateParams({ page: nextPage })}
-            onLimit={(nextLimit) => updateParams({ limit: nextLimit, page: 1 })}
-          />
+          </motion.div>
+          <motion.div variants={fadeUp} initial="hidden" animate="show" transition={{ delay: 0.2 }}>
+            <Pagination
+              pagination={pagination}
+              onPage={(nextPage) => updateParams({ page: nextPage })}
+              onLimit={(nextLimit) => updateParams({ limit: nextLimit, page: 1 })}
+            />
+          </motion.div>
         </>
       )}
 

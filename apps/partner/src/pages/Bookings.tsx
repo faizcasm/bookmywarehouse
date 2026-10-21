@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { api, type Pagination as PaginationMeta } from '../lib/api';
 import { formatDate, formatMoney } from '../lib/format';
 import { BOOKING_STATUSES, type BookingDTO } from '../lib/types';
@@ -7,6 +8,7 @@ import { DataTable, type Column } from '../components/DataTable';
 import { StatusBadge } from '../components/StatusBadge';
 import { Pagination } from '../components/Pagination';
 import { EmptyState, ErrorState, ListSkeleton } from '../components/States';
+import { fadeUp, stagger } from '@bmw/ui';
 
 export function BookingsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -94,7 +96,12 @@ export function BookingsPage() {
 
   return (
     <div className="page">
-      <div className="page__toolbar">
+      <motion.div className="page__intro" variants={fadeUp} initial="hidden" animate="show">
+        <h2>Bookings</h2>
+        <p className="muted">View and manage all booking requests and confirmed reservations for your listings.</p>
+      </motion.div>
+
+      <motion.div className="page__toolbar" variants={fadeUp} initial="hidden" animate="show" transition={{ delay: 0.1 }}>
         <div className="filters">
           <label className="filters__select">
             <span className="sr-only">Filter by status</span>
@@ -113,7 +120,7 @@ export function BookingsPage() {
             </button>
           ) : null}
         </div>
-      </div>
+      </motion.div>
 
       {loading ? (
         <ListSkeleton rows={6} />
@@ -121,7 +128,12 @@ export function BookingsPage() {
         <ErrorState error={error} onRetry={() => void load()} title="Could not load bookings" />
       ) : (
         <>
-          <div className="card card--flush">
+          <motion.div
+            className="card card--flush"
+            variants={stagger(0.05)}
+            initial="hidden"
+            animate="show"
+          >
             {items.length === 0 ? (
               <EmptyState
                 title={status ? 'No bookings with this status' : 'No bookings yet'}
@@ -145,12 +157,14 @@ export function BookingsPage() {
             ) : (
               <DataTable columns={columns} rows={items} rowKey={(row) => row.id} caption="Bookings" />
             )}
-          </div>
-          <Pagination
-            pagination={pagination}
-            onPage={(nextPage) => updateParams({ page: nextPage })}
-            onLimit={(nextLimit) => updateParams({ limit: nextLimit, page: 1 })}
-          />
+          </motion.div>
+          <motion.div variants={fadeUp} initial="hidden" animate="show" transition={{ delay: 0.2 }}>
+            <Pagination
+              pagination={pagination}
+              onPage={(nextPage) => updateParams({ page: nextPage })}
+              onLimit={(nextLimit) => updateParams({ limit: nextLimit, page: 1 })}
+            />
+          </motion.div>
         </>
       )}
     </div>

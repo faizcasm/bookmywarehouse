@@ -41,6 +41,8 @@ import {
   auditLogsHandler,
   reviewsHandler,
   moderateReviewHandler,
+  exportBookingsCsvHandler,
+  exportPayoutsCsvHandler,
 } from '../controllers/admin.controller.js';
 
 const idParams = z.object({ id: z.string().min(1) });
@@ -117,6 +119,10 @@ export function adminRoutes(): Router {
   router.get('/settings', asyncHandler(settingsHandler));
   router.patch('/settings', validate({ body: platformSettingsSchema }), asyncHandler(updateSettingsHandler));
   router.get('/audit-logs', validate({ query: auditQuery }), asyncHandler(auditLogsHandler));
+
+  // Accounting exports (CSV attachments)
+  router.get('/exports/bookings.csv', asyncHandler(exportBookingsCsvHandler));
+  router.get('/exports/payouts.csv', asyncHandler(exportPayoutsCsvHandler));
 
   return router;
 }

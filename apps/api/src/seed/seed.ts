@@ -23,20 +23,34 @@ import { initiatePayment, simulateGatewayResult } from '../services/payment.serv
 import { createReview } from '../services/review.service.js';
 import { addAvailabilityRule } from '../services/partner.service.js';
 import { createConversation } from '../services/messaging.service.js';
+import { ensureSettings } from '../services/settings.service.js';
 import type { createListingSchema } from '@bmw/validation';
 
 /**
- * DEVELOPMENT / DEMONstration SEED.
+ * SEED — reference data + development/demo data.
  *
- * Everything created here is explicitly demo data (names carry "(Demo)" and
- * listing descriptions are prefixed with "[DEMO]"). No production secrets are
- * embedded — the single demo password below is for local development only.
+ * Reference data (categories + platform settings) is seeded on every run.
+ * Demo content (demo users, listings, bookings, reviews, conversations) is
+ * seeded only when NODE_ENV !== 'production' or SEED_DEMO=true, so a
+ * production database never receives "[DEMO]" records by default. Demo
+ * records are explicitly labelled (names carry "(Demo)", descriptions are
+ * prefixed with "[DEMO]") and no production secrets are embedded — the
+ * single demo password below is for local development only.
+ *
+ * Admin bootstrap: set SEED_ADMIN_EMAIL + SEED_ADMIN_PASSWORD (>= 12 chars)
+ * to ensure a verified ADMIN account exists in any mode.
  *
  * Run: pnpm seed
+ * Production: NODE_ENV=production SEED_ADMIN_EMAIL=... SEED_ADMIN_PASSWORD=... pnpm seed
  */
 
 const DEMO_PASSWORD = 'Demo@1234';
 const DEMO_DOMAIN = 'bookmywarehouse.dev';
+const MIN_SEED_ADMIN_PASSWORD = 12;
+
+// Demo content is on everywhere except production; SEED_DEMO=true forces it on.
+const isProduction = process.env.NODE_ENV === 'production';
+const seedDemo = !isProduction || process.env.SEED_DEMO === 'true';
 
 type ListingInput = z.infer<typeof createListingSchema>;
 
@@ -52,6 +66,98 @@ function svgImage(label: string, from: string, to: string): string {
     `<text x="56" y="372" font-family="Arial, sans-serif" font-size="22" fill="rgba(255,255,255,0.75)">DEMO IMAGE</text>` +
     `</svg>`;
   return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+}
+
+/* ------------------------- Listing cover generator -------------------------
+ * Deterministic, category-themed SVG covers used for demo listing images.
+ * Rendered at 800x500 and encoded with encodeURIComponent (non-ASCII safe).
+ * Keep in sync with apps/customer/src/lib/placeholderCover.ts.              */
+
+type ListingCoverType = 'WAREHOUSE' | 'EQUIPMENT' | 'SERVICE';
+
+const COVER_THEMES: Record<ListingCoverType, { from: string; to: string; grid: boolean; glyph: string }> = {
+  // Deep navy → electric blue, subtle grid lines, warehouse/box glyph.
+  WAREHOUSE: {
+    from: '#0b1f4d',
+    to: '#2f7bff',
+    grid: true,
+    glyph: 'M6 46 L50 14 L94 46 M16 46 V86 H84 V46 M36 86 V62 H64 V86 M36 74 H64',
+  },
+  // Indigo → teal, forklift-ish glyph.
+  EQUIPMENT: {
+    from: '#312e81',
+    to: '#0d9488',
+    grid: false,
+    glyph:
+      'M10 70 V40 H44 L56 56 H68 M72 74 V12 M72 74 H94 M72 44 H84 ' +
+      'M16 78 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0 M46 78 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0',
+  },
+  // Navy → amber, gear glyph.
+  SERVICE: {
+    from: '#132a52',
+    to: '#f59e0b',
+    grid: false,
+    glyph:
+      'M32 50 a18 18 0 1 0 36 0 a18 18 0 1 0 -36 0 M43 50 a7 7 0 1 0 14 0 a7 7 0 1 0 -14 0 ' +
+      'M50 32 V22 M50 68 V78 M32 50 H22 M68 50 H78 ' +
+      'M37 37 L30 30 M63 37 L70 30 M63 63 L70 70 M37 63 L30 70',
+  },
+};
+
+function hashSeed(value: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function titleInitials(title: string): string {
+  return (
+    title
+      .split(/[^A-Za-z0-9]+/)
+      .filter(Boolean)
+      .slice(0, 3)
+      .map((word) => word.charAt(0).toUpperCase())
+      .join('') || '?'
+  );
+}
+
+/** Category-themed cover art; the (type + title) hash varies accents so every listing looks distinct. */
+function listingCover(type: ListingCoverType, title: string): string {
+  const theme = COVER_THEMES[type] ?? COVER_THEMES.WAREHOUSE;
+  const hash = hashSeed(`${type}:${title}`);
+  const initials = titleInitials(title);
+  const accentCx = 120 + (hash % 220);
+  const accentCy = 400 - ((hash >>> 5) % 180);
+  const accentR = 130 + ((hash >>> 11) % 90);
+  const glyphX = 460 + ((hash >>> 7) % 50);
+  const glyphY = 100 + ((hash >>> 13) % 40);
+  const glyphScale = (2 + ((hash >>> 17) % 6) * 0.1).toFixed(2);
+  const gradient = (hash & 1) === 1
+    ? '<linearGradient id="c" x1="1" y1="0" x2="0" y2="1">'
+    : '<linearGradient id="c" x1="0" y1="0" x2="1" y2="1">';
+  const grid = theme.grid
+    ? `<pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse" patternTransform="translate(${hash % 40} ${(hash >>> 4) % 40})">` +
+      '<path d="M40 0H0V40" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/></pattern>' +
+      '<rect width="800" height="500" fill="url(#grid)"/>'
+    : '';
+  const chipWidth = 56 + initials.length * 22;
+  const svg =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">' +
+    `<defs>${gradient}` +
+    `<stop offset="0" stop-color="${theme.from}"/><stop offset="1" stop-color="${theme.to}"/>` +
+    `</linearGradient>${grid}</defs>` +
+    '<rect width="800" height="500" fill="url(#c)"/>' +
+    `<circle cx="${accentCx}" cy="${accentCy}" r="${accentR}" fill="rgba(255,255,255,0.07)"/>` +
+    `<g transform="translate(${glyphX} ${glyphY}) scale(${glyphScale})" fill="none" stroke="rgba(255,255,255,0.88)" ` +
+    `stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="${theme.glyph}"/></g>` +
+    `<rect x="40" y="424" width="${chipWidth}" height="44" rx="12" fill="rgba(8,14,30,0.45)"/>` +
+    `<text x="${40 + chipWidth / 2}" y="454" text-anchor="middle" font-family="Arial, sans-serif" ` +
+    `font-size="22" font-weight="700" letter-spacing="4" fill="rgba(255,255,255,0.92)">${initials}</text>` +
+    '</svg>';
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
 const location = {
@@ -123,9 +229,54 @@ async function upsertListing(partnerId: string, spec: ListingSpec): Promise<stri
   return String(listing._id);
 }
 
-async function main(): Promise<void> {
-  await connectDatabase();
-  logger.info('Seeding DEMO data (all records below are demonstration-only)...');
+interface DemoCategories {
+  warehouseCat: string;
+  coldCat: string;
+  equipmentCat: string;
+  serviceCat: string;
+}
+
+async function ensureSeedAdmin(): Promise<void> {
+  const email = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
+  const password = process.env.SEED_ADMIN_PASSWORD ?? '';
+
+  if (!email) {
+    if (isProduction) {
+      logger.warn(
+        'SEED_ADMIN_EMAIL is not set — no admin account will exist. Set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD (>= 12 chars) to bootstrap one.',
+      );
+    }
+    return;
+  }
+  if (password.length < MIN_SEED_ADMIN_PASSWORD) {
+    logger.warn('SEED_ADMIN_PASSWORD must be at least 12 characters — admin bootstrap skipped', { email });
+    return;
+  }
+
+  const passwordHash = await hashPassword(password);
+  const existing = await User.findOne({ email }).select('_id').lean();
+  if (existing) {
+    await User.updateOne(
+      { _id: existing._id },
+      { $set: { role: 'ADMIN', emailVerified: true, status: 'ACTIVE', passwordHash } },
+    );
+    logger.info('admin bootstrap: ensured verified admin account', { email });
+  } else {
+    await User.create({
+      email,
+      name: 'Administrator',
+      role: 'ADMIN',
+      phone: null,
+      passwordHash,
+      emailVerified: true,
+      status: 'ACTIVE',
+    });
+    logger.info('admin bootstrap: created verified admin account', { email });
+  }
+}
+
+async function seedDemoContent(categories: DemoCategories): Promise<void> {
+  const { warehouseCat, coldCat, equipmentCat, serviceCat } = categories;
 
   // --- Users --------------------------------------------------------------
   const admin = await upsertUser({
@@ -212,36 +363,6 @@ async function main(): Promise<void> {
     });
   }
 
-  // --- Categories ---------------------------------------------------------
-  const warehouseCat = await upsertCategory({
-    name: 'General Warehousing',
-    slug: 'general-warehousing',
-    type: 'WAREHOUSE',
-    description: '[DEMO] Ambient storage space by the pallet or square foot.',
-    sortOrder: 1,
-  });
-  const coldCat = await upsertCategory({
-    name: 'Cold Storage',
-    slug: 'cold-storage',
-    type: 'WAREHOUSE',
-    description: '[DEMO] Temperature-controlled storage for perishables.',
-    sortOrder: 2,
-  });
-  const equipmentCat = await upsertCategory({
-    name: 'Material Handling Equipment',
-    slug: 'material-handling-equipment',
-    type: 'EQUIPMENT',
-    description: '[DEMO] Forklifts, pallet jacks and dock equipment on hire.',
-    sortOrder: 3,
-  });
-  const serviceCat = await upsertCategory({
-    name: 'Loading & Unloading',
-    slug: 'loading-unloading',
-    type: 'SERVICE',
-    description: '[DEMO] Trained crews for truck and container handling.',
-    sortOrder: 4,
-  });
-
   // --- Listings -----------------------------------------------------------
   const listings: Record<string, string> = {};
 
@@ -257,7 +378,7 @@ async function main(): Promise<void> {
       location: { ...location, addressLine1: 'Plot 42, MIDC Hinjewadi' },
       price: { model: 'PER_DAY', amount: 1450, currency: 'INR', period: 'DAY', additionalCharges: [] },
       images: [
-        svgImage('Pune General Warehouse', '#0f766e', '#134e4a'),
+        listingCover('WAREHOUSE', 'Pune general warehouse with 4 loading docks'),
         svgImage('Loading Docks', '#1d4ed8', '#1e3a8a'),
       ],
       amenities: ['Forklift access', 'Racking', 'Power outlets', '24x7 security', 'Restroom'],
@@ -297,7 +418,7 @@ async function main(): Promise<void> {
       categoryId: coldCat,
       location: { ...location, addressLine1: 'Survey 18, Nashik Road', city: 'Nashik', postalCode: '422101', coordinates: { lat: 19.9975, lng: 73.7898 } },
       price: { model: 'PER_DAY', amount: 2200, currency: 'INR', period: 'DAY', additionalCharges: [{ label: 'Power surcharge', amount: 120, taxable: true }] },
-      images: [svgImage('Nashik Cold Storage', '#0e7490', '#164e63')],
+      images: [listingCover('WAREHOUSE', 'Nashik farm-gate cold storage facility')],
       amenities: ['Temperature control', 'Generator backup', 'Humidity control'],
       safetyFeatures: ['CCTV', 'Fire sprinklers'],
       rules: ['Pre-chilled goods only', 'No dry goods in cold rooms'],
@@ -335,7 +456,7 @@ async function main(): Promise<void> {
       categoryId: equipmentCat,
       location: { ...location, addressLine1: 'Warehouse 7, MIDC Phase II' },
       price: { model: 'PER_DAY', amount: 1800, currency: 'INR', period: 'DAY', additionalCharges: [] },
-      images: [svgImage('Electric Forklift', '#b45309', '#7c2d12')],
+      images: [listingCover('EQUIPMENT', 'Electric forklift hire with operator option')],
       amenities: ['Battery swap included', 'Delivery within 25 km'],
       safetyFeatures: ['Operator helmet', 'Tip-over protection'],
       rules: ['Certified operators only', 'Damage waiver optional'],
@@ -371,7 +492,7 @@ async function main(): Promise<void> {
       categoryId: serviceCat,
       location: { ...location, addressLine1: 'Unit 12, Logistics Park' },
       price: { model: 'PER_DAY', amount: 2600, currency: 'INR', period: 'DAY', additionalCharges: [{ label: 'Overtime (per hr)', amount: 250, taxable: true }] },
-      images: [svgImage('Loading Crew', '#7c3aed', '#4c1d95')],
+      images: [listingCover('SERVICE', 'Truck loading and unloading crew in Pune')],
       amenities: ['Same-day booking', 'PPE included'],
       safetyFeatures: ['Safety boots', 'Gloves', 'Hi-vis vests'],
       rules: ['Maximum 10 hours per shift', 'Site induction required'],
@@ -501,6 +622,58 @@ async function main(): Promise<void> {
       logger.warn('conversation skipped', { err: err instanceof Error ? err.message : String(err) });
     }
   }
+}
+
+async function main(): Promise<void> {
+  await connectDatabase();
+  logger.info(
+    seedDemo
+      ? 'Seeding reference data + DEMO content (all demo records are demonstration-only)...'
+      : 'Seeding reference data only (demo content skipped in production — set SEED_DEMO=true to force)...',
+  );
+
+  // --- Platform settings (reference data, always seeded) -------------------
+  await ensureSettings();
+
+  // --- Categories (reference data, always seeded) --------------------------
+  const warehouseCat = await upsertCategory({
+    name: 'General Warehousing',
+    slug: 'general-warehousing',
+    type: 'WAREHOUSE',
+    description: 'Ambient storage space by the pallet or square foot.',
+    sortOrder: 1,
+  });
+  const coldCat = await upsertCategory({
+    name: 'Cold Storage',
+    slug: 'cold-storage',
+    type: 'WAREHOUSE',
+    description: 'Temperature-controlled storage for perishables.',
+    sortOrder: 2,
+  });
+  const equipmentCat = await upsertCategory({
+    name: 'Material Handling Equipment',
+    slug: 'material-handling-equipment',
+    type: 'EQUIPMENT',
+    description: 'Forklifts, pallet jacks and dock equipment on hire.',
+    sortOrder: 3,
+  });
+  const serviceCat = await upsertCategory({
+    name: 'Loading & Unloading',
+    slug: 'loading-unloading',
+    type: 'SERVICE',
+    description: 'Trained crews for truck and container handling.',
+    sortOrder: 4,
+  });
+
+  // --- Demo content (skipped in production unless SEED_DEMO=true) ----------
+  if (seedDemo) {
+    await seedDemoContent({ warehouseCat, coldCat, equipmentCat, serviceCat });
+  } else {
+    logger.info('demo content skipped', { nodeEnv: process.env.NODE_ENV ?? 'development' });
+  }
+
+  // --- Admin bootstrap (runs in every mode) --------------------------------
+  await ensureSeedAdmin();
 
   const counts = {
     users: await User.countDocuments(),
@@ -508,10 +681,16 @@ async function main(): Promise<void> {
     listings: await Listing.countDocuments(),
     bookings: await Booking.countDocuments(),
   };
-  logger.info('Seed complete', counts);
-  logger.info(
-    `Demo logins (password ${DEMO_PASSWORD}): admin@${DEMO_DOMAIN}, partner@${DEMO_DOMAIN}, partner2@${DEMO_DOMAIN}, customer@${DEMO_DOMAIN}`,
-  );
+  logger.info('Seed complete', { ...counts, demoContent: seedDemo });
+  if (seedDemo) {
+    logger.info(
+      `Demo logins (password ${DEMO_PASSWORD}): admin@${DEMO_DOMAIN}, partner@${DEMO_DOMAIN}, partner2@${DEMO_DOMAIN}, customer@${DEMO_DOMAIN}`,
+    );
+  } else {
+    logger.info(
+      'Seeded reference data only: platform settings + categories (set SEED_DEMO=true to include demo content)',
+    );
+  }
 
   await disconnectDatabase();
 }

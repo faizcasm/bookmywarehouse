@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { Forklift, HardHat, Megaphone, ShieldCheck, Warehouse, Zap, Lock, LifeBuoy, ArrowRight, Search, FileText, CreditCard, ArrowUpRight } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAsyncData } from '../lib/useAsyncData';
+import { useDocumentMeta } from '../lib/useDocumentMeta';
 import { EMPTY_FILTERS, buildSearchQuery } from '../lib/searchFilters';
 import { listingTypeLabel } from '../lib/format';
 import { PARTNER_APP_URL } from '../auth/AuthContext';
@@ -99,6 +100,12 @@ export function HomePage() {
   const [city, setCity] = useState('');
   const [type, setType] = useState<(typeof TYPE_TABS)[number]>('');
   const sceneMode = useHeroSceneMode();
+
+  useDocumentMeta({
+    title: 'BookMyWarehouse — Warehouses, Equipment & Logistics Services in India',
+    description:
+      'Discover and book verified warehouses, forklifts and logistics services across India. Compare live quotes, book online and get GST-ready invoices.',
+  });
 
   const settings = useAsyncData<PlatformSettingsDTO>(() => api.get('/catalog/settings'), []);
   // `GET /catalog/categories` answers with a pagination envelope `{ items }`.

@@ -11,6 +11,8 @@ import { apiSend } from '../lib/api';
 import { errorMessage, usePagedList } from '../lib/hooks';
 import { formatDateTime, statusLabel } from '../lib/format';
 import type { DisputeDTO } from '../lib/types';
+import { motion } from 'motion/react';
+import { fadeUp, stagger } from '@bmw/ui';
 
 const DISPUTE_TABS = [
   { id: '', label: 'All' },
@@ -145,10 +147,14 @@ export function DisputesPage() {
 
   return (
     <>
-      <PageHeader title="Disputes" subtitle="Investigate and resolve booking disputes" />
-      <Tabs tabs={DISPUTE_TABS} active={status} onChange={setStatus} ariaLabel="Dispute status" />
+      <motion.header variants={fadeUp} initial="hidden" animate="show">
+        <PageHeader title="Disputes" subtitle="Investigate and resolve booking disputes" />
+      </motion.header>
+      <motion.div variants={stagger(0.05)} initial="hidden" animate="show">
+        <Tabs tabs={DISPUTE_TABS} active={status} onChange={setStatus} ariaLabel="Dispute status" />
+      </motion.div>
 
-      <section className="card">
+      <motion.section className="card" variants={fadeUp} initial="hidden" animate="show">
         {loading ? (
           <Skeleton rows={5} />
         ) : error ? (
@@ -169,7 +175,7 @@ export function DisputesPage() {
             />
           </>
         )}
-      </section>
+      </motion.section>
 
       {/* Resolve modal */}
       <Modal

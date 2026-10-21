@@ -224,6 +224,68 @@ Built against `docs/API_REFERENCE.md` (written first as the shared contract):
    sweep of all three SPAs in light **and** dark mode with zero console/page errors
    (demo data, recharts and theme toggle confirmed live).
    **Shipped 2026-10-20.**
-6. Post-MVP candidates: Cloudinary image storage for production, real payment provider
+6. **Production readiness: real payments, transactional emails, CSV exports, SEO/PWA,
+   demo purge + production seed** — done:
+   - **Real Razorpay adapter** (orders API, Checkout.js hosted flow, HMAC-verified
+     `POST /payments/verify` idempotent, signed webhooks dual-header, refunds pushed
+     through refund API; Stripe slot kept behind same adapter interface).
+   - **Transactional emails** (Resend env-gated, fire-and-forget in `notify()` with
+     curated map: booking requested/accepted/cancelled, payment success/failure,
+     refund initiated/completed, dispute opened — never blocks business flow).
+   - **Admin CSV exports** (`GET /admin/exports/bookings.csv`, `/payouts.csv` with
+     UTF-8 BOM, RFC4180 escaping, audit trail, buttons on Bookings/Payments pages).
+   - **SEO/PWA polish** (dynamic sitemap.xml from published listings, robots.txt,
+     manifest.webmanifest + icons generated via Playwright, per-page OG/meta via
+     `useDocumentMeta`, print-ready invoice with `@media print`).
+   - **Demo purge + production seed** (demo content off by default in production,
+     `SEED_DEMO=true` to force; admin bootstrap via `SEED_ADMIN_EMAIL/PASSWORD`;
+     deterministic category-themed SVG covers in seed + `placeholderCover.ts` for
+     customer SPA fallbacks).
+   - **Production boot guardrails**: API refuses to boot without auth secrets +
+     `PAYMENT_WEBHOOK_SECRET` (prevents predictable dev fallback forgery); loud
+     warnings for sandbox payments / log-only email / missing Cloudinary in prod.
+   - **Customer auth split-screen** (dark brand panel with value props + glass form
+     card, password strength meter, reveal toggles, working "Fill credentials" demo
+     callout — removed in production seed mode).
+   - **Homepage upgrade**: staggered word-reveal hero, real-category scrolling ticker,
+     "Book in three steps" section, partner CTA band linking to `PARTNER_APP_URL`.
+   **Verified by execution:** lint/typecheck ✅, `pnpm test` → **177/177** unit
+   (API 99 · customer 26 · partner 30 · admin 22), `pnpm test:e2e` → **12/12**,
+   `pnpm build` ✅ all four services.
+   **Shipped 2026-10-21.**
+7. **World-class 2026 frontend redesign: glassmorphism, motion, 3D, responsive** — done:
+   - **Shared token layer** (`packages/ui/tokens.css`): glass system (`.glass`,
+     `.glass-strong`, `.glass-inset`, `.atmosphere`), atmospheric backdrops,
+     refined blur/sheens, typography defaults (tightened display headings, `text-wrap:
+     balance/pretty`), all dark/light safe.
+   - **Customer marketplace** (all 19 pages): Header a11y (aria-controls, Esc-close,
+     focus restore); **ConversationPage** rebuilt (h1, glass bubbles, sticky glass-inset
+     composer, entrance stagger, empty state, mobile rules); **SearchPage** staggered
+     results + skeleton crossfade, glass filter panel, active-filter chips, mobile
+     filter drawer; **ListingPage** entrance motion, gallery polish, sticky
+     glass-strong quote panel, availability motion, section rhythm; **all dashboard
+     pages** premium scaffold (header reveal → toolbar stagger → content card fadeUp),
+     status timeline polish, table staggered row entrances, empty states with icons,
+     hover micro-interactions; **responsive tables** stacked ≤640px via `data-label`
+     + `td::before` (keeps DOM for E2E); route transitions via `AnimatePresence` +
+     `pageTransition`; tokenized hex cleanup; scroll-reveal `.reveal` reuse.
+   - **Partner console** (all 15 pages): AppShell hardened (Esc topmost-layer close,
+     focus restore, `.glass-strong` dropdowns with popIn exit); **AuthShell** split-screen
+     partner variant (dark brand panel + glass form); all pages consistent page-header
+     + staggered entrance scaffold; **ListingForm** section grouping, `FormSection`
+     wrapper with field-row stagger, sticky actions, upload previews; Onboarding stepper
+     motion, KYC status clarity; Earnings charts dark-theme readable; responsive tables
+     card/stacked ≤760px (DOM preserved); empty/error/skeleton states unified.
+   - **Admin panel** (all 17+ pages): Uniform page scaffold rhythm across 13 B-grade
+     pages + detail pages; strategic glass (topbar, toolbars `.glass-inset`,
+     modals `.glass-strong`); **ReviewsPage** client-side filter removed → honest
+     disabled control; **404 route** inside auth guard (routeGuard test passes);
+     **RefundsPage** audit log wrap fix; responsive DataTable `col-secondary` hiding
+     ≤1024px, toolbar wrap ≤768px, dialog max-height + stacked footer ≤560px, 360px
+     no-overflow verified; Dashboard charts dark-theme polished.
+   **Verified by execution:** lint/typecheck ✅, `pnpm test` → **177/177** unit,
+   `pnpm test:e2e` → **12/12**, `pnpm build` ✅ all four services.
+   **Shipped 2026-10-21.**
+8. Post-MVP candidates: Cloudinary image storage for production, real payment provider
    keys (Razorpay/Stripe), email delivery via Resend, `idPrefix` fix for onboarding
    address fields.

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { api, type Pagination as PaginationMeta } from '../lib/api';
 import { humanize, mapNotificationLink, relativeTime } from '../lib/format';
@@ -6,6 +7,7 @@ import type { NotificationDTO } from '../lib/types';
 import { Pagination } from '../components/Pagination';
 import { EmptyState, ErrorState, ListSkeleton } from '../components/States';
 import { useToast } from '../components/Toast';
+import { fadeUp, stagger } from '@bmw/ui';
 
 export function NotificationsPage() {
   const navigate = useNavigate();
@@ -57,7 +59,12 @@ export function NotificationsPage() {
 
   return (
     <div className="page">
-      <div className="page__toolbar">
+      <motion.div className="page__intro" variants={fadeUp} initial="hidden" animate="show">
+        <h2>Notifications</h2>
+        <p className="muted">Booking requests, messages, reviews and admin decisions — all in one place.</p>
+      </motion.div>
+
+      <motion.div className="page__toolbar" variants={fadeUp} initial="hidden" animate="show" transition={{ delay: 0.1 }}>
         <div className="filters">
           <div className="tabs tabs--inline" role="tablist" aria-label="Notification filter">
             <button
@@ -82,7 +89,7 @@ export function NotificationsPage() {
                 setPage(1);
               }}
             >
-              Unread {unread > 0 ? `(${unread})` : ''}
+              Unread {unread > 0 ? `({unread})` : ''}
             </button>
           </div>
         </div>
@@ -91,21 +98,30 @@ export function NotificationsPage() {
             {marking ? 'Marking…' : 'Mark all as read'}
           </button>
         ) : null}
-      </div>
+      </motion.div>
 
       {loading ? (
         <ListSkeleton rows={6} />
       ) : error ? (
         <ErrorState error={error} onRetry={() => void load()} title="Could not load notifications" />
       ) : items.length === 0 ? (
-        <div className="card">
+        <motion.div className="card" variants={fadeUp} initial="hidden" animate="show">
           <EmptyState title={unreadOnly ? 'No unread notifications' : 'No notifications yet'} description="Booking requests, messages, reviews and admin decisions will show up here." />
-        </div>
+        </motion.div>
       ) : (
         <>
-          <ul className="notification-list">
+          <motion.ul
+            className="notification-list"
+            variants={stagger(0.05)}
+            initial="hidden"
+            animate="show"
+          >
             {items.map((item) => (
-              <li key={item.id} className={`card notification-item ${item.read ? '' : 'notification-item--unread'}`}>
+              <motion.li
+                key={item.id}
+                className={`card notification-item ${item.read ? '' : 'notification-item--unread'}`}
+                variants={fadeUp}
+              >
                 <div className="notification-item__type">{humanize(item.type)}</div>
                 <div className="notification-item__body">
                   <strong>{item.title}</strong>
@@ -122,10 +138,12 @@ export function NotificationsPage() {
                     </button>
                   ) : null}
                 </div>
-              </li>
+              </motion.li>
             ))}
-          </ul>
-          <Pagination pagination={pagination} onPage={setPage} />
+          </motion.ul>
+          <motion.div variants={fadeUp} initial="hidden" animate="show" transition={{ delay: 0.2 }}>
+            <Pagination pagination={pagination} onPage={setPage} />
+          </motion.div>
         </>
       )}
     </div>

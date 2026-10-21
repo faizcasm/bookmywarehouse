@@ -28,6 +28,13 @@
   --rail-active-fg: #f5f9ff;
   --rail-active-rail: #60a5fa;
   --rail-chip: rgb(255 255 255 / 0.08);
+
+  /* Motion durations (match @bmw/ui tokens) */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+  --ease-smooth: cubic-bezier(0.2, 0, 0, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 [data-theme='dark'] {
@@ -215,6 +222,15 @@ code {
   background: var(--danger-soft);
   border-color: var(--danger);
   color: var(--danger-soft-fg);
+}
+
+/* ---------------------------------- glass utilities ---------------------------------- */
+
+.glass-inset {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgb(255 255 255 / 0.03);
 }
 
 /* ---------------------------------- forms --------------------------------- */
@@ -2174,8 +2190,10 @@ legend.field__label {
   border-radius: var(--radius-md);
   padding: 11px;
   font-size: 11.5px;
-  max-width: 340px;
+  max-width: 100%;
   overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   margin: 7px 0 0;
 }
 
@@ -2332,6 +2350,10 @@ legend.field__label {
   .data-table td.align-right {
     justify-content: space-between;
   }
+  /* Hide secondary columns in card layout */
+  .data-table .col-secondary {
+    display: none;
+  }
   .stat-grid {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   }
@@ -2347,6 +2369,69 @@ legend.field__label {
   }
   .toolbar {
     padding: 10px;
+  }
+}
+
+/* Hide secondary columns on narrow screens while keeping horizontal scroll for primary columns */
+@media (max-width: 1024px) {
+  .data-table .col-secondary {
+    display: none;
+  }
+  .data-table th.col-secondary {
+    display: none;
+  }
+}
+
+/* Toolbar wrapping improvements at 768px and below */
+@media (max-width: 768px) {
+  .toolbar {
+    gap: 8px;
+  }
+  .toolbar__search {
+    max-width: none;
+    flex: 1 1 100%;
+    order: 3;
+  }
+  .toolbar .select {
+    min-width: 140px;
+  }
+  .page-header {
+    gap: 10px;
+  }
+  .page-header__actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+/* Dialog improvements for small screens */
+@media (max-width: 560px) {
+  .modal {
+    max-width: calc(100vw - 24px);
+    margin: 0 12px;
+    border-radius: var(--radius-lg);
+  }
+  .modal__body {
+    max-height: 50vh;
+    padding: 16px;
+  }
+  .modal__header,
+  .modal__footer {
+    padding: 12px 16px;
+  }
+  .modal__footer {
+    flex-direction: column-reverse;
+  }
+  .modal__footer .btn {
+    width: 100%;
+  }
+  .dropdown,
+  .user-menu,
+  .bell-dropdown {
+    right: -8px;
+    left: -8px;
+    min-width: auto;
+    max-width: calc(100vw - 16px);
   }
 }
 

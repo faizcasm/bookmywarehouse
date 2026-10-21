@@ -1,11 +1,13 @@
 import type { ReactNode } from 'react';
+import { motion } from 'motion/react';
+import { fadeUp, stagger } from '@bmw/ui';
 
 export interface Column<T> {
   key: string;
   header: string;
   render: (row: T) => ReactNode;
   align?: 'left' | 'right' | 'center';
-  /** Hide this column on narrow screens (card layout). */
+  /** Hide this column on narrow screens (card layout and < 1024px). */
   secondary?: boolean;
   width?: string;
 }
@@ -22,6 +24,7 @@ interface DataTableProps<T> {
 /**
  * Dense admin table. Below 760px it degrades to stacked cards using
  * data-label attributes (see styles.css).
+ * Rows stagger in on mount for a polished entrance.
  */
 export function DataTable<T>({ columns, rows, getRowKey, emptyMessage = 'No records found.', onRowClick }: DataTableProps<T>) {
   if (rows.length === 0) {
@@ -40,11 +43,15 @@ export function DataTable<T>({ columns, rows, getRowKey, emptyMessage = 'No reco
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr
+          {rows.map((row, rowIndex) => (
+            <motion.tr
               key={getRowKey(row)}
               className={onRowClick ? 'row-clickable' : undefined}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
+              variants={fadeUp}
+              initial="hidden"
+              animate="show"
+              transition={{ delay: rowIndex * 0.04, duration: Math.min(0.2 + rowIndex * 0.01, 0.4) }}
             >
               {columns.map((c) => (
                 <td
@@ -60,7 +67,7 @@ export function DataTable<T>({ columns, rows, getRowKey, emptyMessage = 'No reco
                   {c.render(row)}
                 </td>
               ))}
-            </tr>
+            </motion.tr>
           ))}
         </tbody>
       </table>

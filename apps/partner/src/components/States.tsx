@@ -1,6 +1,8 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { AlertTriangle, Inbox } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { AlertTriangle, Inbox, WifiOff, RefreshCw } from 'lucide-react';
 import { errorMessage } from '../lib/api';
+import { fadeSoft, stagger, popIn } from '@bmw/ui';
 
 export function Skeleton({
   width = '100%',
@@ -18,24 +20,26 @@ export function Skeleton({
 
 export function ListSkeleton({ rows = 5, height = '3.25rem' }: { rows?: number; height?: string }) {
   return (
-    <div className="skeleton-list" role="status" aria-label="Loading">
+    <motion.div className="skeleton-list" role="status" aria-label="Loading" variants={stagger(0.06)} initial="hidden" animate="show">
       {Array.from({ length: rows }, (_, index) => (
-        <Skeleton key={index} height={height} />
+        <motion.div key={index} variants={fadeSoft}>
+          <Skeleton height={height} />
+        </motion.div>
       ))}
-    </div>
+    </motion.div>
   );
 }
 
 export function StatSkeleton({ count = 4 }: { count?: number }) {
   return (
-    <div className="stat-grid" role="status" aria-label="Loading">
+    <motion.div className="stat-grid" role="status" aria-label="Loading" variants={stagger(0.07)} initial="hidden" animate="show">
       {Array.from({ length: count }, (_, index) => (
-        <div className="card stat-card" key={index}>
+        <motion.div className="card stat-card" key={index} variants={fadeSoft}>
           <Skeleton width="60%" height="0.8rem" />
           <Skeleton width="40%" height="1.7rem" style={{ marginTop: '0.75rem' }} />
-        </div>
+        </motion.div>
       ))}
-    </div>
+    </motion.div>
   );
 }
 
@@ -44,27 +48,33 @@ export function EmptyState({
   description,
   action,
   icon,
+  variant = 'default',
 }: {
   title: string;
   description?: string;
   action?: ReactNode;
   icon?: ReactNode;
+  variant?: 'default' | 'offline' | 'search';
 }) {
+  const IconComponent = variant === 'offline' ? WifiOff : variant === 'search' ? RefreshCw : Inbox;
+  const iconColor = variant === 'offline' ? 'var(--warning-soft-fg)' : variant === 'search' ? 'var(--brand-soft-fg)' : 'var(--brand-soft-fg)';
+  const iconBg = variant === 'offline' ? 'var(--warning-soft)' : variant === 'search' ? 'var(--brand-soft)' : 'var(--brand-soft)';
+
   return (
-    <div className="empty-state">
-      <div className="empty-state__icon" aria-hidden="true">
-        {icon ?? <Inbox size={26} strokeWidth={1.8} />}
+    <motion.div className="empty-state" variants={popIn} initial="hidden" animate="show">
+      <div className="empty-state__icon" aria-hidden="true" style={{ background: iconBg, color: iconColor }}>
+        {icon ?? <IconComponent size={26} strokeWidth={1.8} />}
       </div>
       <h3 className="empty-state__title">{title}</h3>
       {description ? <p className="empty-state__description">{description}</p> : null}
       {action ? <div className="empty-state__action">{action}</div> : null}
-    </div>
+    </motion.div>
   );
 }
 
 export function ErrorState({ error, onRetry, title = 'Could not load data' }: { error: unknown; onRetry?: () => void; title?: string }) {
   return (
-    <div className="error-state" role="alert">
+    <motion.div className="error-state" role="alert" variants={popIn} initial="hidden" animate="show">
       <div className="error-state__icon" aria-hidden="true">
         <AlertTriangle size={18} strokeWidth={2.2} />
       </div>
@@ -74,9 +84,35 @@ export function ErrorState({ error, onRetry, title = 'Could not load data' }: { 
       </div>
       {onRetry ? (
         <button type="button" className="btn btn--secondary" onClick={onRetry}>
+          <RefreshCw size={14} strokeWidth={2} aria-hidden="true" style={{ marginRight: '0.35rem' }} />
           Retry
         </button>
       ) : null}
-    </div>
+    </motion.div>
+  );
+}
+
+/* Crossfade wrapper for skeleton-to-content transitions */
+export function ContentCrossfade({
+  isLoading,
+  children,
+  skeleton,
+}: {
+  isLoading: boolean;
+  children: ReactNode;
+  skeleton: ReactNode;
+}) {
+  return (
+    <AnimatePresence mode="wait">
+      {isLoading ? (
+        <motion.div key="skeleton" variants={fadeSoft} initial="hidden" animate="show" exit="hidden">
+          {skeleton}
+        </motion.div>
+      ) : (
+        <motion.div key="content" variants={fadeSoft} initial="hidden" animate="show" exit="hidden">
+          {children}
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

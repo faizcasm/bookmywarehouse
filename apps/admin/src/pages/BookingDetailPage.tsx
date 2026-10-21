@@ -9,6 +9,8 @@ import { apiSend } from '../lib/api';
 import { errorMessage, useFetch } from '../lib/hooks';
 import { formatDateTime, formatMoney } from '../lib/format';
 import type { BookingDTO } from '../lib/types';
+import { motion } from 'motion/react';
+import { fadeUp, stagger } from '@bmw/ui';
 
 const CANCELLABLE: string[] = ['DRAFT', 'PENDING_APPROVAL', 'AWAITING_PAYMENT', 'CONFIRMED', 'IN_PROGRESS'];
 
@@ -48,25 +50,27 @@ export function BookingDetailPage() {
 
   return (
     <>
-      <PageHeader
-        title={`Booking ${b.reference}`}
-        subtitle={`${b.listing?.title ?? 'Listing'} · ${b.type}`}
-        actions={
-          <>
-            <Link to="/bookings" className="btn btn--ghost btn--sm">
-              <ArrowLeft aria-hidden="true" />
-              All bookings
-            </Link>
-            {CANCELLABLE.includes(b.status) ? (
-              <button type="button" className="btn btn--danger btn--sm" onClick={() => setCancelOpen(true)}>
-                Cancel booking
-              </button>
-            ) : null}
-          </>
-        }
-      />
+      <motion.header variants={fadeUp} initial="hidden" animate="show">
+        <PageHeader
+          title={`Booking ${b.reference}`}
+          subtitle={`${b.listing?.title ?? 'Listing'} · ${b.type}`}
+          actions={
+            <>
+              <Link to="/bookings" className="btn btn--ghost btn--sm">
+                <ArrowLeft aria-hidden="true" />
+                All bookings
+              </Link>
+              {CANCELLABLE.includes(b.status) ? (
+                <button type="button" className="btn btn--danger btn--sm" onClick={() => setCancelOpen(true)}>
+                  Cancel booking
+                </button>
+              ) : null}
+            </>
+          }
+        />
+      </motion.header>
 
-      <div className="detail-head card">
+      <motion.section className="detail-head card" variants={fadeUp} initial="hidden" animate="show">
         <div className="detail-head__status">
           <StatusBadge status={b.status} group="booking" />
           <span className="muted">Created {formatDateTime(b.createdAt)}</span>
@@ -81,10 +85,10 @@ export function BookingDetailPage() {
             Rejection reason: {b.rejectionReason}
           </p>
         ) : null}
-      </div>
+      </motion.section>
 
-      <div className="detail-grid">
-        <section className="card">
+      <motion.div className="detail-grid" variants={stagger(0.06)} initial="hidden" animate="show">
+        <motion.section className="card" variants={fadeUp}>
           <h2 className="card__title">Parties</h2>
           <dl className="kv">
             <div className="kv__row">
@@ -107,9 +111,9 @@ export function BookingDetailPage() {
               <dd>{b.listing?.city ?? '—'}</dd>
             </div>
           </dl>
-        </section>
+        </motion.section>
 
-        <section className="card">
+        <motion.section className="card" variants={fadeUp}>
           <h2 className="card__title">Schedule</h2>
           <dl className="kv">
             <div className="kv__row">
@@ -140,11 +144,11 @@ export function BookingDetailPage() {
               </div>
             ) : null}
           </dl>
-        </section>
-      </div>
+        </motion.section>
+      </motion.div>
 
-      <div className="detail-grid">
-        <section className="card">
+      <motion.div className="detail-grid" variants={stagger(0.06)} initial="hidden" animate="show">
+        <motion.section className="card" variants={fadeUp}>
           <h2 className="card__title">Pricing</h2>
           {pricing ? (
             <>
@@ -195,9 +199,9 @@ export function BookingDetailPage() {
           ) : (
             <p className="muted">No pricing recorded.</p>
           )}
-        </section>
+        </motion.section>
 
-        <section className="card">
+        <motion.section className="card" variants={fadeUp}>
           <h2 className="card__title">Timeline</h2>
           <ol className="timeline">
             {(b.statusHistory ?? []).map((event, i) => (
@@ -215,8 +219,8 @@ export function BookingDetailPage() {
             ))}
             {(!b.statusHistory || b.statusHistory.length === 0) ? <p className="muted">No history.</p> : null}
           </ol>
-        </section>
-      </div>
+        </motion.section>
+      </motion.div>
 
       <ReasonDialog
         open={cancelOpen}

@@ -106,9 +106,45 @@ function buildEnv(): AppEnv {
           .join('\n')}`,
       );
     }
-    return retry.data;
+    return enforceProductionRequirements(retry.data);
   }
-  return parsed.data;
+  return enforceProductionRequirements(parsed.data);
+}
+
+/**
+ * Production guardrails: auth secrets are mandatory (no silent dev fallbacks)
+ * and missing optional integrations warn loudly at boot — loudly, but never
+ * fatally, so a deploy cannot brick because a payment/email key is absent.
+ */
+function enforceProductionRequirements(data: AppEnv): AppEnv {
+  if (data.NODE_ENV !== 'production') return data;
+
+  const requiredSecrets = ['ACCESS_TOKEN_SECRET', 'REFRESH_TOKEN_SECRET', 'SESSION_SECRET'] as const;
+  const missing: string[] = requiredSecrets.filter((key) => !data[key]);
+  // Webhook signatures are the only auth on the webhook route — a predictable
+  // dev-derived secret would let anyone forge "payment succeeded" events.
+  if (!data.PAYMENT_WEBHOOK_SECRET) missing.push('PAYMENT_WEBHOOK_SECRET');
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing required production secrets: ${missing.join(', ')}. ` +
+        'Set each to a random value of at least 32 characters in the deployment environment.',
+    );
+  }
+
+  const warnings: string[] = [];
+  if (data.PAYMENT_PROVIDER === 'SANDBOX') {
+    warnings.push('PAYMENT_PROVIDER=SANDBOX — checkout is simulated (set PAYMENT_PUBLIC_KEY/PAYMENT_SECRET_KEY + RAZORPAY for live payments).');
+  }
+  if (!(data.EMAIL_PROVIDER === 'resend' && data.EMAIL_PROVIDER_API_KEY)) {
+    warnings.push('EMAIL_PROVIDER is not "resend" — transactional emails are logged, not delivered.');
+  }
+  if (!(data.CLOUDINARY_CLOUD_NAME && data.CLOUDINARY_API_KEY && data.CLOUDINARY_API_SECRET)) {
+    warnings.push('Cloudinary is not configured — image uploads fall back to inline development storage.');
+  }
+  for (const warning of warnings) {
+    console.warn(`[env] production readiness: ${warning}`);
+  }
+  return data;
 }
 
 export const env = buildEnv();

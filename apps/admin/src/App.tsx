@@ -12,6 +12,7 @@ import { DisputesPage } from './pages/DisputesPage';
 import { InvoicesPage } from './pages/InvoicesPage';
 import { ListingsPage } from './pages/ListingsPage';
 import { LoginPage } from './pages/LoginPage';
+import { NotFoundPage } from './pages/NotFoundPage';
 import { PartnerDetailPage } from './pages/PartnerDetailPage';
 import { PartnersPage } from './pages/PartnersPage';
 import { PaymentsPage } from './pages/PaymentsPage';
@@ -57,7 +58,7 @@ export function App() {
                 <Route path="/reviews" element={<ReviewsPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/audit" element={<AuditPage />} />
-                <Route path="*" element={<DashboardPage />} />
+                <Route path="*" element={<NotFoundPage />} />
               </Route>
             </Route>
           </Routes>

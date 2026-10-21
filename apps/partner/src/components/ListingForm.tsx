@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { motion } from 'motion/react';
 import { errorMessage, isApiError, api } from '../lib/api';
 import { hasErrors, issuesToErrors, type FieldErrors } from '../lib/validation';
 import {
@@ -20,6 +21,7 @@ import {
 } from '../lib/listingForm';
 import type { CategoryDTO, ListingType } from '../lib/types';
 import { FileUpload } from './FileUpload';
+import { fadeUp, stagger } from '@bmw/ui';
 
 /* ------------------------------------------------------------------ */
 /* Small field primitives                                              */
@@ -209,6 +211,39 @@ function MultiChecklist<T extends string>({
 }
 
 /* ------------------------------------------------------------------ */
+/* Section wrapper with subtle entrance                                */
+/* ------------------------------------------------------------------ */
+
+function FormSection({
+  children,
+  label,
+  description,
+  delay = 0,
+}: {
+  children: ReactNode;
+  label: string;
+  description?: string;
+  delay?: number;
+}) {
+  return (
+    <motion.section
+      className="card"
+      aria-label={label}
+      variants={fadeUp}
+      initial="hidden"
+      animate="show"
+      transition={{ delay }}
+    >
+      <div className="card__header">
+        <h2 className="card__title">{label}</h2>
+      </div>
+      {description ? <p className="muted" style={{ marginBottom: '0.9rem' }}>{description}</p> : null}
+      {children}
+    </motion.section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Listing form                                                        */
 /* ------------------------------------------------------------------ */
 
@@ -300,14 +335,14 @@ export function ListingForm({
   return (
     <form className="listing-form stack" onSubmit={(event) => void handleSubmit(event)} noValidate>
       {formError ? (
-        <div className="alert alert--error" role="alert">
+        <motion.div className="alert alert--error" role="alert" variants={fadeUp} initial="hidden" animate="show">
           {formError}
-        </div>
+        </motion.div>
       ) : null}
 
-      <section className="card" aria-label="Basics">
-        <h2 className="card__title">Basics</h2>
-        <div className="field-row">
+      {/* Identity */}
+      <FormSection label="Identity" description="Basic information customers see first." delay={0}>
+        <motion.div className="field-row" variants={stagger(0.04)} initial="hidden" animate="show">
           <TextField
             id="listing-title"
             label="Title"
@@ -340,42 +375,44 @@ export function ListingForm({
               </select>
             )}
           </FieldShell>
-        </div>
+        </motion.div>
 
-        <TextAreaField
-          id="listing-description"
-          label="Description"
-          required
-          rows={5}
-          value={values.description}
-          onChange={(value) => patch({ description: value })}
-          error={errors.description}
-          hint="At least 40 characters — describe condition, access, ideal uses"
-          placeholder="Describe your space, access hours, ideal customers…"
-        />
-      </section>
+        <motion.div variants={fadeUp} initial="hidden" animate="show" transition={{ delay: 0.1 }}>
+          <TextAreaField
+            id="listing-description"
+            label="Description"
+            required
+            rows={5}
+            value={values.description}
+            onChange={(value) => patch({ description: value })}
+            error={errors.description}
+            hint="At least 40 characters — describe condition, access, ideal uses"
+            placeholder="Describe your space, access hours, ideal customers…"
+          />
+        </motion.div>
+      </FormSection>
 
-      <section className="card" aria-label="Location">
-        <h2 className="card__title">Location</h2>
-        <div className="field-row">
+      {/* Location */}
+      <FormSection label="Location" description="Where your facility is located." delay={0.05}>
+        <motion.div className="field-row" variants={stagger(0.04)} initial="hidden" animate="show">
           <TextField id="loc-line1" label="Address line 1" required value={values.location.addressLine1} onChange={(value) => patchLocation({ addressLine1: value })} error={errors['location.addressLine1']} />
           <TextField id="loc-line2" label="Address line 2" value={values.location.addressLine2 ?? ''} onChange={(value) => patchLocation({ addressLine2: value })} />
-        </div>
-        <div className="field-row">
+        </motion.div>
+        <motion.div className="field-row" variants={stagger(0.04)} initial="hidden" animate="show" transition={{ delay: 0.05 }}>
           <TextField id="loc-landmark" label="Landmark" value={values.location.landmark ?? ''} onChange={(value) => patchLocation({ landmark: value })} />
           <TextField id="loc-city" label="City" required value={values.location.city} onChange={(value) => patchLocation({ city: value })} error={errors['location.city']} />
           <TextField id="loc-state" label="State" required value={values.location.state} onChange={(value) => patchLocation({ state: value })} error={errors['location.state']} />
-        </div>
-        <div className="field-row">
+        </motion.div>
+        <motion.div className="field-row" variants={stagger(0.04)} initial="hidden" animate="show" transition={{ delay: 0.1 }}>
           <TextField id="loc-postal" label="Postal / PIN code" required value={values.location.postalCode} onChange={(value) => patchLocation({ postalCode: value })} error={errors['location.postalCode']} />
           <TextField id="loc-country" label="Country" required value={values.location.country} onChange={(value) => patchLocation({ country: value })} error={errors['location.country']} />
           <TextField id="loc-region" label="Region (searchable area)" value={values.location.region ?? ''} onChange={(value) => patchLocation({ region: value })} hint="e.g. Bhiwandi, Delhi NCR" />
-        </div>
-      </section>
+        </motion.div>
+      </FormSection>
 
-      <section className="card" aria-label="Pricing">
-        <h2 className="card__title">Pricing</h2>
-        <div className="field-row">
+      {/* Pricing */}
+      <FormSection label="Pricing" description="How you charge for bookings." delay={0.1}>
+        <motion.div className="field-row" variants={stagger(0.04)} initial="hidden" animate="show">
           <SelectField
             id="price-model"
             label="Pricing model"
@@ -405,51 +442,56 @@ export function ListingForm({
             onChange={(value) => patch({ pricePeriod: value })}
             error={errors.pricePeriod}
           />
-        </div>
-        <div className="field-row">
+        </motion.div>
+        <motion.div className="field-row" variants={stagger(0.04)} initial="hidden" animate="show" transition={{ delay: 0.05 }}>
           <TextField id="price-unit-label" label="Unit label" value={values.priceUnitLabel} onChange={(value) => patch({ priceUnitLabel: value })} error={errors.priceUnitLabel} hint='e.g. "per sq.ft / month"' />
           <NumberField id="price-min-quantity" label="Minimum quantity" value={values.priceMinQuantity} onChange={(value) => patch({ priceMinQuantity: value })} error={errors.priceMinQuantity} min="1" />
           <TextField id="available-from" label="Available from" type="date" value={values.availableFrom} onChange={(value) => patch({ availableFrom: value })} error={errors.availableFrom} />
-        </div>
-      </section>
+        </motion.div>
+      </FormSection>
 
-      <section className="card" aria-label={`Details — ${LISTING_TYPE_LABELS[type]}`}>
-        <h2 className="card__title">{LISTING_TYPE_LABELS[type]} details</h2>
-        <p className="muted">These fields follow the {LISTING_TYPE_LABELS[type].toLowerCase()} listing type and are required before publishing.</p>
+      {/* Type-specific details */}
+      <FormSection label={`${LISTING_TYPE_LABELS[type]} details`} description={`These fields follow the ${LISTING_TYPE_LABELS[type].toLowerCase()} listing type and are required before publishing.`} delay={0.15}>
         {type === 'WAREHOUSE' ? <WarehouseFields values={values} errors={errors} patch={patchWarehouse} /> : null}
         {type === 'EQUIPMENT' ? <EquipmentFields values={values} errors={errors} patch={patchEquipment} /> : null}
         {type === 'SERVICE' ? <ServiceFields values={values} errors={errors} patch={patchService} /> : null}
-      </section>
+      </FormSection>
 
-      <section className="card" aria-label="Media">
-        <h2 className="card__title">Photos</h2>
-        <FileUpload
-          folder="listings"
-          label="Listing images *"
-          hint="First image becomes the cover. Up to 15 images."
-          multiple
-          maxFiles={15}
-          initialUrls={values.images}
-          initialNames={values.images.map((_, index) => `Image ${index + 1}`)}
-          onChange={(urls) => patch({ images: urls })}
-        />
-        {errors.images ? <span className="field__error">{errors.images}</span> : null}
-      </section>
+      {/* Media */}
+      <FormSection label="Photos" description="Upload up to 15 images. The first image becomes the cover." delay={0.2}>
+        <motion.div variants={fadeUp} initial="hidden" animate="show">
+          <FileUpload
+            folder="listings"
+            label="Listing images *"
+            hint="First image becomes the cover. Up to 15 images."
+            multiple
+            maxFiles={15}
+            initialUrls={values.images}
+            initialNames={values.images.map((_, index) => `Image ${index + 1}`)}
+            onChange={(urls) => patch({ images: urls })}
+          />
+          {errors.images ? <span className="field__error">{errors.images}</span> : null}
+        </motion.div>
+      </FormSection>
 
-      <section className="card" aria-label="Amenities, safety and rules">
-        <h2 className="card__title">Amenities, safety & house rules</h2>
-        <TextAreaField id="listing-amenities" label="Amenities" rows={3} value={values.amenitiesText} onChange={(value) => patch({ amenitiesText: value })} error={errors.amenities} hint="One per line, e.g. CCTV, forklift on site, 24×7 gate" placeholder={'CCTV\nForklift on site\n24x7 gate access'} />
-        <TextAreaField id="listing-safety" label="Safety features" rows={3} value={values.safetyText} onChange={(value) => patch({ safetyText: value })} error={errors.safetyFeatures} hint="One per line, e.g. fire extinguishers, sprinkler system" placeholder={'Fire extinguishers\nSprinkler system'} />
-        <TextAreaField id="listing-rules" label="House rules" rows={3} value={values.rulesText} onChange={(value) => patch({ rulesText: value })} error={errors.rules} hint="One per line, e.g. no smoking, insured goods only" placeholder={'No smoking on premises\nInsured goods only'} />
-      </section>
+      {/* Amenities, safety & house rules */}
+      <FormSection label="Amenities, safety & house rules" description="Help customers understand what's available and what's expected." delay={0.25}>
+        <motion.div className="field-row" variants={stagger(0.04)} initial="hidden" animate="show">
+          <TextAreaField id="listing-amenities" label="Amenities" rows={3} value={values.amenitiesText} onChange={(value) => patch({ amenitiesText: value })} error={errors.amenities} hint="One per line, e.g. CCTV, forklift on site, 24×7 gate" placeholder={'CCTV\nForklift on site\n24x7 gate access'} />
+          <TextAreaField id="listing-safety" label="Safety features" rows={3} value={values.safetyText} onChange={(value) => patch({ safetyText: value })} error={errors.safetyFeatures} hint="One per line, e.g. fire extinguishers, sprinkler system" placeholder={'Fire extinguishers\nSprinkler system'} />
+        </motion.div>
+        <motion.div variants={fadeUp} initial="hidden" animate="show" transition={{ delay: 0.05 }}>
+          <TextAreaField id="listing-rules" label="House rules" rows={3} value={values.rulesText} onChange={(value) => patch({ rulesText: value })} error={errors.rules} hint="One per line, e.g. no smoking, insured goods only" placeholder={'No smoking on premises\nInsured goods only'} />
+        </motion.div>
+      </FormSection>
 
-      <section className="card" aria-label="Booking terms">
-        <h2 className="card__title">Booking terms</h2>
-        <div className="field-row">
+      {/* Booking terms */}
+      <FormSection label="Booking terms" description="Set minimum stays, cancellation policy and customer-facing terms." delay={0.3}>
+        <motion.div className="field-row" variants={stagger(0.04)} initial="hidden" animate="show">
           <NumberField id="min-duration-value" label="Minimum booking duration" value={values.minDurationValue} onChange={(value) => patch({ minDurationValue: value })} error={errors['minBookingDuration.value']} min="1" hint="Leave empty for no minimum" />
           <SelectField id="min-duration-unit" label="Duration unit" value={values.minDurationUnit} options={enumOptions(PRICING_PERIODS)} onChange={(value) => patch({ minDurationUnit: value })} error={errors['minBookingDuration.unit']} />
-        </div>
-        <div className="field-row">
+        </motion.div>
+        <motion.div className="field-row" variants={stagger(0.04)} initial="hidden" animate="show" transition={{ delay: 0.05 }}>
           <SelectField
             id="cancel-policy"
             label="Cancellation policy"
@@ -470,25 +512,30 @@ export function ListingForm({
             error={errors['cancellationTerms.customerRefundPercent']}
             hint="0–100, applied when the customer cancels before start"
           />
-        </div>
-        <TextAreaField
-          id="cancel-description"
-          label="Cancellation description"
-          required
-          value={values.cancellationDescription}
-          onChange={(value) => patch({ cancellationDescription: value })}
-          error={errors['cancellationTerms.description']}
-          hint="Shown to customers at checkout (5–600 characters)"
-          placeholder="Free cancellation up to 7 days before the start date; 50% refund up to 48 hours."
-        />
-        <TextField id="cancel-note" label="Cancellation note (internal)" value={values.cancellationNote} onChange={(value) => patch({ cancellationNote: value })} error={errors['cancellationTerms.note']} />
-      </section>
+        </motion.div>
+        <motion.div variants={fadeUp} initial="hidden" animate="show" transition={{ delay: 0.1 }}>
+          <TextAreaField
+            id="cancel-description"
+            label="Cancellation description"
+            required
+            value={values.cancellationDescription}
+            onChange={(value) => patch({ cancellationDescription: value })}
+            error={errors['cancellationTerms.description']}
+            hint="Shown to customers at checkout (5–600 characters)"
+            placeholder="Free cancellation up to 7 days before the start date; 50% refund up to 48 hours."
+          />
+        </motion.div>
+        <motion.div variants={fadeUp} initial="hidden" animate="show" transition={{ delay: 0.15 }}>
+          <TextField id="cancel-note" label="Cancellation note (internal)" value={values.cancellationNote} onChange={(value) => patch({ cancellationNote: value })} error={errors['cancellationTerms.note']} />
+        </motion.div>
+      </FormSection>
 
-      <div className="form-actions">
+      {/* Sticky action bar */}
+      <motion.div className="form-actions" variants={fadeUp} initial="hidden" animate="show" transition={{ delay: 0.35 }}>
         <button type="submit" className="btn btn--primary" disabled={submitting}>
           {submitting ? 'Saving…' : mode === 'create' ? 'Create listing' : 'Save changes'}
         </button>
-      </div>
+      </motion.div>
     </form>
   );
 }
@@ -508,7 +555,7 @@ function WarehouseFields({
 }) {
   const w = values.warehouse;
   return (
-    <div className="stack">
+    <motion.div className="stack" variants={stagger(0.04)} initial="hidden" animate="show">
       {errors.warehouse ? (
         <div className="alert alert--error" role="alert">
           {errors.warehouse}
@@ -549,7 +596,7 @@ function WarehouseFields({
       </div>
       <TextAreaField id="wh-certs" label="Certifications" rows={2} value={w.certificationsText} onChange={(value) => patch({ certificationsText: value })} error={errors['warehouse.certifications']} hint="One per line, e.g. ISO 9001, FSSAI license" placeholder={'ISO 9001\nFSSAI license'} />
       <TextField id="wh-hours" label="Operating hours" value={w.operatingHours} onChange={(value) => patch({ operatingHours: value })} error={errors['warehouse.operatingHours']} hint='e.g. Mon–Sat 08:00–20:00' />
-    </div>
+    </motion.div>
   );
 }
 
@@ -564,7 +611,7 @@ function EquipmentFields({
 }) {
   const e = values.equipment;
   return (
-    <div className="stack">
+    <motion.div className="stack" variants={stagger(0.04)} initial="hidden" animate="show">
       {errors.equipment ? (
         <div className="alert alert--error" role="alert">
           {errors.equipment}
@@ -618,7 +665,7 @@ function EquipmentFields({
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -633,7 +680,7 @@ function ServiceFields({
 }) {
   const s = values.service;
   return (
-    <div className="stack">
+    <motion.div className="stack" variants={stagger(0.04)} initial="hidden" animate="show">
       {errors.service ? (
         <div className="alert alert--error" role="alert">
           {errors.service}
@@ -657,6 +704,6 @@ function ServiceFields({
         <NumberField id="srv-capacity" label="Daily capacity" value={s.dailyCapacity} onChange={(value) => patch({ dailyCapacity: value })} error={errors['service.dailyCapacity']} min="1" hint="Concurrent jobs per day" />
       </div>
       <TextAreaField id="srv-requirements" label="Requirements" rows={2} value={s.requirements} onChange={(value) => patch({ requirements: value })} error={errors['service.requirements']} hint="What customers need to arrange (site access, PPE…)" />
-    </div>
+    </motion.div>
   );
 }

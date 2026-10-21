@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
+import { motion } from 'motion/react';
+import { fadeUp, stagger } from '@bmw/ui';
 import { DataTable, type Column } from '../components/DataTable';
 import { Pagination } from '../components/Pagination';
 import { StatusBadge } from '../components/StatusBadge';
@@ -69,9 +71,11 @@ export function PartnersPage() {
 
   return (
     <>
-      <PageHeader title="Partners" subtitle="Business accounts, verification and listings" />
+      <motion.header variants={fadeUp} initial="hidden" animate="show">
+        <PageHeader title="Partners" subtitle="Business accounts, verification and listings" />
+      </motion.header>
 
-      <div className="toolbar">
+      <motion.div className="toolbar glass-inset" variants={stagger(0.05)} initial="hidden" animate="show">
         <form
           className="toolbar__search"
           onSubmit={(e) => {
@@ -107,9 +111,9 @@ export function PartnersPage() {
           Verification queue
           <ArrowRight aria-hidden="true" />
         </Link>
-      </div>
+      </motion.div>
 
-      <section className="card">
+      <motion.section className="card" variants={fadeUp} initial="hidden" animate="show">
         {loading ? (
           <Skeleton rows={5} />
         ) : error ? (
@@ -130,7 +134,7 @@ export function PartnersPage() {
             />
           </>
         )}
-      </section>
+      </motion.section>
     </>
   );
 }

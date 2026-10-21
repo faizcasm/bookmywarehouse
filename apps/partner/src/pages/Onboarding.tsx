@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, Check, AlertCircle, Loader2, FileText } from 'lucide-react';
 import { api, errorMessage, isApiError } from '../lib/api';
 import type { PartnerProfileDTO } from '../lib/types';
 import { BUSINESS_TYPES } from '../lib/types';
@@ -20,18 +21,85 @@ import { StatusBadge } from '../components/StatusBadge';
 import { ErrorState, Skeleton } from '../components/States';
 import { AddressFields, BusinessForm } from '../components/BusinessForm';
 import { FileUpload } from '../components/FileUpload';
+import { fadeUp, stagger } from '@bmw/ui';
 
 interface DocumentRow {
   id: number;
   label: string;
   url: string;
   uploading: boolean;
+  error?: string;
 }
 
 let docRowId = 1;
 
 function emptyAddress(): AddressValues {
   return { addressLine1: '', addressLine2: '', landmark: '', city: '', state: '', postalCode: '', country: 'India', region: '' };
+}
+
+/* Stepper component */
+function Stepper({ currentStep, steps }: { currentStep: number; steps: { label: string; href?: string }[] }) {
+  return (
+    <motion.nav className="stepper" aria-label="Onboarding progress" variants={fadeUp} initial="hidden" animate="show">
+      <ol>
+        {steps.map((step, index) => (
+          <li key={step.label} className={index === currentStep ? 'stepper__item--active' : index < currentStep ? 'stepper__item--complete' : ''}>
+            <motion.div
+              className="stepper__step"
+              variants={index === currentStep ? { animate: { scale: [1, 1.08, 1] } } : {} }
+              animate={index === currentStep ? 'animate' : undefined}
+              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              {index < currentStep ? <Check size={16} strokeWidth={2.5} /> : index + 1}
+            </motion.div>
+            <span className="stepper__label">{step.label}</span>
+            {index < steps.length - 1 ? <span className="stepper__connector" /> : null}
+          </li>
+        ))}
+      </ol>
+    </motion.nav>
+  );
+}
+
+/* Status banner for verification */
+function VerificationStatusBanner({ profile }: { profile: PartnerProfileDTO }) {
+  const status = profile.verificationStatus;
+  if (status === 'VERIFIED') {
+    return (
+      <motion.div className="banner banner--success" variants={fadeUp} initial="hidden" animate="show" role="status">
+        <span className="banner__icon" aria-hidden="true"><Check size={18} strokeWidth={2.2} /></span>
+        <div>
+          <strong>Your business is verified.</strong> <span>Your listings can go live once approved.</span>
+        </div>
+        <Link className="btn btn--secondary btn--sm" to="/profile">View profile</Link>
+      </motion.div>
+    );
+  }
+  if (status === 'SUBMITTED' || status === 'UNDER_REVIEW') {
+    return (
+      <motion.div className="banner banner--info" variants={fadeUp} initial="hidden" animate="show" role="status">
+        <span className="banner__icon" aria-hidden="true"><Loader2 size={17} strokeWidth={2.2} className="spin" /></span>
+        <div>
+          <strong>Verification under review.</strong> <span>We received your documents and will get back to you shortly.</span>
+        </div>
+        <Link className="btn btn--secondary btn--sm" to="/onboarding">View submission</Link>
+      </motion.div>
+    );
+  }
+  const rejected = status === 'REJECTED';
+  return (
+    <motion.div className={`banner ${rejected ? 'banner--danger' : 'banner--warning'}`} variants={fadeUp} initial="hidden" animate="show" role="alert">
+      <span className="banner__icon" aria-hidden="true"><AlertCircle size={17} strokeWidth={2.2} /></span>
+      <div>
+        <strong>{rejected ? 'Verification was rejected.' : 'Finish verification to go live.'}</strong> <span>
+          {rejected
+            ? profile.verification?.rejectionReason ?? 'Please review the feedback and resubmit your documents.'
+            : 'Complete your business profile and submit KYC documents.'}
+        </span>
+      </div>
+      <Link className="btn btn--primary btn--sm" to="/onboarding">{rejected ? 'Resubmit verification' : 'Start onboarding'}</Link>
+    </motion.div>
+  );
 }
 
 function VerificationSection({ profile, onSaved }: { profile: PartnerProfileDTO; onSaved: () => Promise<void> }) {
@@ -131,7 +199,7 @@ function VerificationSection({ profile, onSaved }: { profile: PartnerProfileDTO;
   }
 
   return (
-    <section className="card" aria-labelledby="kyc-heading">
+    <motion.section className="card" aria-labelledby="kyc-heading" variants={fadeUp} initial="hidden" animate="show">
       <div className="card__header">
         <h2 className="card__title" id="kyc-heading">
           KYC verification
@@ -140,41 +208,43 @@ function VerificationSection({ profile, onSaved }: { profile: PartnerProfileDTO;
       </div>
 
       {profile.verificationStatus === 'REJECTED' && verification?.rejectionReason ? (
-        <div className="alert alert--error" role="alert">
+        <motion.div className="alert alert--error" role="alert" variants={fadeUp} initial="hidden" animate="show">
           <strong>Rejected:</strong> {verification.rejectionReason}
-        </div>
+        </motion.div>
       ) : null}
       {blocked ? (
-        <div className="alert alert--info">
+        <motion.div className="alert alert--info" variants={fadeUp} initial="hidden" animate="show">
           {profile.verificationStatus === 'VERIFIED'
             ? 'Your business is already verified — no further action needed.'
             : 'Your documents are under review. You will be notified once a decision is made.'}
-        </div>
+        </motion.div>
       ) : null}
       {verification?.documents?.length ? (
-        <details className="doc-summary">
-          <summary>Previously submitted documents ({verification.documents.length})</summary>
-          <ul>
-            {verification.documents.map((doc) => (
-              <li key={doc.id}>
-                <a href={doc.url} target="_blank" rel="noreferrer">
-                  {doc.label}
-                </a>{' '}
-                — <StatusBadge value={doc.status} kind="generic" />
-              </li>
-            ))}
-          </ul>
-        </details>
+        <motion.div className="doc-summary" variants={fadeUp} initial="hidden" animate="show">
+          <details>
+            <summary>Previously submitted documents ({verification.documents.length})</summary>
+            <ul>
+              {verification.documents.map((doc) => (
+                <li key={doc.id}>
+                  <a href={doc.url} target="_blank" rel="noreferrer">
+                    {doc.label}
+                  </a>{' '}
+                  — <StatusBadge value={doc.status} kind="generic" />
+                </li>
+              ))}
+            </ul>
+          </details>
+        </motion.div>
       ) : null}
 
       <form onSubmit={(event) => void onSubmit(event)} noValidate className="stack" aria-busy={submitting}>
         {formError ? (
-          <div className="alert alert--error" role="alert">
+          <motion.div className="alert alert--error" role="alert" variants={fadeUp} initial="hidden" animate="show">
             {formError}
-          </div>
+          </motion.div>
         ) : null}
 
-        <div className="field-row">
+        <motion.div className="field-row" variants={stagger(0.04)} initial="hidden" animate="show">
           <div className="field">
             <label className="field__label" htmlFor="kyc-legal-name">
               Legal business name *
@@ -207,9 +277,9 @@ function VerificationSection({ profile, onSaved }: { profile: PartnerProfileDTO;
             </select>
             {errors.businessType ? <span className="field__error">{errors.businessType}</span> : null}
           </div>
-        </div>
+        </motion.div>
 
-        <div className="field-row">
+        <motion.div className="field-row" variants={stagger(0.04)} initial="hidden" animate="show" transition={{ delay: 0.05 }}>
           <div className="field">
             <label className="field__label" htmlFor="kyc-gst">
               GST number
@@ -251,15 +321,17 @@ function VerificationSection({ profile, onSaved }: { profile: PartnerProfileDTO;
             />
             {errors.registrationNumber ? <span className="field__error">{errors.registrationNumber}</span> : null}
           </div>
-        </div>
+        </motion.div>
 
-        <AddressFields values={address} errors={errors} onChange={(patch) => setAddress((current) => ({ ...current, ...patch }))} legend="Registered business address" />
+        <motion.div variants={fadeUp} initial="hidden" animate="show" transition={{ delay: 0.1 }}>
+          <AddressFields values={address} errors={errors} onChange={(patch) => setAddress((current) => ({ ...current, ...patch }))} legend="Registered business address" />
+        </motion.div>
 
-        <div className="stack">
+        <motion.div className="stack" variants={fadeUp} initial="hidden" animate="show" transition={{ delay: 0.15 }}>
           <span className="field__label">Documents * (GST certificate, PAN, address proof…)</span>
           {errors.documents ? <span className="field__error">{errors.documents}</span> : null}
           {documents.map((row) => (
-            <div className="doc-row" key={row.id}>
+            <motion.div className="doc-row" key={row.id} variants={fadeUp} initial="hidden" animate="show">
               <div className="field doc-row__label">
                 <label className="sr-only" htmlFor={`doc-label-${row.id}`}>
                   Document label
@@ -282,19 +354,31 @@ function VerificationSection({ profile, onSaved }: { profile: PartnerProfileDTO;
                 initialNames={row.url ? ['Uploaded file'] : []}
                 maxFiles={1}
                 disabled={blocked || row.uploading}
-                onChange={(urls) => patchDocument(row.id, { url: urls[0] ?? '' })}
+                onChange={(urls) => patchDocument(row.id, { url: urls[0] ?? '', uploading: false })}
               />
+              {row.uploading && (
+                <motion.span className="doc-row__uploading" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                  <Loader2 size={14} strokeWidth={2} className="spin" aria-hidden="true" />
+                  <span>Uploading…</span>
+                </motion.span>
+              )}
+              {row.error && (
+                <motion.span className="doc-row__error" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                  <AlertCircle size={14} strokeWidth={2} aria-hidden="true" />
+                  <span>{row.error}</span>
+                </motion.span>
+              )}
               <button
                 type="button"
                 className="btn btn--ghost btn--sm"
                 onClick={() => setDocuments((current) => current.filter((item) => item.id !== row.id))}
-                disabled={blocked}
+                disabled={blocked || row.uploading}
               >
                 Remove
               </button>
-            </div>
+            </motion.div>
           ))}
-          <div>
+          <motion.div variants={fadeUp} initial="hidden" animate="show" transition={{ delay: 0.05 }}>
             <button
               type="button"
               className="btn btn--secondary btn--sm"
@@ -305,16 +389,16 @@ function VerificationSection({ profile, onSaved }: { profile: PartnerProfileDTO;
               <Plus size={15} strokeWidth={2.4} aria-hidden="true" />
               Add document
             </button>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
-        <div>
+        <motion.div variants={fadeUp} initial="hidden" animate="show" transition={{ delay: 0.2 }}>
           <button type="submit" className="btn btn--primary" disabled={submitting || blocked}>
             {submitting ? 'Submitting…' : 'Submit for review'}
           </button>
-        </div>
+        </motion.div>
       </form>
-    </section>
+    </motion.section>
   );
 }
 
@@ -370,7 +454,7 @@ function PayoutSection() {
   }
 
   return (
-    <section className="card" aria-labelledby="payout-heading">
+    <motion.section className="card" aria-labelledby="payout-heading" variants={fadeUp} initial="hidden" animate="show">
       <div className="card__header">
         <h2 className="card__title" id="payout-heading">
           Payout details
@@ -381,16 +465,16 @@ function PayoutSection() {
       </p>
       <form onSubmit={(event) => void onSubmit(event)} noValidate className="stack">
         {formError ? (
-          <div className="alert alert--error" role="alert">
+          <motion.div className="alert alert--error" role="alert" variants={fadeUp} initial="hidden" animate="show">
             {formError}
-          </div>
+          </motion.div>
         ) : null}
         {saved ? (
-          <div className="alert alert--success" role="status">
+          <motion.div className="alert alert--success" role="status" variants={fadeUp} initial="hidden" animate="show">
             Payout details updated.
-          </div>
+          </motion.div>
         ) : null}
-        <div className="field-row">
+        <motion.div className="field-row" variants={stagger(0.04)} initial="hidden" animate="show">
           <div className="field">
             <label className="field__label" htmlFor="payout-holder">
               Account holder name *
@@ -415,8 +499,8 @@ function PayoutSection() {
             />
             {errors.bankName ? <span className="field__error">{errors.bankName}</span> : null}
           </div>
-        </div>
-        <div className="field-row">
+        </motion.div>
+        <motion.div className="field-row" variants={stagger(0.04)} initial="hidden" animate="show" transition={{ delay: 0.05 }}>
           <div className="field">
             <label className="field__label" htmlFor="payout-account">
               Account number * (6–20 digits)
@@ -444,8 +528,8 @@ function PayoutSection() {
             />
             {errors.ifsc ? <span className="field__error">{errors.ifsc}</span> : null}
           </div>
-        </div>
-        <div className="field">
+        </motion.div>
+        <motion.div className="field" variants={fadeUp} initial="hidden" animate="show" transition={{ delay: 0.1 }}>
           <label className="field__label" htmlFor="payout-upi">
             UPI ID (optional)
           </label>
@@ -457,14 +541,14 @@ function PayoutSection() {
             placeholder="name@bank"
           />
           {errors.upiId ? <span className="field__error">{errors.upiId}</span> : null}
-        </div>
-        <div>
+        </motion.div>
+        <motion.div variants={fadeUp} initial="hidden" animate="show" transition={{ delay: 0.15 }}>
           <button type="submit" className="btn btn--primary" disabled={saving}>
             {saving ? 'Saving…' : 'Save payout details'}
           </button>
-        </div>
+        </motion.div>
       </form>
-    </section>
+    </motion.section>
   );
 }
 
@@ -508,17 +592,37 @@ export function OnboardingPage() {
     );
   }
 
+  // Determine current step: 0=Business, 1=KYC, 2=Payout
+  const getCurrentStep = () => {
+    if (profile.verificationStatus === 'VERIFIED') return 2;
+    if (profile.verificationStatus === 'SUBMITTED' || profile.verificationStatus === 'UNDER_REVIEW') return 1;
+    if (!profile.businessName) return 0;
+    return 1;
+  };
+
+  const steps = [
+    { label: 'Business info' },
+    { label: 'KYC verification' },
+    { label: 'Payout details' },
+  ];
+
   return (
     <div className="page">
-      <div className="page__intro">
+      <motion.div className="page__intro" variants={fadeUp} initial="hidden" animate="show">
         <h2>Complete your partner profile</h2>
         <p className="muted">
           Business details → KYC documents → payout details. Verified partners can publish listings that go live after
           admin approval. Need help? <Link to="/messages">Message support</Link>.
         </p>
-      </div>
+      </motion.div>
 
-      <section className="card" aria-labelledby="business-heading">
+      <motion.div variants={fadeUp} initial="hidden" animate="show" transition={{ delay: 0.05 }}>
+        <Stepper currentStep={getCurrentStep()} steps={steps} />
+      </motion.div>
+
+      <VerificationStatusBanner profile={profile} />
+
+      <motion.section className="card" aria-labelledby="business-heading" variants={fadeUp} initial="hidden" animate="show" transition={{ delay: 0.1 }}>
         <div className="card__header">
           <h2 className="card__title" id="business-heading">
             Business information
@@ -546,7 +650,7 @@ export function OnboardingPage() {
           });
           await load();
         }} />
-      </section>
+      </motion.section>
 
       <VerificationSection profile={profile} onSaved={load} />
       <PayoutSection />

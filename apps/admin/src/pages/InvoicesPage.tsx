@@ -1,4 +1,6 @@
 import { useSearchParams } from 'react-router-dom';
+import { motion } from 'motion/react';
+import { fadeUp, stagger } from '@bmw/ui';
 import { DataTable, type Column } from '../components/DataTable';
 import { Pagination } from '../components/Pagination';
 import { StatusBadge } from '../components/StatusBadge';
@@ -36,8 +38,10 @@ export function InvoicesPage() {
 
   return (
     <>
-      <PageHeader title="Invoices" subtitle="Every invoice generated on the platform" />
-      <section className="card">
+      <motion.header variants={fadeUp} initial="hidden" animate="show">
+        <PageHeader title="Invoices" subtitle="Every invoice generated on the platform" />
+      </motion.header>
+      <motion.section className="card" variants={fadeUp} initial="hidden" animate="show">
         {loading ? (
           <Skeleton rows={6} />
         ) : error ? (
@@ -45,24 +49,26 @@ export function InvoicesPage() {
         ) : (
           <>
             <DataTable columns={columns} rows={items} getRowKey={(i) => i.id} emptyMessage="No invoices yet." />
-            <Pagination
-              meta={pagination}
-              limit={limit}
-              onPageChange={(p) => {
-                const next = new URLSearchParams(params);
-                next.set('page', String(p));
-                setParams(next, { replace: true });
-              }}
-              onLimitChange={(l) => {
-                const next = new URLSearchParams(params);
-                next.set('limit', String(l));
-                next.delete('page');
-                setParams(next, { replace: true });
-              }}
-            />
+            <motion.div variants={fadeUp} initial="hidden" animate="show">
+              <Pagination
+                meta={pagination}
+                limit={limit}
+                onPageChange={(p) => {
+                  const next = new URLSearchParams(params);
+                  next.set('page', String(p));
+                  setParams(next, { replace: true });
+                }}
+                onLimitChange={(l) => {
+                  const next = new URLSearchParams(params);
+                  next.set('limit', String(l));
+                  next.delete('page');
+                  setParams(next, { replace: true });
+                }}
+              />
+            </motion.div>
           </>
         )}
-      </section>
+      </motion.section>
     </>
   );
 }

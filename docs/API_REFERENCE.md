@@ -36,7 +36,8 @@ Common error codes: `VALIDATION_ERROR` (422, also `details.fields`), `UNAUTHENTI
   always confirm with `GET /auth/me` on boot.
 - Cookies are set with `credentials: 'include'` — all fetches must use `credentials: 'include'`.
 - Roles: `CUSTOMER`, `PARTNER`, `ADMIN` (uppercase). Register allows roles `CUSTOMER`/`PARTNER`
-  only; an ADMIN account exists in the seed (`admin@bookmywarehouse.dev` / `Demo@1234`).
+  only; an ADMIN account exists in the **dev/demo seed** (`admin@bookmywarehouse.dev` /
+  `Demo@1234`) or is bootstrapped via `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD`.
 
 ## 3. Shared conventions
 
@@ -61,6 +62,13 @@ Common error codes: `VALIDATION_ERROR` (422, also `details.fields`), `UNAUTHENTI
 | `GET /catalog/listings/:slugOrId/reviews` | `{ items: ReviewDTO[], average }` + pagination. Query `page, limit, minRating, sort(newest\|oldest\|rating_desc\|rating_asc)`. |
 | `GET /catalog/listings/:id/availability` | `{ rules: [{ id, daysOfWeek, startTime, endTime, startDate, endDate }], blockedDates: [{ id, date, reason, isAvailable }] }`. |
 | `GET /catalog/listings/:slug/similar` | `{ items: ListingSummary[] }` (max 4). |
+
+Crawler endpoints (no auth, no rate limit; registered on both `/` and `/api/` prefixes):
+
+| Endpoint | Notes |
+| --- | --- |
+| `GET /sitemap.xml` / `GET /api/sitemap.xml` | XML urlset: home, search, categories, every `PUBLISHED` listing (`{CUSTOMER_APP_URL}/listing/{slug}`, `lastmod` = updatedAt). In-memory cache 10 min. On Vercel use `/api/sitemap.xml` (declared by `robots.txt`). |
+| `GET /robots.txt` / `GET /api/robots.txt` | `Allow: /`, `Disallow: /admin/ /partner/`, `Sitemap:` line. A static `robots.txt` in `apps/customer/public/` also ships and wins on the filesystem. |
 
 `ListingSummary`: `{ id, type, title, slug, status, categoryId, categoryName, location, city, state, price: { model, amount, currency, period, unitLabel, minQuantity, additionalCharges }, totalCapacity, capacityUnit, rating: { average, count }, coverImage, images, partner: { userId, businessName, verificationStatus }, availableFrom, isFavorite, createdAt, publishedAt }`.
 `price.amount` is **minor units**.
@@ -89,8 +97,11 @@ with branches `REJECTED`, `CANCELLED`, `REFUND_PENDING`, `REFUNDED`, `DISPUTED`.
 
 | Endpoint | Notes |
 | --- | --- |
-| `POST /payments/bookings/:bookingId/initiate` | → `{ payment: { id, reference, amount, currency, status, provider }, checkoutUrl, sandbox, message }`. |
+| `GET /payments/config` | Auth. Public checkout config: `{ provider: 'SANDBOX'\|'RAZORPAY'\|'STRIPE', sandbox: boolean, razorpayKeyId: string \| null }` — never secrets. |
+| `POST /payments/bookings/:bookingId/initiate` | → `{ payment: { id, reference, amount, currency, status, provider }, checkoutUrl, sandbox, razorpay: { orderId } \| null, message }`. With `PAYMENT_PROVIDER=RAZORPAY` the `razorpay.orderId` is opened via Checkout.js. |
+| `POST /payments/verify` | Razorpay only. `{ orderId, paymentId, signature }` — HMAC-verified Checkout.js handler payload (64-char hex); idempotent (`alreadyProcessed` on replay). 412 `PRECONDITION_FAILED` when the provider isn't checkout-verifiable; 400 `PAYMENT_WEBHOOK_INVALID` on signature mismatch. |
 | `POST /payments/simulate` | Sandbox only. `{ paymentId, outcome: 'SUCCESS' \| 'FAILURE' }` → drives the webhook (booking → `CONFIRMED`). |
+| `POST /payments/webhook` | Gateway-facing (HMAC-signed raw body, `x-razorpay-signature` or `x-payments-signature`); idempotent by event id. |
 | `GET /payments` | Customer payment history `{ items: [{ id, bookingId, reference, amount, currency, status, provider, paidAt, createdAt }] }`. |
 | `GET /payments/invoices?page=&limit=` | Own invoices `{ items: InvoiceDTO[] }`. |
 | `GET /payments/invoices/:id` | `InvoiceDTO`: `{ id, invoiceNumber, bookingId, bookingReference, status, issuedTo, issuedBy, lineItems: [{description, quantity, unitAmount, amount}], subtotal, platformFee, taxes, total, … }`. Admin can view any; others get 4xx. |
@@ -157,10 +168,16 @@ All list endpoints accept `page, limit, q` (+ filters below) and return `{ items
 | `GET /admin/reviews` / `POST /admin/reviews/:id/moderate` | `{ status: 'PUBLISHED'\|'HIDDEN'\|'REMOVED', note? }`. |
 | `GET /admin/settings` / `PATCH /admin/settings` | `platformSettingsSchema`. |
 | `GET /admin/audit-logs?action=&entityType=&entityId=&page=&limit=` | Audit trail items: `{ id, actor…, action, entityType, entityId, summary, ip, createdAt }` (check serializer for exact fields). |
+| `GET /admin/exports/bookings.csv` / `GET /admin/exports/payouts.csv` | Accounting CSVs (UTF-8 BOM, CRLF, RFC4180 escaping, ≤5000 rows, `Content-Disposition` attachment). Audited as `admin.export`. |
 
 ## 10. Seed / demo accounts (dev)
 
-Password for all: `Demo@1234`
+Demo content (accounts, listings, bookings) seeds on every run **outside production**, or when
+`SEED_DEMO=true` is set explicitly. Production seeding (`NODE_ENV=production`) creates reference
+data only — categories + platform settings — plus an admin bootstrap when
+`SEED_ADMIN_EMAIL` + `SEED_ADMIN_PASSWORD` (≥12 chars) are set. See `docs/DEPLOYMENT.md`.
+
+Password for all demo accounts: `Demo@1234`
 
 - `admin@bookmywarehouse.dev` (ADMIN)
 - `partner@bookmywarehouse.dev` (PARTNER, VERIFIED, listings + earnings data)

@@ -5,6 +5,8 @@ import { apiSend, ApiError } from '../lib/api';
 import { errorMessage, useFetch } from '../lib/hooks';
 import { formatMoney } from '../lib/format';
 import type { PlatformSettingsDTO } from '../lib/types';
+import { motion } from 'motion/react';
+import { fadeUp } from '@bmw/ui';
 
 interface SettingsForm {
   currency: string;
@@ -75,7 +77,7 @@ export function SettingsPage() {
         platformFeePercent: Number(form.platformFeePercent),
         customerFeePercent: Number(form.customerFeePercent),
         taxPercent: Number(form.taxPercent),
-        minPayoutAmount: Math.round(Number(form.minPayoutAmount) * 100), // → minor units
+        minPayoutAmount: Math.round(Number(form.minPayoutAmount) * 100), // minor units
         supportEmail: form.supportEmail.trim(),
         allowSelfServiceListings: form.allowSelfServiceListings,
         requirePartnerVerification: form.requirePartnerVerification,
@@ -106,9 +108,11 @@ export function SettingsPage() {
 
   return (
     <>
-      <PageHeader title="Settings" subtitle="Platform-wide configuration — applies to all apps immediately" />
-      <form className="card settings-form" onSubmit={onSubmit} noValidate>
-        <h2 className="card__title">Fees &amp; taxes</h2>
+      <motion.header variants={fadeUp} initial="hidden" animate="show">
+        <PageHeader title="Settings" subtitle="Platform-wide configuration — applies to all apps immediately" />
+      </motion.header>
+      <motion.form className="card settings-form" onSubmit={onSubmit} noValidate variants={fadeUp} initial="hidden" animate="show">
+        <h2 className="card__title">Fees & taxes</h2>
         <div className="field-row">
           <div className="field">
             <label className="field__label" htmlFor="st-currency">
@@ -156,7 +160,7 @@ export function SettingsPage() {
           </div>
         </div>
 
-        <h2 className="card__title">Payouts &amp; support</h2>
+        <h2 className="card__title">Payouts & support</h2>
         <div className="field-row">
           <div className="field">
             <label className="field__label" htmlFor="st-payout">
@@ -225,7 +229,7 @@ export function SettingsPage() {
             {saving ? 'Saving…' : 'Save settings'}
           </button>
         </div>
-      </form>
+      </motion.form>
     </>
   );
 }

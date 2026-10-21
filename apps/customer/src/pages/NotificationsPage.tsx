@@ -1,4 +1,5 @@
 import { Link, useSearchParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import { ApiError, api } from '../lib/api';
 import { useAsyncData } from '../lib/useAsyncData';
 import { formatRelativeTime, humanize } from '../lib/format';
@@ -6,6 +7,8 @@ import type { NotificationDTO, NotificationsPayload } from '../lib/types';
 import { Pagination } from '../components/Pagination';
 import { useToast } from '../components/Toast';
 import { EmptyState, ErrorState, PageLoader } from '../components/Skeleton';
+import { useDocumentMeta } from '../lib/useDocumentMeta';
+import { fadeUp, stagger } from '@bmw/ui';
 
 /**
  * Notifications may carry partner-app links (`/dashboard/...`); map the ones
@@ -41,6 +44,11 @@ export function NotificationsPage() {
   const unreadOnly = searchParams.get('unreadOnly') === 'true';
   const page = Number.parseInt(searchParams.get('page') ?? '1', 10) || 1;
   const toast = useToast();
+
+  useDocumentMeta({
+    title: 'Notifications — BookMyWarehouse',
+    description: 'Updates about your bookings, payments and messages.',
+  });
 
   const notifications = useAsyncData(
     () => api.getWithMeta<NotificationsPayload>('/notifications', { page, limit: 20, unreadOnly: unreadOnly || undefined }),
@@ -79,7 +87,7 @@ export function NotificationsPage() {
 
   return (
     <div className="container page">
-      <div className="page-head booking-detail-head">
+      <motion.div className="page-head booking-detail-head reveal" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
         <div>
           <h1>Notifications</h1>
           <p className="muted">
@@ -97,66 +105,93 @@ export function NotificationsPage() {
             />
             <span>Unread only</span>
           </label>
-          <button type="button" className="btn btn-outline btn-sm" onClick={onMarkAll}>
+          <motion.button
+            type="button"
+            className="btn btn-outline btn-sm"
+            onClick={onMarkAll}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+          >
             Mark all read
-          </button>
+          </motion.button>
         </div>
-      </div>
+      </motion.div>
 
-      {notifications.loading ? (
-        <PageLoader label="Loading notifications…" />
-      ) : notifications.error ? (
-        <ErrorState message={notifications.error.message} onRetry={notifications.reload} />
-      ) : items.length === 0 ? (
-        <EmptyState
-          title={unreadOnly ? 'No unread notifications' : 'No notifications yet'}
-          message="Booking updates, new messages and payment confirmations land here."
-        />
-      ) : (
-        <>
-          <ul className="notification-list">
-            {items.map((notification) => {
-              const link = normalizeLink(notification.link);
-              const content = (
-                <>
-                  <span className="notification-icon" aria-hidden="true">
-                    {TYPE_ICONS[notification.type] ?? '🔔'}
-                  </span>
-                  <div className="notification-body">
-                    <div className="notification-head">
-                      <strong>{notification.title}</strong>
-                      <time dateTime={notification.createdAt}>{formatRelativeTime(notification.createdAt)}</time>
+      <AnimatePresence mode="wait">
+        {notifications.loading ? (
+          <PageLoader key="loading" label="Loading notifications…" />
+        ) : notifications.error ? (
+          <ErrorState key="error" message={notifications.error.message} onRetry={notifications.reload} />
+        ) : items.length === 0 ? (
+          <motion.div
+            key="empty"
+            className="state-block reveal"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <div className="state-icon" aria-hidden="true">
+              🔔
+            </div>
+            <h3 className="state-title">{unreadOnly ? 'No unread notifications' : 'No notifications yet'}</h3>
+            <p className="state-message">Booking updates, new messages and payment confirmations land here.</p>
+          </motion.div>
+        ) : (
+          <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
+            <motion.ul className="notification-list" variants={stagger(0.05)} initial="hidden" animate="show">
+              {items.map((notification) => {
+                const link = normalizeLink(notification.link);
+                const content = (
+                  <>
+                    <span className="notification-icon" aria-hidden="true">
+                      {TYPE_ICONS[notification.type] ?? '🔔'}
+                    </span>
+                    <div className="notification-body">
+                      <div className="notification-head">
+                        <strong>{notification.title}</strong>
+                        <time dateTime={notification.createdAt}>{formatRelativeTime(notification.createdAt)}</time>
+                      </div>
+                      <p>{notification.body}</p>
+                      <span className="notification-type">{humanize(notification.type)}</span>
                     </div>
-                    <p>{notification.body}</p>
-                    <span className="notification-type">{humanize(notification.type)}</span>
-                  </div>
-                  {!notification.read ? <span className="unread-dot" aria-label="Unread" /> : null}
-                </>
-              );
-              return (
-                <li key={notification.id} className={`card notification-row ${notification.read ? 'is-read' : 'is-unread'}`}>
-                  {link ? (
-                    <Link to={link} onClick={() => void onMarkOne(notification)}>
-                      {content}
-                    </Link>
-                  ) : (
-                    <div>{content}</div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-          <Pagination
-            pagination={notifications.data?.meta?.pagination ?? null}
-            onPageChange={(next) => {
-              const params = new URLSearchParams(searchParams);
-              if (next > 1) params.set('page', String(next));
-              else params.delete('page');
-              setSearchParams(params);
-            }}
-          />
-        </>
-      )}
+                    {!notification.read ? <span className="unread-dot" aria-label="Unread" /> : null}
+                  </>
+                );
+                return (
+                  <motion.li
+                    key={notification.id}
+                    className={`card notification-row ${notification.read ? 'is-read' : 'is-unread'}`}
+                    variants={fadeUp}
+                    whileHover={{ y: -1, boxShadow: 'var(--shadow-sm)' }}
+                  >
+                    {link ? (
+                      <Link to={link} onClick={() => void onMarkOne(notification)}>
+                        {content}
+                      </Link>
+                    ) : (
+                      <div>{content}</div>
+                    )}
+                  </motion.li>
+                );
+              })}
+            </motion.ul>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+              <Pagination
+                pagination={notifications.data?.meta?.pagination ?? null}
+                onPageChange={(next) => {
+                  const params = new URLSearchParams(searchParams);
+                  if (next > 1) params.set('page', String(next));
+                  else params.delete('page');
+                  setSearchParams(params);
+                }}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

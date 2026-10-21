@@ -9,6 +9,8 @@ import { apiSend } from '../lib/api';
 import { errorMessage, useFetch } from '../lib/hooks';
 import { formatDateTime, formatDate, formatMoney } from '../lib/format';
 import type { BookingDTO, PartnerDetailDTO } from '../lib/types';
+import { motion } from 'motion/react';
+import { fadeUp, stagger } from '@bmw/ui';
 
 export function PartnerDetailPage() {
   const { id = '' } = useParams();
@@ -42,24 +44,26 @@ export function PartnerDetailPage() {
 
   return (
     <>
-      <PageHeader
-        title={p.businessName}
-        subtitle={`${p.businessType ?? 'Business'} · joined ${formatDate(p.createdAt)}`}
-        actions={
-          <>
-            <Link to="/partners" className="btn btn--ghost btn--sm">
-              <ArrowLeft aria-hidden="true" />
-              All partners
-            </Link>
-            <button type="button" className="btn btn--primary btn--sm" onClick={() => setDecisionOpen(true)}>
-              Record decision
-            </button>
-          </>
-        }
-      />
+      <motion.header variants={fadeUp} initial="hidden" animate="show">
+        <PageHeader
+          title={p.businessName}
+          subtitle={`${p.businessType ?? 'Business'} · joined ${formatDate(p.createdAt)}`}
+          actions={
+            <>
+              <Link to="/partners" className="btn btn--ghost btn--sm">
+                <ArrowLeft aria-hidden="true" />
+                All partners
+              </Link>
+              <button type="button" className="btn btn--primary btn--sm" onClick={() => setDecisionOpen(true)}>
+                Record decision
+              </button>
+            </>
+          }
+        />
+      </motion.header>
 
-      <div className="detail-grid">
-        <section className="card">
+      <motion.div className="detail-grid" variants={stagger(0.06)} initial="hidden" animate="show">
+        <motion.section className="card" variants={fadeUp}>
           <h2 className="card__title">Business profile</h2>
           <dl className="kv">
             <div className="kv__row">
@@ -102,9 +106,9 @@ export function PartnerDetailPage() {
               </dd>
             </div>
           </dl>
-        </section>
+        </motion.section>
 
-        <section className="card">
+        <motion.section className="card" variants={fadeUp}>
           <h2 className="card__title">Account owner</h2>
           {p.user ? (
             <dl className="kv">
@@ -134,10 +138,10 @@ export function PartnerDetailPage() {
           ) : (
             <p className="muted">Linked user no longer exists.</p>
           )}
-        </section>
-      </div>
+        </motion.section>
+      </motion.div>
 
-      <section className="card">
+      <motion.section className="card" variants={fadeUp} initial="hidden" animate="show">
         <div className="card__head">
           <h2 className="card__title">KYC verification</h2>
           {kyc ? <StatusBadge status={kyc.status} group="verification" /> : <span className="badge badge--neutral">No submission</span>}
@@ -209,16 +213,16 @@ export function PartnerDetailPage() {
             </div>
           </>
         )}
-      </section>
+      </motion.section>
 
-      <section className="card">
+      <motion.section className="card" variants={fadeUp} initial="hidden" animate="show">
         <h2 className="card__title">Listings ({p.listings.length})</h2>
         {p.listings.length === 0 ? (
           <p className="muted">No listings yet.</p>
         ) : (
-          <div className="listing-grid">
+          <motion.div className="listing-grid" variants={stagger(0.05)} initial="hidden" animate="show">
             {p.listings.map((l) => (
-              <article key={l.id} className="listing-card">
+              <motion.article key={l.id} className="listing-card" variants={fadeUp}>
                 {l.coverImage ? (
                   <img src={l.coverImage} alt="" className="listing-card__img" loading="lazy" />
                 ) : (
@@ -238,13 +242,13 @@ export function PartnerDetailPage() {
                     {formatMoney(l.price.amount, l.price.currency)} {l.price.unitLabel ?? (l.price.period ? `/ ${l.price.period.toLowerCase()}` : '')}
                   </p>
                 </div>
-              </article>
+              </motion.article>
             ))}
-          </div>
+          </motion.div>
         )}
-      </section>
+      </motion.section>
 
-      <section className="card">
+      <motion.section className="card" variants={fadeUp} initial="hidden" animate="show">
         <h2 className="card__title">Recent bookings</h2>
         {p.recentBookings.length === 0 ? (
           <p className="muted">No bookings for this partner yet.</p>
@@ -282,7 +286,7 @@ export function PartnerDetailPage() {
             </table>
           </div>
         )}
-      </section>
+      </motion.section>
 
       <PartnerDecisionDialog
         open={decisionOpen}

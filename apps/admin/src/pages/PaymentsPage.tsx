@@ -1,9 +1,16 @@
+import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Download } from 'lucide-react';
+import { motion } from 'motion/react';
+import { fadeUp, stagger } from '@bmw/ui';
 import { DataTable, type Column } from '../components/DataTable';
 import { Pagination } from '../components/Pagination';
 import { StatusBadge } from '../components/StatusBadge';
 import { ErrorState, PageHeader, Skeleton } from '../components/States';
-import { usePagedList } from '../lib/hooks';
+import { useToast } from '../components/Toast';
+import { usePagedList, errorMessage } from '../lib/hooks';
+import { apiGetBlob } from '../lib/api';
+import { downloadBlob, exportCsvFilename } from '../lib/csv';
 import { STATUS_OPTIONS, formatDateTime, formatMoney, shortenId } from '../lib/format';
 import type { PaymentDTO } from '../lib/types';
 
@@ -12,12 +19,27 @@ export function PaymentsPage() {
   const status = params.get('status') ?? '';
   const page = Number(params.get('page') ?? '1') || 1;
   const limit = Number(params.get('limit') ?? '20') || 20;
+  const [exporting, setExporting] = useState(false);
+  const toast = useToast();
 
   const { items, pagination, loading, error, reload } = usePagedList<PaymentDTO>('/admin/payments', {
     status: status || undefined,
     page,
     limit,
   });
+
+  const handleExportCsv = async () => {
+    setExporting(true);
+    try {
+      const blob = await apiGetBlob('/admin/exports/payouts.csv');
+      downloadBlob(blob, exportCsvFilename('payouts'));
+      toast.success('Payouts CSV downloaded.');
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const setParam = (key: string, value: string) => {
     const next = new URLSearchParams(params);
@@ -43,8 +65,19 @@ export function PaymentsPage() {
 
   return (
     <>
-      <PageHeader title="Payments" subtitle="All payment attempts across the platform" />
-      <div className="toolbar">
+      <motion.header variants={fadeUp} initial="hidden" animate="show">
+        <PageHeader
+          title="Payments"
+          subtitle="All payment attempts across the platform"
+          actions={
+            <button type="button" className="btn btn--ghost" onClick={() => void handleExportCsv()} disabled={exporting}>
+              <Download aria-hidden="true" />
+              {exporting ? 'Exporting…' : 'Export payouts CSV'}
+            </button>
+          }
+        />
+      </motion.header>
+      <motion.div className="toolbar glass-inset" variants={stagger(0.05)} initial="hidden" animate="show">
         <select className="select" value={status} onChange={(e) => setParam('status', e.target.value)} aria-label="Filter by status">
           {STATUS_OPTIONS.payment.map((s) => (
             <option key={s} value={s}>
@@ -52,8 +85,8 @@ export function PaymentsPage() {
             </option>
           ))}
         </select>
-      </div>
-      <section className="card">
+      </motion.div>
+      <motion.section className="card" variants={fadeUp} initial="hidden" animate="show">
         {loading ? (
           <Skeleton rows={6} />
         ) : error ? (
@@ -74,7 +107,7 @@ export function PaymentsPage() {
             />
           </>
         )}
-      </section>
+      </motion.section>
     </>
   );
 }

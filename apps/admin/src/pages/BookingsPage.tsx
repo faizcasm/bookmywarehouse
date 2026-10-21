@@ -1,10 +1,16 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { Download } from 'lucide-react';
+import { motion } from 'motion/react';
+import { fadeUp, stagger } from '@bmw/ui';
 import { DataTable, type Column } from '../components/DataTable';
 import { Pagination } from '../components/Pagination';
 import { StatusBadge } from '../components/StatusBadge';
 import { ErrorState, PageHeader, Skeleton } from '../components/States';
-import { usePagedList } from '../lib/hooks';
+import { useToast } from '../components/Toast';
+import { usePagedList, errorMessage } from '../lib/hooks';
+import { apiGetBlob } from '../lib/api';
+import { downloadBlob, exportCsvFilename } from '../lib/csv';
 import { STATUS_OPTIONS, formatDate, formatMoney } from '../lib/format';
 import type { BookingDTO } from '../lib/types';
 
@@ -16,6 +22,21 @@ export function BookingsPage() {
   const page = Number(params.get('page') ?? '1') || 1;
   const limit = Number(params.get('limit') ?? '20') || 20;
   const [searchDraft, setSearchDraft] = useState(q);
+  const [exporting, setExporting] = useState(false);
+  const toast = useToast();
+
+  const handleExportCsv = async () => {
+    setExporting(true);
+    try {
+      const blob = await apiGetBlob('/admin/exports/bookings.csv');
+      downloadBlob(blob, exportCsvFilename('bookings'));
+      toast.success('Bookings CSV downloaded.');
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // Admin booking list lives at /bookings?scope=admin (API_REFERENCE §5) —
   // there is no /admin/bookings endpoint.
@@ -75,9 +96,20 @@ export function BookingsPage() {
 
   return (
     <>
-      <PageHeader title="Bookings" subtitle="All marketplace bookings across every partner" />
+      <motion.header variants={fadeUp} initial="hidden" animate="show">
+        <PageHeader
+          title="Bookings"
+          subtitle="All marketplace bookings across every partner"
+          actions={
+            <button type="button" className="btn btn--ghost" onClick={() => void handleExportCsv()} disabled={exporting}>
+              <Download aria-hidden="true" />
+              {exporting ? 'Exporting…' : 'Export CSV'}
+            </button>
+          }
+        />
+      </motion.header>
 
-      <div className="toolbar">
+      <motion.div className="toolbar glass-inset" variants={stagger(0.05)} initial="hidden" animate="show">
         <form
           className="toolbar__search"
           onSubmit={(e) => {
@@ -111,9 +143,9 @@ export function BookingsPage() {
             </option>
           ))}
         </select>
-      </div>
+      </motion.div>
 
-      <section className="card">
+      <motion.section className="card" variants={fadeUp} initial="hidden" animate="show">
         {loading ? (
           <Skeleton rows={6} />
         ) : error ? (
@@ -134,7 +166,7 @@ export function BookingsPage() {
             />
           </>
         )}
-      </section>
+      </motion.section>
     </>
   );
 }

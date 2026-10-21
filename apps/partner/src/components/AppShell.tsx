@@ -19,7 +19,7 @@ import {
   Warehouse,
   X,
 } from 'lucide-react';
-import { ThemeToggle, pageTransition } from '@bmw/ui';
+import { ThemeToggle, pageTransition, popIn } from '@bmw/ui';
 import { useAuth } from '../auth/AuthContext';
 import { api } from '../lib/api';
 import { CUSTOMER_APP_URL } from '../lib/app-links';
@@ -77,6 +77,33 @@ export function AppShell() {
   const [menuOpen, setMenuOpen] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const hamburgerRef = useRef<HTMLButtonElement>(null);
+
+  // Close topmost layer on Esc: user menu > bell > mobile drawer
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (menuOpen) {
+        setMenuOpen(false);
+        event.preventDefault();
+      } else if (bellOpen) {
+        setBellOpen(false);
+        event.preventDefault();
+      } else if (drawerOpen) {
+        setDrawerOpen(false);
+        event.preventDefault();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [menuOpen, bellOpen, drawerOpen]);
+
+  // Restore focus to hamburger when drawer closes
+  useEffect(() => {
+    if (!drawerOpen && hamburgerRef.current) {
+      hamburgerRef.current.focus();
+    }
+  }, [drawerOpen]);
 
   const loadNotifications = useCallback(async () => {
     try {
@@ -194,30 +221,32 @@ export function AppShell() {
                   <span className="bell__badge">{unread > 99 ? '99+' : unread}</span>
                 ) : null}
               </button>
-              {bellOpen ? (
-                <div className="bell__dropdown" role="menu" aria-label="Recent notifications">
-                  <div className="bell__header">Notifications</div>
-                  {recent.length === 0 ? (
-                    <p className="bell__empty">No notifications yet.</p>
-                  ) : (
-                    recent.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        className={`bell__item ${item.read ? '' : 'bell__item--unread'}`}
-                        onClick={() => navigate(mapNotificationLink(item.link))}
-                      >
-                        <span className="bell__item-title">{item.title}</span>
-                        <span className="bell__item-body">{item.body}</span>
-                        <span className="bell__item-time">{relativeTime(item.createdAt)}</span>
-                      </button>
-                    ))
-                  )}
-                  <Link to="/notifications" className="bell__footer">
-                    View all notifications
-                  </Link>
-                </div>
-              ) : null}
+              <AnimatePresence>
+                {bellOpen && (
+                  <motion.div className="bell__dropdown glass-strong" role="menu" aria-label="Recent notifications" variants={popIn} initial="hidden" animate="show" exit="exit">
+                    <div className="bell__header">Notifications</div>
+                    {recent.length === 0 ? (
+                      <p className="bell__empty">No notifications yet.</p>
+                    ) : (
+                      recent.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          className={`bell__item ${item.read ? '' : 'bell__item--unread'}`}
+                          onClick={() => navigate(mapNotificationLink(item.link))}
+                        >
+                          <span className="bell__item-title">{item.title}</span>
+                          <span className="bell__item-body">{item.body}</span>
+                          <span className="bell__item-time">{relativeTime(item.createdAt)}</span>
+                        </button>
+                      ))
+                    )}
+                    <Link to="/notifications" className="bell__footer">
+                      View all notifications
+                    </Link>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <div className="user-menu" ref={menuRef}>
@@ -234,31 +263,33 @@ export function AppShell() {
                   <ChevronDown size={16} strokeWidth={2} />
                 </span>
               </button>
-              {menuOpen ? (
-                <div className="user-menu__dropdown" role="menu">
-                  <div className="user-menu__meta">
-                    <strong>{user?.name}</strong>
-                    <span>{user?.email}</span>
-                  </div>
-                  <Link to="/profile" className="user-menu__item" role="menuitem">
-                    <User size={15} strokeWidth={2} aria-hidden="true" />
-                    Profile
-                  </Link>
-                  <Link to="/onboarding" className="user-menu__item" role="menuitem">
-                    <ShieldCheck size={15} strokeWidth={2} aria-hidden="true" />
-                    Onboarding & KYC
-                  </Link>
-                  <button
-                    type="button"
-                    className="user-menu__item user-menu__item--danger"
-                    role="menuitem"
-                    onClick={() => void handleLogout()}
-                  >
-                    <LogOut size={15} strokeWidth={2} aria-hidden="true" />
-                    Sign out
-                  </button>
-                </div>
-              ) : null}
+              <AnimatePresence>
+                {menuOpen && (
+                  <motion.div className="user-menu__dropdown glass-strong" role="menu" variants={popIn} initial="hidden" animate="show" exit="exit">
+                    <div className="user-menu__meta">
+                      <strong>{user?.name}</strong>
+                      <span>{user?.email}</span>
+                    </div>
+                    <Link to="/profile" className="user-menu__item" role="menuitem">
+                      <User size={15} strokeWidth={2} aria-hidden="true" />
+                      Profile
+                    </Link>
+                    <Link to="/onboarding" className="user-menu__item" role="menuitem">
+                      <ShieldCheck size={15} strokeWidth={2} aria-hidden="true" />
+                      Onboarding & KYC
+                    </Link>
+                    <button
+                      type="button"
+                      className="user-menu__item user-menu__item--danger"
+                      role="menuitem"
+                      onClick={() => void handleLogout()}
+                    >
+                      <LogOut size={15} strokeWidth={2} aria-hidden="true" />
+                      Sign out
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </header>

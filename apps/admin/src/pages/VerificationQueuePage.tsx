@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { fadeSoft, stagger } from '@bmw/ui';
+import { fadeUp, fadeSoft, stagger } from '@bmw/ui';
 import { Eye, Gavel } from 'lucide-react';
 import { Pagination } from '../components/Pagination';
 import { PartnerDecisionDialog, type PartnerDecision } from '../components/PartnerDecisionDialog';
@@ -71,15 +71,21 @@ export function VerificationQueuePage() {
 
   return (
     <>
-      <PageHeader title="Verification queue" subtitle="Review partner KYC submissions" />
-      <Tabs tabs={QUEUE_TABS} active={status} onChange={setStatus} ariaLabel="Verification status" />
+      <motion.header variants={fadeUp} initial="hidden" animate="show">
+        <PageHeader title="Verification queue" subtitle="Review partner KYC submissions" />
+      </motion.header>
+      <motion.div variants={stagger(0.05)} initial="hidden" animate="show">
+        <Tabs tabs={QUEUE_TABS} active={status} onChange={setStatus} ariaLabel="Verification status" />
+      </motion.div>
 
       {loading ? (
         <Skeleton rows={4} />
       ) : error ? (
         <ErrorState error={error} onRetry={reload} />
       ) : items.length === 0 ? (
-        <EmptyState title="Queue is clear" hint={`No partners with status ${status.toLowerCase().replace('_', ' ')}.`} />
+        <motion.div className="card" variants={fadeUp} initial="hidden" animate="show">
+          <EmptyState title="Queue is clear" hint={`No partners with status ${status.toLowerCase().replace('_', ' ')}.`} />
+        </motion.div>
       ) : (
         <motion.div className="queue-list" variants={stagger(0.06)} initial="hidden" animate="show">
           {items.map((p) => (
@@ -121,7 +127,9 @@ export function VerificationQueuePage() {
         </motion.div>
       )}
 
-      <Pagination meta={pagination} limit={limit} onPageChange={setPage} />
+      <motion.div variants={fadeUp} initial="hidden" animate="show">
+        <Pagination meta={pagination} limit={limit} onPageChange={setPage} />
+      </motion.div>
 
       <PartnerDecisionDialog
         open={target !== null}

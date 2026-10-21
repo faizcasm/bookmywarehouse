@@ -1,9 +1,12 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../auth/AuthContext';
 import { ApiError, api } from '../lib/api';
 import { formatDate, humanize } from '../lib/format';
 import type { UserDTO } from '../lib/types';
 import { useToast } from '../components/Toast';
+import { useDocumentMeta } from '../lib/useDocumentMeta';
+import { fadeUp, stagger } from '@bmw/ui';
 
 const PHONE_PATTERN = /^[+0-9][0-9 -]{7,16}$/;
 
@@ -19,6 +22,11 @@ function fileToDataUri(file: File): Promise<string> {
 export function ProfilePage() {
   const { user, updateUser } = useAuth();
   const toast = useToast();
+
+  useDocumentMeta({
+    title: 'Profile — BookMyWarehouse',
+    description: 'Manage your account details and preferences.',
+  });
 
   const [name, setName] = useState(user?.name ?? '');
   const [phone, setPhone] = useState(user?.phone ?? '');
@@ -133,16 +141,16 @@ export function ProfilePage() {
 
   return (
     <div className="container page">
-      <div className="page-head">
+      <motion.div className="page-head reveal" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
         <h1>Profile</h1>
         <p className="muted">
           {humanize(user.role)} account · Member since {formatDate(user.createdAt)}
           {user.emailVerified ? ' · ✓ Email verified' : ''}
         </p>
-      </div>
+      </motion.div>
 
-      <div className="profile-layout">
-        <section className="card section-card" aria-labelledby="avatar-heading">
+      <motion.div className="profile-layout reveal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3, delay: 0.1 }} variants={stagger(0.1)}>
+        <motion.section className="card section-card" aria-labelledby="avatar-heading" variants={fadeUp}>
           <h2 id="avatar-heading">Avatar</h2>
           <div className="avatar-editor">
             {user.avatarUrl ? (
@@ -164,21 +172,23 @@ export function ProfilePage() {
               <p className="field-hint">JPG or PNG, up to 2 MB. Uploaded to /avatars via the API.</p>
             </div>
           </div>
-        </section>
+        </motion.section>
 
-        <section className="card section-card" aria-labelledby="details-heading">
+        <motion.section className="card section-card" aria-labelledby="details-heading" variants={fadeUp}>
           <h2 id="details-heading">Account details</h2>
           <form onSubmit={onProfileSubmit} noValidate>
-            {profileErrors.form ? (
-              <p className="form-error" role="alert">
-                {profileErrors.form}
-              </p>
-            ) : null}
+            <AnimatePresence>
+              {profileErrors.form ? (
+                <motion.p className="form-error" role="alert" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+                  {profileErrors.form}
+                </motion.p>
+              ) : null}
+            </AnimatePresence>
             <div className="field">
               <label htmlFor="profile-email">Email</label>
               <input id="profile-email" className="input" type="email" value={user.email} readOnly disabled />
             </div>
-            <div className="field">
+            <motion.div className="field" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
               <label htmlFor="profile-name">Full name</label>
               <input
                 id="profile-name"
@@ -188,9 +198,15 @@ export function ProfilePage() {
                 aria-invalid={Boolean(profileErrors.name)}
                 onChange={(event) => setName(event.target.value)}
               />
-              {profileErrors.name ? <p className="field-error">{profileErrors.name}</p> : null}
-            </div>
-            <div className="field">
+              <AnimatePresence>
+                {profileErrors.name ? (
+                  <motion.p className="field-error" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+                    {profileErrors.name}
+                  </motion.p>
+                ) : null}
+              </AnimatePresence>
+            </motion.div>
+            <motion.div className="field" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.05 }}>
               <label htmlFor="profile-phone">Phone</label>
               <input
                 id="profile-phone"
@@ -201,72 +217,119 @@ export function ProfilePage() {
                 aria-invalid={Boolean(profileErrors.phone)}
                 onChange={(event) => setPhone(event.target.value)}
               />
-              {profileErrors.phone ? <p className="field-error">{profileErrors.phone}</p> : null}
-            </div>
-            <button type="submit" className="btn btn-primary" disabled={profileBusy}>
+              <AnimatePresence>
+                {profileErrors.phone ? (
+                  <motion.p className="field-error" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+                    {profileErrors.phone}
+                  </motion.p>
+                ) : null}
+              </AnimatePresence>
+            </motion.div>
+            <motion.button
+              type="submit"
+              className="btn btn-primary"
+              disabled={profileBusy}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+            >
               {profileBusy ? 'Saving…' : 'Save changes'}
-            </button>
+            </motion.button>
           </form>
-        </section>
+        </motion.section>
 
-        <section className="card section-card" aria-labelledby="password-heading">
+        <motion.section className="card section-card" aria-labelledby="password-heading" variants={fadeUp}>
           <h2 id="password-heading">Change password</h2>
-          {passwordDone ? (
-            <p className="form-success" role="status">
-              Password updated.
-            </p>
-          ) : null}
-          <form onSubmit={onPasswordSubmit} noValidate>
-            {passwordErrors.form ? (
-              <p className="form-error" role="alert">
-                {passwordErrors.form}
-              </p>
-            ) : null}
-            <div className="field">
-              <label htmlFor="current-password">Current password</label>
-              <input
-                id="current-password"
-                className={`input ${passwordErrors.currentPassword ? 'input-invalid' : ''}`}
-                type="password"
-                autoComplete="current-password"
-                value={currentPassword}
-                aria-invalid={Boolean(passwordErrors.currentPassword)}
-                onChange={(event) => setCurrentPassword(event.target.value)}
-              />
-              {passwordErrors.currentPassword ? <p className="field-error">{passwordErrors.currentPassword}</p> : null}
-            </div>
-            <div className="field">
-              <label htmlFor="new-password">New password</label>
-              <input
-                id="new-password"
-                className={`input ${passwordErrors.newPassword ? 'input-invalid' : ''}`}
-                type="password"
-                autoComplete="new-password"
-                value={newPassword}
-                aria-invalid={Boolean(passwordErrors.newPassword)}
-                onChange={(event) => setNewPassword(event.target.value)}
-              />
-              {passwordErrors.newPassword ? <p className="field-error">{passwordErrors.newPassword}</p> : null}
-            </div>
-            <div className="field">
-              <label htmlFor="confirm-new-password">Confirm new password</label>
-              <input
-                id="confirm-new-password"
-                className={`input ${passwordErrors.confirmPassword ? 'input-invalid' : ''}`}
-                type="password"
-                autoComplete="new-password"
-                value={confirmPassword}
-                aria-invalid={Boolean(passwordErrors.confirmPassword)}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-              />
-              {passwordErrors.confirmPassword ? <p className="field-error">{passwordErrors.confirmPassword}</p> : null}
-            </div>
-            <button type="submit" className="btn btn-primary" disabled={passwordBusy}>
-              {passwordBusy ? 'Updating…' : 'Change password'}
-            </button>
-          </form>
-        </section>
-      </div>
+          <AnimatePresence mode="wait">
+            {passwordDone ? (
+              <motion.p key="done" className="form-success" role="status" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+                Password updated.
+              </motion.p>
+            ) : (
+              <motion.form key="form" onSubmit={onPasswordSubmit} noValidate initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
+                <AnimatePresence>
+                  {passwordErrors.form ? (
+                    <motion.p className="form-error" role="alert" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+                      {passwordErrors.form}
+                    </motion.p>
+                  ) : null}
+                </AnimatePresence>
+                <motion.div className="field" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                  <label htmlFor="current-password">Current password</label>
+                  <input
+                    id="current-password"
+                    className={`input ${passwordErrors.currentPassword ? 'input-invalid' : ''}`}
+                    type="password"
+                    autoComplete="current-password"
+                    value={currentPassword}
+                    aria-invalid={Boolean(passwordErrors.currentPassword)}
+                    onChange={(event) => setCurrentPassword(event.target.value)}
+                  />
+                  <AnimatePresence>
+                    {passwordErrors.currentPassword ? (
+                      <motion.p className="field-error" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+                        {passwordErrors.currentPassword}
+                      </motion.p>
+                    ) : null}
+                  </AnimatePresence>
+                </motion.div>
+                <motion.div className="field" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.05 }}>
+                  <label htmlFor="new-password">New password</label>
+                  <input
+                    id="new-password"
+                    className={`input ${passwordErrors.newPassword ? 'input-invalid' : ''}`}
+                    type="password"
+                    autoComplete="new-password"
+                    value={newPassword}
+                    aria-invalid={Boolean(passwordErrors.newPassword)}
+                    onChange={(event) => setNewPassword(event.target.value)}
+                  />
+                  <AnimatePresence>
+                    {passwordErrors.newPassword ? (
+                      <motion.p className="field-error" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+                        {passwordErrors.newPassword}
+                      </motion.p>
+                    ) : null}
+                  </AnimatePresence>
+                </motion.div>
+                <motion.div className="field" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.1 }}>
+                  <label htmlFor="confirm-new-password">Confirm new password</label>
+                  <input
+                    id="confirm-new-password"
+                    className={`input ${passwordErrors.confirmPassword ? 'input-invalid' : ''}`}
+                    type="password"
+                    autoComplete="new-password"
+                    value={confirmPassword}
+                    aria-invalid={Boolean(passwordErrors.confirmPassword)}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                  />
+                  <AnimatePresence>
+                    {passwordErrors.confirmPassword ? (
+                      <motion.p className="field-error" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+                        {passwordErrors.confirmPassword}
+                      </motion.p>
+                    ) : null}
+                  </AnimatePresence>
+                </motion.div>
+                <motion.button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={passwordBusy}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.15 }}
+                >
+                  {passwordBusy ? 'Updating…' : 'Change password'}
+                </motion.button>
+              </motion.form>
+            )}
+          </AnimatePresence>
+        </motion.section>
+      </motion.div>
     </div>
   );
 }

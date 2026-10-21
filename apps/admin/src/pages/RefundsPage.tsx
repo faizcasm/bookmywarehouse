@@ -10,6 +10,8 @@ import { apiSend } from '../lib/api';
 import { errorMessage, usePagedList } from '../lib/hooks';
 import { STATUS_OPTIONS, formatDateTime, formatMoney, shortenId } from '../lib/format';
 import type { RefundDTO } from '../lib/types';
+import { motion } from 'motion/react';
+import { fadeUp, stagger } from '@bmw/ui';
 
 export function RefundsPage() {
   const [params, setParams] = useSearchParams();
@@ -73,8 +75,10 @@ export function RefundsPage() {
 
   return (
     <>
-      <PageHeader title="Refunds" subtitle="Review and process refund requests" />
-      <div className="toolbar">
+      <motion.header variants={fadeUp} initial="hidden" animate="show">
+        <PageHeader title="Refunds" subtitle="Review and process refund requests" />
+      </motion.header>
+      <motion.div className="toolbar glass-inset" variants={stagger(0.05)} initial="hidden" animate="show">
         <select className="select" value={status} onChange={(e) => setParam('status', e.target.value)} aria-label="Filter by status">
           {STATUS_OPTIONS.refund.map((s) => (
             <option key={s} value={s}>
@@ -82,8 +86,8 @@ export function RefundsPage() {
             </option>
           ))}
         </select>
-      </div>
-      <section className="card">
+      </motion.div>
+      <motion.section className="card" variants={fadeUp} initial="hidden" animate="show">
         {loading ? (
           <Skeleton rows={5} />
         ) : error ? (
@@ -104,7 +108,7 @@ export function RefundsPage() {
             />
           </>
         )}
-      </section>
+      </motion.section>
 
       <ConfirmDialog
         open={target !== null}

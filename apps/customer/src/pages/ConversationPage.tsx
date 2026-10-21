@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import { ApiError, api } from '../lib/api';
 import { useAsyncData } from '../lib/useAsyncData';
 import { formatDateTime } from '../lib/format';
 import { useAuth } from '../auth/AuthContext';
-import type { MessageDTO } from '../lib/types';
+import type { MessageDTO, ConversationDTO } from '../lib/types';
 import { ErrorState, PageLoader } from '../components/Skeleton';
+import { useDocumentMeta } from '../lib/useDocumentMeta';
+import { fadeUp, stagger } from '@bmw/ui';
 
 const POLL_MS = 8000;
 const PAGE_SIZE = 30;
@@ -19,7 +22,9 @@ export function ConversationPage() {
     () => api.getWithMeta<{ items: MessageDTO[] }>(`/conversations/${id}/messages`, { page, limit: PAGE_SIZE }),
     [id, page],
   );
+  const conversationState = useAsyncData<ConversationDTO>(() => api.get(`/conversations/${id}`), [id]);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLFormElement>(null);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
@@ -27,6 +32,14 @@ export function ConversationPage() {
 
   const messages = threadState.data?.data?.items ?? [];
   const pagination = threadState.data?.meta?.pagination;
+  const conversation = conversationState.data;
+
+  // Page meta
+  const listingTitle = conversation?.listing?.title ?? 'Conversation';
+  useDocumentMeta({
+    title: `${listingTitle} — Messages — BookMyWarehouse`,
+    description: `Conversation about ${listingTitle}`,
+  });
 
   // Poll for new messages every 8 seconds while the thread is open.
   useEffect(() => {
@@ -42,8 +55,9 @@ export function ConversationPage() {
     void api.post(`/conversations/${id}/read`, {}).catch(() => undefined);
   }, [threadState.data, id]);
 
+  // Auto-scroll to bottom on new messages
   useEffect(() => {
-    if (messages.length > 0) bottomRef.current?.scrollIntoView({ block: 'end' });
+    if (messages.length > 0) bottomRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
   }, [messages.length]);
 
   const send = async () => {
@@ -73,6 +87,9 @@ export function ConversationPage() {
     }
   };
 
+  // Load older messages
+  const loadOlder = () => setPage((p) => p + 1);
+
   if (threadState.loading && !threadState.data) return <PageLoader label="Loading conversation…" />;
   if (threadState.error && !threadState.data) {
     return (
@@ -82,45 +99,95 @@ export function ConversationPage() {
     );
   }
 
+  // Reverse for display (oldest first)
+  const displayMessages = [...messages].reverse();
+
   return (
     <div className="container page conversation-page">
-      <nav className="breadcrumbs" aria-label="Breadcrumb">
+      <motion.nav className="breadcrumbs reveal" aria-label="Breadcrumb" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
         <Link to="/messages">Messages</Link> <span aria-hidden="true">/</span>{' '}
-        <span aria-current="page">Conversation</span>
-      </nav>
+        <span aria-current="page">{listingTitle}</span>
+      </motion.nav>
 
-      <div className="card chat-card">
-        <div className="chat-scroll" role="log" aria-label="Conversation messages">
-          {pagination && pagination.total > messages.length ? (
-            <button type="button" className="link-btn chat-older" onClick={() => setPage((p) => p + 1)}>
-              Load older messages
-            </button>
-          ) : null}
+      <motion.div className="card chat-card" variants={stagger(0.06)} initial="hidden" animate="show">
+        <motion.div className="chat-scroll" role="log" aria-label="Conversation messages" variants={fadeUp}>
+          <AnimatePresence mode="wait">
+            {pagination && pagination.total > messages.length ? (
+              <motion.button
+                key="older"
+                type="button"
+                className="link-btn chat-older"
+                onClick={loadOlder}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                Load older messages
+              </motion.button>
+            ) : null}
+          </AnimatePresence>
+
           {messages.length === 0 ? (
-            <p className="muted chat-empty">No messages yet. Say hello 👋</p>
+            <motion.div className="chat-empty" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true" className="muted" style={{ marginBottom: '0.75rem' }}>
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+              <p className="muted">No messages yet. Say hello 👋</p>
+            </motion.div>
           ) : (
-            messages.map((message) => {
-              const mine = message.sender.id === user?.id;
-              return (
-                <div key={message.id} className={`chat-bubble ${mine ? 'mine' : 'theirs'}`}>
-                  <div className="chat-bubble-meta">
-                    <strong>{mine ? 'You' : message.sender.name}</strong>
-                    <time dateTime={message.createdAt}>{formatDateTime(message.createdAt)}</time>
-                  </div>
-                  <p>{message.body}</p>
-                </div>
-              );
-            })
+            <AnimatePresence mode="popLayout">
+              {displayMessages.map((message, index) => {
+                const mine = message.sender.id === user?.id;
+                const isFirstOfSender = index === 0 || displayMessages[index - 1].sender.id !== message.sender.id;
+                return (
+                  <motion.div
+                    key={message.id}
+                    className={`chat-bubble ${mine ? 'mine' : 'theirs'} ${isFirstOfSender ? 'first-of-sender' : ''}`}
+                    initial={{ opacity: 0, y: 12, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                    transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    {isFirstOfSender && !mine && (
+                      <motion.div className="chat-bubble-avatar" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}>
+                        {message.sender.avatarUrl ? (
+                          <img src={message.sender.avatarUrl} alt="" className="avatar" />
+                        ) : (
+                          <span className="avatar avatar-fallback" aria-hidden="true">{message.sender.name.charAt(0).toUpperCase()}</span>
+                        )}
+                      </motion.div>
+                    )}
+                    <div className="chat-bubble-content">
+                      <div className="chat-bubble-meta">
+                        <strong>{mine ? 'You' : message.sender.name}</strong>
+                        <time dateTime={message.createdAt}>{formatDateTime(message.createdAt)}</time>
+                      </div>
+                      <p>{message.body}</p>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
           )}
           <div ref={bottomRef} />
-        </div>
+        </motion.div>
 
-        <form className="chat-composer" onSubmit={onSend}>
-          {sendError ? (
-            <p className="text-danger" role="alert">
-              {sendError}
-            </p>
-          ) : null}
+        <motion.form
+          ref={composerRef}
+          className="chat-composer glass-inset"
+          onSubmit={onSend}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.1 }}
+        >
+          <AnimatePresence>
+            {sendError ? (
+              <motion.p className="text-danger" role="alert" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+                {sendError}
+              </motion.p>
+            ) : null}
+          </AnimatePresence>
           <label htmlFor="chat-input" className="visually-hidden">
             Type a message
           </label>
@@ -133,12 +200,20 @@ export function ConversationPage() {
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={onKeyDown}
+            disabled={sending}
+            aria-busy={sending}
           />
-          <button type="submit" className="btn btn-primary" disabled={sending || !draft.trim()}>
+          <motion.button
+            type="submit"
+            className="btn btn-primary"
+            disabled={sending || !draft.trim()}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
             {sending ? 'Sending…' : 'Send'}
-          </button>
-        </form>
-      </div>
+          </motion.button>
+        </motion.form>
+      </motion.div>
     </div>
   );
 }

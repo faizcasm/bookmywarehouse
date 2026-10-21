@@ -1824,11 +1824,62 @@ function paymentPaths(): PathMap {
         },
       },
     },
+    '/payments/config': {
+      get: {
+        tags: ['Payments'],
+        summary: 'Public checkout configuration',
+        description:
+          'Authenticated. Provider name, sandbox flag and (for Razorpay) the publishable key id — never secrets.',
+        security: AUTH_SECURITY,
+        responses: {
+          '200': ok('Checkout configuration.', {
+            type: 'object',
+            properties: {
+              provider: { type: 'string', enum: ['SANDBOX', 'RAZORPAY', 'STRIPE'] },
+              sandbox: { type: 'boolean' },
+              razorpayKeyId: { type: 'string', nullable: true },
+            },
+          }),
+          ...authWrite(),
+        },
+      },
+    },
+    '/payments/verify': {
+      post: {
+        tags: ['Payments'],
+        summary: 'Confirm a hosted-checkout payment (Razorpay)',
+        description:
+          'Authenticated (booking owner). Validates the Checkout.js handler payload HMAC and confirms the payment — idempotent for replays.',
+        security: AUTH_SECURITY,
+        requestBody: jsonBody({
+          type: 'object',
+          required: ['orderId', 'paymentId', 'signature'],
+          properties: {
+            orderId: { type: 'string', description: 'Gateway order id (order_…).' },
+            paymentId: { type: 'string', description: 'Gateway payment id (pay_…).' },
+            signature: { type: 'string', description: 'HMAC-SHA256 checkout signature (hex, 64 chars).' },
+          },
+        }),
+        responses: {
+          '200': ok('Payment confirmed.', {
+            type: 'object',
+            properties: {
+              paymentId: { type: 'string' },
+              status: { type: 'string' },
+              alreadyProcessed: { type: 'boolean' },
+            },
+          }),
+          '400': { description: 'PAYMENT_WEBHOOK_INVALID — signature mismatch.' },
+          ...authConflictWrite(),
+        },
+      },
+    },
     '/payments/bookings/{bookingId}/initiate': {
       post: {
         tags: ['Payments'],
         summary: 'Initiate payment for a booking',
-        description: 'Authenticated (customer who owns the booking). Returns a checkout URL for the sandbox gateway.',
+        description:
+          'Authenticated (customer who owns the booking). Returns the checkout handle: sandbox flag, and for Razorpay the order id opened via Checkout.js.',
         security: AUTH_SECURITY,
         parameters: [pathParam('bookingId', 'Booking ObjectId.')],
         responses: {
@@ -1836,8 +1887,13 @@ function paymentPaths(): PathMap {
             type: 'object',
             properties: {
               payment: { $ref: '#/components/schemas/Payment' },
-              checkoutUrl: { type: 'string' },
+              checkoutUrl: { type: 'string', nullable: true },
               sandbox: { type: 'boolean' },
+              razorpay: {
+                type: 'object',
+                nullable: true,
+                properties: { orderId: { type: 'string' } },
+              },
               message: { type: 'string' },
             },
           }),

@@ -9,6 +9,8 @@ import { apiSend, ApiError } from '../lib/api';
 import { errorMessage, useFetch } from '../lib/hooks';
 import { formatNumber } from '../lib/format';
 import type { CategoryDTO, ListingType } from '../lib/types';
+import { motion } from 'motion/react';
+import { fadeUp, stagger } from '@bmw/ui';
 
 const TYPE_TABS = [
   { id: '', label: 'All' },
@@ -198,18 +200,22 @@ export function CategoriesPage() {
 
   return (
     <>
-      <PageHeader
-        title="Categories"
-        subtitle="Catalog taxonomy for warehouses, equipment and services"
-        actions={
-          <button type="button" className="btn btn--primary btn--sm" onClick={openCreate}>
-            + New category
-          </button>
-        }
-      />
-      <Tabs tabs={TYPE_TABS} active={typeFilter} onChange={setTypeFilter} ariaLabel="Category type" />
+      <motion.header variants={fadeUp} initial="hidden" animate="show">
+        <PageHeader
+          title="Categories"
+          subtitle="Catalog taxonomy for warehouses, equipment and services"
+          actions={
+            <button type="button" className="btn btn--primary btn--sm" onClick={openCreate}>
+              + New category
+            </button>
+          }
+        />
+      </motion.header>
+      <motion.div variants={stagger(0.05)} initial="hidden" animate="show">
+        <Tabs tabs={TYPE_TABS} active={typeFilter} onChange={setTypeFilter} ariaLabel="Category type" />
+      </motion.div>
 
-      <section className="card">
+      <motion.section className="card" variants={fadeUp} initial="hidden" animate="show">
         {loading ? (
           <Skeleton rows={6} />
         ) : error ? (
@@ -217,7 +223,7 @@ export function CategoriesPage() {
         ) : (
           <DataTable columns={columns} rows={items} getRowKey={(c) => c.id} emptyMessage="No categories yet." />
         )}
-      </section>
+      </motion.section>
 
       <Modal
         open={modalOpen}

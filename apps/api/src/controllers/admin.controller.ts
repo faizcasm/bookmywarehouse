@@ -37,6 +37,7 @@ import {
 } from '../services/admin.service.js';
 import { listInvoices } from '../services/invoice.service.js';
 import { recordAudit } from '../services/audit.service.js';
+import { buildBookingsCsv, buildPayoutsCsv, exportFilename } from '../services/export.service.js';
 
 interface PageQuery {
   page: number;
@@ -255,4 +256,40 @@ export async function moderateReviewHandler(req: Request, res: Response): Promis
   const input = req.body as z.infer<typeof reviewModerationSchema>;
   await moderateReviewByAdmin(userId, req.params.id as string, input, clientIp(req));
   sendSuccess(res, { ok: true });
+}
+
+function sendCsvAttachment(res: Response, csv: string, filename: string): void {
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.status(200).send(csv);
+}
+
+export async function exportBookingsCsvHandler(req: Request, res: Response): Promise<void> {
+  const { userId } = requireAdmin(req);
+  const { csv, rowCount } = await buildBookingsCsv();
+  await recordAudit({
+    actorId: userId,
+    action: 'admin.export',
+    entityType: 'Export',
+    entityId: 'bookings.csv',
+    summary: `Exported ${rowCount} booking row(s)`,
+    metadata: { rowCount },
+    ip: clientIp(req),
+  });
+  sendCsvAttachment(res, csv, exportFilename('bookings'));
+}
+
+export async function exportPayoutsCsvHandler(req: Request, res: Response): Promise<void> {
+  const { userId } = requireAdmin(req);
+  const { csv, rowCount } = await buildPayoutsCsv();
+  await recordAudit({
+    actorId: userId,
+    action: 'admin.export',
+    entityType: 'Export',
+    entityId: 'payouts.csv',
+    summary: `Exported ${rowCount} payout row(s)`,
+    metadata: { rowCount },
+    ip: clientIp(req),
+  });
+  sendCsvAttachment(res, csv, exportFilename('payouts'));
 }

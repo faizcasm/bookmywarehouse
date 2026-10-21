@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { motion } from 'motion/react';
+import { fadeUp, stagger } from '@bmw/ui';
 import { DataTable, type Column } from '../components/DataTable';
 import { Pagination } from '../components/Pagination';
 import { ErrorState, PageHeader, Skeleton } from '../components/States';
@@ -77,9 +79,11 @@ export function AuditPage() {
 
   return (
     <>
-      <PageHeader title="Audit log" subtitle="Every administrative action, newest first" />
+      <motion.header variants={fadeUp} initial="hidden" animate="show">
+        <PageHeader title="Audit log" subtitle="Every administrative action, newest first" />
+      </motion.header>
 
-      <div className="toolbar">
+      <motion.div className="toolbar glass-inset" variants={stagger(0.05)} initial="hidden" animate="show">
         <form
           className="toolbar__search"
           onSubmit={(e) => {
@@ -106,9 +110,9 @@ export function AuditPage() {
             </option>
           ))}
         </select>
-      </div>
+      </motion.div>
 
-      <section className="card">
+      <motion.section className="card" variants={fadeUp} initial="hidden" animate="show">
         {loading ? (
           <Skeleton rows={8} />
         ) : error ? (
@@ -116,20 +120,22 @@ export function AuditPage() {
         ) : (
           <>
             <DataTable columns={columns} rows={items} getRowKey={(a) => a.id} emptyMessage="No audit entries match these filters." />
-            <Pagination
-              meta={pagination}
-              limit={limit}
-              onPageChange={(p) => setParam('page', String(p))}
-              onLimitChange={(l) => {
-                const next = new URLSearchParams(params);
-                next.set('limit', String(l));
-                next.delete('page');
-                setParams(next, { replace: true });
-              }}
-            />
+            <motion.div variants={fadeUp} initial="hidden" animate="show">
+              <Pagination
+                meta={pagination}
+                limit={limit}
+                onPageChange={(p) => setParam('page', String(p))}
+                onLimitChange={(l) => {
+                  const next = new URLSearchParams(params);
+                  next.set('limit', String(l));
+                  next.delete('page');
+                  setParams(next, { replace: true });
+                }}
+              />
+            </motion.div>
           </>
         )}
-      </section>
+      </motion.section>
     </>
   );
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { api, type Pagination as PaginationMeta } from '../lib/api';
 import { initials, relativeTime } from '../lib/format';
@@ -6,6 +7,7 @@ import type { ConversationDTO } from '../lib/types';
 import { Pagination } from '../components/Pagination';
 import { EmptyState, ErrorState, ListSkeleton } from '../components/States';
 import { useAuth } from '../auth/AuthContext';
+import { fadeUp, stagger } from '@bmw/ui';
 
 export function otherParticipant(conversation: ConversationDTO, meId: string | undefined) {
   const other = conversation.participants?.find((participant) => participant.user.id !== meId);
@@ -48,8 +50,13 @@ export function MessagesPage() {
 
   return (
     <div className="page">
+      <motion.div className="page__intro" variants={fadeUp} initial="hidden" animate="show">
+        <h2>Messages</h2>
+        <p className="muted">Conversations with customers about your listings. New messages appear at the top.</p>
+      </motion.div>
+
       {items.length === 0 ? (
-        <div className="card">
+        <motion.div className="card" variants={fadeUp} initial="hidden" animate="show" transition={{ delay: 0.1 }}>
           <EmptyState
             title="No conversations yet"
             description={
@@ -63,31 +70,44 @@ export function MessagesPage() {
               </Link>
             }
           />
-        </div>
+        </motion.div>
       ) : (
         <>
-          <div className="conversation-list">
+          <motion.div
+            className="conversation-list"
+            variants={stagger(0.05)}
+            initial="hidden"
+            animate="show"
+          >
             {items.map((conversation) => {
               const other = otherParticipant(conversation, user?.id);
               return (
-                <Link key={conversation.id} to={`/messages/${conversation.id}`} className={`conversation-card card ${conversation.unreadCount > 0 ? 'conversation-card--unread' : ''}`}>
-                  <span className="avatar">{initials(other?.name)}</span>
-                  <div className="conversation-card__body">
-                    <div className="conversation-card__top">
-                      <strong>{other?.name ?? 'Conversation'}</strong>
-                      <span className="muted">{relativeTime(conversation.lastMessage?.at ?? conversation.updatedAt)}</span>
+                <motion.div
+                  key={conversation.id}
+                  className={`conversation-card card ${conversation.unreadCount > 0 ? 'conversation-card--unread' : ''}`}
+                  variants={fadeUp}
+                >
+                  <Link to={`/messages/${conversation.id}`}>
+                    <span className="avatar">{initials(other?.name)}</span>
+                    <div className="conversation-card__body">
+                      <div className="conversation-card__top">
+                        <strong>{other?.name ?? 'Conversation'}</strong>
+                        <span className="muted">{relativeTime(conversation.lastMessage?.at ?? conversation.updatedAt)}</span>
+                      </div>
+                      <div className="conversation-card__subject">
+                        {conversation.subject}
+                        {conversation.unreadCount > 0 ? <span className="pill-badge">{conversation.unreadCount}</span> : null}
+                      </div>
+                      <p className="conversation-card__preview">{conversation.lastMessage?.preview ?? 'No messages yet'}</p>
                     </div>
-                    <div className="conversation-card__subject">
-                      {conversation.subject}
-                      {conversation.unreadCount > 0 ? <span className="pill-badge">{conversation.unreadCount}</span> : null}
-                    </div>
-                    <p className="conversation-card__preview">{conversation.lastMessage?.preview ?? 'No messages yet'}</p>
-                  </div>
-                </Link>
+                  </Link>
+                </motion.div>
               );
             })}
-          </div>
-          <Pagination pagination={pagination} onPage={setPage} />
+          </motion.div>
+          <motion.div variants={fadeUp} initial="hidden" animate="show" transition={{ delay: 0.2 }}>
+            <Pagination pagination={pagination} onPage={setPage} />
+          </motion.div>
         </>
       )}
     </div>
