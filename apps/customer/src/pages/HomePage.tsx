@@ -1,10 +1,12 @@
 import { lazy, Suspense, useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Forklift, HardHat, Megaphone, ShieldCheck, Warehouse, Zap, Lock, LifeBuoy, ArrowRight, Search } from 'lucide-react';
+import { motion } from 'motion/react';
+import { Forklift, HardHat, Megaphone, ShieldCheck, Warehouse, Zap, Lock, LifeBuoy, ArrowRight, Search, FileText, CreditCard, ArrowUpRight } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAsyncData } from '../lib/useAsyncData';
 import { EMPTY_FILTERS, buildSearchQuery } from '../lib/searchFilters';
 import { listingTypeLabel } from '../lib/format';
+import { PARTNER_APP_URL } from '../auth/AuthContext';
 import type { CategoryDTO, ListingSummaryDTO, PlatformSettingsDTO } from '../lib/types';
 import { ListingCard } from '../components/ListingCard';
 import { EmptyState, ErrorState, SkeletonGrid } from '../components/Skeleton';
@@ -41,6 +43,31 @@ const TYPE_ICONS = {
   EQUIPMENT: Forklift,
   SERVICE: HardHat,
 } as const;
+
+const TITLE_WORDS = ['Find', 'warehouses,', 'equipment', '&', 'logistics', 'services'];
+
+const STEPS = [
+  {
+    icon: Search,
+    title: 'Search & compare',
+    body: 'Filter by city, type and capacity. Every listing shows verified partner info and live availability.',
+  },
+  {
+    icon: FileText,
+    title: 'Get a live quote',
+    body: 'Subtotal, platform fee and taxes appear instantly — before you request a booking.',
+  },
+  {
+    icon: CreditCard,
+    title: 'Book & pay securely',
+    body: 'Pay only after the partner accepts. Track the booking and get a GST-ready invoice.',
+  },
+];
+
+const wordVariant = {
+  hidden: { opacity: 0, y: 26 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] as const } },
+};
 
 /**
  * Decide whether the 3D hero scene can run. Conservative: mobile, reduced
@@ -90,6 +117,8 @@ export function HomePage() {
     navigate(`/search?${buildSearchQuery(filters).toString()}`);
   };
 
+  const categoryList = categories.data ?? [];
+
   return (
     <div className="home-page">
       <section className="hero">
@@ -98,9 +127,21 @@ export function HomePage() {
             <p className="hero-eyebrow">
               <span aria-hidden="true">◆</span> India&apos;s logistics marketplace
             </p>
-            <h1 className="hero-title">
-              Find warehouses, equipment &amp; logistics services <span className="grad">near you</span>
-            </h1>
+            <motion.h1
+              className="hero-title"
+              initial="hidden"
+              animate="show"
+              variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07, delayChildren: 0.08 } } }}
+            >
+              {TITLE_WORDS.map((word, index) => (
+                <motion.span key={`${word}-${index}`} variants={wordVariant}>
+                  {word}{' '}
+                </motion.span>
+              ))}
+              <motion.span className="grad" variants={wordVariant}>
+                near you
+              </motion.span>
+            </motion.h1>
             <p className="hero-subtitle">
               Compare verified listings, get live quotes with taxes up-front, and book with
               confidence.
@@ -190,6 +231,23 @@ export function HomePage() {
         </div>
       </section>
 
+      {categoryList.length > 0 ? (
+        <div className="ticker" aria-hidden="true">
+          <div className="ticker-track">
+            {[0, 1].map((copy) => (
+              <div className="ticker-group" key={copy}>
+                {categoryList.map((category) => (
+                  <span key={`${copy}-${category.id}`} className="ticker-item">
+                    <span className="ticker-dot" />
+                    {category.name}
+                  </span>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <section className="section container reveal" aria-labelledby="categories-heading">
         <div className="section-head">
           <h2 id="categories-heading">Browse by category</h2>
@@ -272,6 +330,27 @@ export function HomePage() {
         )}
       </section>
 
+      <section className="section container reveal" aria-labelledby="how-heading">
+        <div className="section-head section-head-center">
+          <h2 id="how-heading">Book in three steps</h2>
+          <p className="section-sub">From first search to paid invoice — nothing hidden in between.</p>
+        </div>
+        <ol className="how-grid">
+          {STEPS.map((step, index) => (
+            <li className="how-step" key={step.title}>
+              <span className="how-num" aria-hidden="true">
+                {index + 1}
+              </span>
+              <span className="how-icon" aria-hidden="true">
+                <step.icon size={22} />
+              </span>
+              <h3>{step.title}</h3>
+              <p>{step.body}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
       <section className="section value-props reveal" aria-labelledby="why-heading">
         <div className="container">
           <div className="section-head section-head-center">
@@ -288,6 +367,22 @@ export function HomePage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="partner-cta container reveal" aria-labelledby="partner-cta-heading">
+        <div className="partner-cta-card">
+          <div className="partner-cta-copy">
+            <span className="partner-cta-kicker">For partners</span>
+            <h2 id="partner-cta-heading">Have space, equipment or a crew?</h2>
+            <p>
+              List on BookMyWarehouse, pass KYC once, and get booking requests from businesses
+              across India — on your schedule.
+            </p>
+          </div>
+          <a className="btn btn-on-brand btn-lg" href={PARTNER_APP_URL}>
+            List your space <ArrowUpRight size={17} aria-hidden="true" />
+          </a>
         </div>
       </section>
     </div>

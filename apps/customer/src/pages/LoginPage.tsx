@@ -1,9 +1,14 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowRight, Eye, EyeOff, KeyRound, Loader2, Lock, Mail, Wand2 } from 'lucide-react';
+import { motion } from 'motion/react';
 import { useAuth } from '../auth/AuthContext';
 import { ApiError } from '../lib/api';
+import { AuthShell } from '../components/AuthShell';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const DEMO_EMAIL = 'customer@bookmywarehouse.dev';
+const DEMO_PASSWORD = 'Demo@1234';
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -13,6 +18,7 @@ export function LoginPage() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [revealPassword, setRevealPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [errors, setErrors] = useState<{ email?: string; password?: string; form?: string }>({});
   const [busy, setBusy] = useState(false);
@@ -46,12 +52,22 @@ export function LoginPage() {
     }
   };
 
+  const fillDemo = () => {
+    setEmail(DEMO_EMAIL);
+    setPassword(DEMO_PASSWORD);
+    setErrors({});
+  };
+
   return (
-    <div className="container page auth-page">
-      <div className="card auth-card">
-        <h1>Sign in</h1>
-        <p className="muted">
-          Welcome back. Demo account: customer@bookmywarehouse.dev / Demo@1234
+    <AuthShell>
+      <motion.div
+        className="auth-card card"
+        initial={{ opacity: 0, y: 22 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      >        <h1>Sign in</h1>
+        <p className="muted auth-subtitle">
+          Welcome back — your quotes, bookings and invoices are one tap away.
         </p>
         <form onSubmit={onSubmit} noValidate>
           {errors.form ? (
@@ -61,16 +77,21 @@ export function LoginPage() {
           ) : null}
           <div className="field">
             <label htmlFor="login-email">Email</label>
-            <input
-              id="login-email"
-              className={`input ${errors.email ? 'input-invalid' : ''}`}
-              type="email"
-              autoComplete="email"
-              value={email}
-              aria-invalid={Boolean(errors.email)}
-              aria-describedby={errors.email ? 'login-email-error' : undefined}
-              onChange={(event) => setEmail(event.target.value)}
-            />
+            <div className="input-wrap">
+              <span className="input-icon" aria-hidden="true">
+                <Mail size={16} />
+              </span>
+              <input
+                id="login-email"
+                className={`input ${errors.email ? 'input-invalid' : ''}`}
+                type="email"
+                autoComplete="email"
+                value={email}
+                aria-invalid={Boolean(errors.email)}
+                aria-describedby={errors.email ? 'login-email-error' : undefined}
+                onChange={(event) => setEmail(event.target.value)}
+              />
+            </div>
             {errors.email ? (
               <p id="login-email-error" className="field-error">
                 {errors.email}
@@ -79,16 +100,29 @@ export function LoginPage() {
           </div>
           <div className="field">
             <label htmlFor="login-password">Password</label>
-            <input
-              id="login-password"
-              className={`input ${errors.password ? 'input-invalid' : ''}`}
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              aria-invalid={Boolean(errors.password)}
-              aria-describedby={errors.password ? 'login-password-error' : undefined}
-              onChange={(event) => setPassword(event.target.value)}
-            />
+            <div className="input-wrap">
+              <span className="input-icon" aria-hidden="true">
+                <Lock size={16} />
+              </span>
+              <input
+                id="login-password"
+                className={`input ${errors.password ? 'input-invalid' : ''}`}
+                type={revealPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                value={password}
+                aria-invalid={Boolean(errors.password)}
+                aria-describedby={errors.password ? 'login-password-error' : undefined}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+              <button
+                type="button"
+                className="input-action"
+                aria-label={revealPassword ? 'Hide password' : 'Show password'}
+                onClick={() => setRevealPassword((v) => !v)}
+              >
+                {revealPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
             {errors.password ? (
               <p id="login-password-error" className="field-error">
                 {errors.password}
@@ -103,14 +137,37 @@ export function LoginPage() {
             />
             <span>Keep me signed in</span>
           </label>
-          <button type="submit" className="btn btn-primary btn-block" disabled={busy}>
-            {busy ? 'Signing in…' : 'Sign in'}
+          <button type="submit" className="btn btn-primary btn-block auth-submit" disabled={busy}>
+            {busy ? (
+              <>
+                <Loader2 className="spin" size={16} aria-hidden="true" /> Signing in…
+              </>
+            ) : (
+              <>
+                Sign in <ArrowRight size={16} aria-hidden="true" />
+              </>
+            )}
           </button>
         </form>
-        <div className="auth-links">
-          <Link to="/forgot-password">Forgot password?</Link>
+
+        <div className="demo-callout">
           <span>
-            New here? <Link to={next ? `/register?next=${encodeURIComponent(next)}` : '/register'}>Create an account</Link>
+            <Wand2 size={15} aria-hidden="true" /> Demo account: <code>{DEMO_EMAIL}</code>
+          </span>
+          <button type="button" className="demo-fill" onClick={fillDemo}>
+            Fill credentials
+          </button>
+        </div>
+
+        <div className="auth-links">
+          <Link to="/forgot-password">
+            <KeyRound size={14} aria-hidden="true" /> Forgot password?
+          </Link>
+          <span>
+            New here?{' '}
+            <Link to={next ? `/register?next=${encodeURIComponent(next)}` : '/register'}>
+              Create an account
+            </Link>
           </span>
         </div>
         <p className="field-hint">
@@ -118,7 +175,7 @@ export function LoginPage() {
             Are you a partner? List your space →
           </Link>
         </p>
-      </div>
-    </div>
+      </motion.div>
+    </AuthShell>
   );
 }

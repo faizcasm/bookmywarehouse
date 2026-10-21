@@ -1,6 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { ArrowLeft, CheckCircle2, Loader2, Mail, Send } from 'lucide-react';
+import { motion } from 'motion/react';
 import { ApiError, api } from '../lib/api';
+import { AuthShell } from '../components/AuthShell';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -36,12 +39,19 @@ export function ForgotPasswordPage() {
   };
 
   return (
-    <div className="container page auth-page">
-      <div className="card auth-card">
-        <h1>Forgot your password?</h1>
+    <AuthShell>
+      <motion.div
+        className="auth-card card"
+        initial={{ opacity: 0, y: 22 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      >        <h1>Forgot your password?</h1>
         {sent ? (
-          <>
-            <p className="form-success" role="status">
+          <div className="auth-success" role="status">
+            <span className="auth-success-mark" aria-hidden="true">
+              <CheckCircle2 size={30} />
+            </span>
+            <p className="form-success">
               If an account exists for that email, a reset link has been sent. Check your inbox
               (and spam folder).
             </p>
@@ -49,36 +59,56 @@ export function ForgotPasswordPage() {
               The reset link opens the <Link to={`/reset-password?token=…`}>reset page</Link>. In
               development the token is also printed in the API logs.
             </p>
-          </>
+          </div>
         ) : (
-          <form onSubmit={onSubmit} noValidate>
-            {error ? (
-              <p className="form-error" role="alert">
-                {error}
-              </p>
-            ) : null}
-            <div className="field">
-              <label htmlFor="forgot-email">Email</label>
-              <input
-                id="forgot-email"
-                className={`input ${fieldError ? 'input-invalid' : ''}`}
-                type="email"
-                autoComplete="email"
-                value={email}
-                aria-invalid={Boolean(fieldError)}
-                onChange={(event) => setEmail(event.target.value)}
-              />
-              {fieldError ? <p className="field-error">{fieldError}</p> : null}
-            </div>
-            <button type="submit" className="btn btn-primary btn-block" disabled={busy}>
-              {busy ? 'Sending…' : 'Send reset link'}
-            </button>
-          </form>
+          <>
+            <p className="muted auth-subtitle">
+              Enter the email on your account and we&apos;ll send a secure reset link.
+            </p>
+            <form onSubmit={onSubmit} noValidate>
+              {error ? (
+                <p className="form-error" role="alert">
+                  {error}
+                </p>
+              ) : null}
+              <div className="field">
+                <label htmlFor="forgot-email">Email</label>
+                <div className="input-wrap">
+                  <span className="input-icon" aria-hidden="true">
+                    <Mail size={16} />
+                  </span>
+                  <input
+                    id="forgot-email"
+                    className={`input ${fieldError ? 'input-invalid' : ''}`}
+                    type="email"
+                    autoComplete="email"
+                    value={email}
+                    aria-invalid={Boolean(fieldError)}
+                    onChange={(event) => setEmail(event.target.value)}
+                  />
+                </div>
+                {fieldError ? <p className="field-error">{fieldError}</p> : null}
+              </div>
+              <button type="submit" className="btn btn-primary btn-block auth-submit" disabled={busy}>
+                {busy ? (
+                  <>
+                    <Loader2 className="spin" size={16} aria-hidden="true" /> Sending…
+                  </>
+                ) : (
+                  <>
+                    Send reset link <Send size={15} aria-hidden="true" />
+                  </>
+                )}
+              </button>
+            </form>
+          </>
         )}
         <div className="auth-links">
-          <Link to="/login">← Back to sign in</Link>
+          <Link to="/login">
+            <ArrowLeft size={14} aria-hidden="true" /> Back to sign in
+          </Link>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </AuthShell>
   );
 }
