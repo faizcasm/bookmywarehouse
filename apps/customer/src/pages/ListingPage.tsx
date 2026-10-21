@@ -241,7 +241,7 @@ export function ListingPage() {
       <motion.nav className="breadcrumbs reveal" aria-label="Breadcrumb" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
         <Link to="/">Home</Link> <span aria-hidden="true">/</span>{' '}
         <Link to={`/search?type=${listing.type}`}>{listingTypeLabel(listing.type)}s</Link>{' '}
-        <span aria-hidden="true">/</span> <span aria-current="page">{listing.title}</span>
+        <span aria-hidden="true">/</span> <span>{listing.title}</span>
       </motion.nav>
 
       <motion.div className="listing-hero reveal" variants={stagger(0.1)} initial="hidden" animate="show">
