@@ -124,10 +124,6 @@ export function LoginPage() {
         <button type="submit" className="btn btn--primary btn--block" disabled={busy}>
           {busy ? 'Signing in…' : 'Sign in'}
         </button>
-
-        <p className="login-card__hint">
-          Demo admin: <code>admin@bookmywarehouse.dev</code> / <code>Demo@1234</code>
-        </p>
       </motion.form>
     </div>
   );
