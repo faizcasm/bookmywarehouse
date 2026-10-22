@@ -205,6 +205,68 @@ async function requireMembership(conversationId: string, userId: string) {
   return conversation;
 }
 
+export async function getConversation(userId: string, conversationId: string): Promise<ConversationDTO> {
+  const doc = await requireMembership(conversationId, userId);
+
+  const userIds = [
+    ...new Set(
+      doc.participants.map((p) => String(p)).concat(String(doc.lastMessage?.sender ?? '')).filter(Boolean),
+    ),
+  ];
+  const [users, listings, unreadAgg] = await Promise.all([
+    userIds.length
+      ? User.find({ _id: { $in: userIds } }).select('name avatarUrl role').lean()
+      : Promise.resolve([]),
+    doc.listing
+      ? Listing.find({ _id: doc.listing }).select('title slug images').lean()
+      : Promise.resolve([]),
+    Message.aggregate<{ _id: Types.ObjectId; count: number }>([
+      {
+        $match: {
+          conversation: new Types.ObjectId(conversationId),
+          sender: { $ne: new Types.ObjectId(userId) },
+          readBy: { $ne: new Types.ObjectId(userId) },
+        },
+      },
+      { $group: { _id: '$conversation', count: { $sum: 1 } } },
+    ]),
+  ]);
+  const userMap = new Map(users.map((u) => [String(u._id), u]));
+  const listing = listings[0];
+  const unreadCount = unreadAgg[0]?.count ?? 0;
+
+  return {
+    id: String(doc._id),
+    subject: doc.subject,
+    listing: listing
+      ? { id: String(listing._id), title: listing.title, slug: listing.slug, coverImage: listing.images[0] ?? null }
+      : null,
+    participants: doc.participants.map((participant) => {
+      const user = userMap.get(String(participant));
+      return {
+        user: {
+          id: String(participant),
+          name: user?.name ?? 'User',
+          role: (user?.role ?? 'CUSTOMER') as ConversationDTO['participants'][number]['user']['role'],
+          avatarUrl: user?.avatarUrl ?? null,
+        },
+        listingId: doc.listing ? String(doc.listing) : null,
+      };
+    }),
+    lastMessage: doc.lastMessage
+      ? {
+          preview: doc.lastMessage.preview,
+          at: new Date(doc.lastMessage.at).toISOString(),
+          senderId: String(doc.lastMessage.sender),
+        }
+      : null,
+    unreadCount,
+    status: doc.status,
+    updatedAt: new Date(doc.updatedAt).toISOString(),
+    createdAt: new Date(doc.createdAt).toISOString(),
+  };
+}
+
 export async function listMessages(
   userId: string,
   conversationId: string,

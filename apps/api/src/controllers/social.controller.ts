@@ -24,6 +24,7 @@ import {
 import { listFavorites, toggleFavorite } from '../services/favorite.service.js';
 import {
   createConversation,
+  getConversation,
   listConversations,
   listMessages,
   markConversationRead,
@@ -100,6 +101,12 @@ export async function listConversationsHandler(req: Request, res: Response): Pro
   sendSuccess(res, { items: result.items, unreadTotal: await unreadMessageCount(userId) }, {
     meta: { pagination: buildPageMeta(query.page, query.limit, result.total) },
   });
+}
+
+export async function getConversationHandler(req: Request, res: Response): Promise<void> {
+  const { userId } = requireAuth(req);
+  const conversation = await getConversation(userId, req.params.id as string);
+  sendSuccess(res, conversation);
 }
 
 export async function listMessagesHandler(req: Request, res: Response): Promise<void> {

@@ -30,6 +30,7 @@ export function Footer() {
           <Link to="/bookings">My bookings</Link>
           <Link to="/invoices">Invoices</Link>
           <Link to="/profile">Profile</Link>
+          <Link to="/partner-benefits">Partner benefits</Link>
           <a href={PARTNER_APP_URL}>Partner portal</a>
         </nav>
         <div className="footer-links">
@@ -41,6 +42,7 @@ export function Footer() {
       </div>
       <div className="container footer-bottom">
         <span>© {new Date().getFullYear()} BookMyWarehouse. All rights reserved.</span>
+        <Link to="/terms">Terms of Service</Link>
       </div>
     </footer>
   );

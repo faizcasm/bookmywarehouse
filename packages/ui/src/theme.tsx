@@ -14,7 +14,7 @@ export function applyTheme(resolved: ResolvedTheme): void {
   root.dataset.theme = resolved;
   root.style.colorScheme = resolved;
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', resolved === 'dark' ? '#070b16' : '#f3f6fc');
+  if (meta) meta.setAttribute('content', resolved === 'dark' ? '#0a0a0a' : '#f8fafc');
 }
 
 export function getStoredTheme(): ThemePreference {

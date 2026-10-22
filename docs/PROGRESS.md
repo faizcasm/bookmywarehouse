@@ -286,6 +286,148 @@ Built against `docs/API_REFERENCE.md` (written first as the shared contract):
    **Verified by execution:** lint/typecheck ✅, `pnpm test` → **177/177** unit,
    `pnpm test:e2e` → **12/12**, `pnpm build` ✅ all four services.
    **Shipped 2026-10-21.**
-8. Post-MVP candidates: Cloudinary image storage for production, real payment provider
+8. **Post-redesign finishing pass: fix broken working tree, dead links, dead CSS** — done:
+   The working copy was left in an inconsistent state after the redesign commit; this
+   pass restored coherence and closed real defects. Full detail in `docs/PROJECT_AUDIT.md`.
+   - **Restored `apps/customer/src/styles.css`** to the coherent BookMyStudio version —
+     the working copy had been reverted to a pre-redesign electric-blue file missing the
+     `bento-card`/`nav-pill`/`stagger-*`/`hero-*` classes the committed `HomePage.tsx`
+     uses (homepage rendered unstyled). Kept the working-copy `tokens.css` fixes.
+   - **Dark mode + shared tokens:** kept the fix that re-adds `--bg-grid`/`--glass-strong`
+     (referenced by partner/admin styles, undefined at the redesign commit) and switches
+     the Tailwind `dark:` variant from a never-applied `.dark` class to `[data-theme='dark']`
+     (the attribute the app actually sets).
+   - **Homepage invisible-sections bug (critical):** `App.tsx` scroll-reveal adds
+     `is-in`, but CSS matched `.reveal.is-visible` → every `.reveal` section stayed at
+     `opacity:0`. Renamed 3 rules to `.reveal.is-in`.
+   - **Dead CSS:** 5 `.dark .step-badge` rules rewritten to `[data-theme='dark']`; removed
+     the committed `styles.css.bak` backup.
+   - **Dead routes (404s):** added `TermsPage` (`/terms`) and `PartnerBenefitsPage`
+     (`/partner-benefits`) — both were linked from `HomePage` with no route — registered
+     them, and linked from the footer (incl. Terms in the footer bottom, laid out via a
+     flex `footer-bottom`).
+   - **Lint:** removed unused `categoryList` in `HomePage.tsx`. **Theme meta:** aligned
+     `applyTheme`'s `<meta name="theme-color">` to the slate palette.
+   **Verified by execution:** `pnpm lint` → 0 errors · `pnpm typecheck` → all 8 projects ✅ ·
+   `pnpm build` → all four services ✅ · frontend tests **78/78** (customer 26 · partner 30 ·
+   admin 22) · API unit tests (pricing/transitions/validation) pass. DB-backed API integration
+   tests need Atlas network access, unavailable in this sandbox (`querySrv EBADRESP`); no API
+   code was changed this pass.
+9. Post-MVP candidates: Cloudinary image storage for production, real payment provider
    keys (Razorpay/Stripe), email delivery via Resend, `idPrefix` fix for onboarding
    address fields.
+
+---
+
+## Phase 9 — Full UI/UX audit & fix (2026-10-22)
+
+**Goal:** Audit every route/page across the three SPAs, fix all frontend bugs and
+responsive failures, restore parity with the BookMyStudio reference, and produce
+`docs/UI_UX_AUDIT.md`.
+
+### Root-cause finding (critical)
+
+- **Customer stylesheet regression.** The "BookMyStudio-inspired redesign" commit
+  (`38b5ceb`) rewrote `apps/customer/src/styles.css` from ~4,200 lines to ~1,940 and
+  **silently deleted ~150 component classes** while keeping the responsive/print blocks
+  that reference them. Affected: modals, loaders, listing cards, gallery, auth shell,
+  chat/conversations, notifications, bookings, payments, invoices, profile, pagination,
+  search filters, state blocks, skeletons, spinners, toasts, tabs, timelines, rating
+  stars, price tags — plus the base layout grids (`.search-layout`, `.listing-layout`,
+  `.detail-layout`, `.profile-layout`, `.listing-hero`, `.filter-sidebar`) whose desktop
+  definitions were gone (only mobile media-query stubs remained). It shipped because tests
+  select by `#id`/utility classes, not the deleted visual classes.
+- **Verified programmatically** by comparing JSX class usage against CSS subject
+  selectors across all three apps (customer missing ~150; partner/admin clean — their
+  apparent gaps were template-literal false positives like `tone-${x}`).
+
+### Fixes applied
+
+- **Restored customer component styles:** merged the complete pre-redesign component
+  sections (recovered via `git show HEAD:…styles.css.bak`) into the redesigned sheet,
+  keeping the new BookMyStudio base/header/footer/hero. Old sheet is token-driven
+  (482 `var()` refs) so it inherits the current emerald/slate theme automatically.
+  Resulting file: ~4,210 lines, braces balanced, single `@media print` block intact.
+- **Re-added dropped base utilities:** `.muted`, `.mono`, `.text-danger`,
+  `.center-action`, `.card-list`, `.booking-detail-head`, `.head-actions`, and a
+  `.btn-primary` alias mirroring `.btn-brand`.
+- **Authored 11 classes present in neither version:** `.home-page`, `.search-page`,
+  `.listing-page`, `.listing-main`, `.detail-main`, `.footer-links`, `.user-dropdown`,
+  `.bell-btn`, `.print-btn`, `.auth-brand-mark`, `.orbit-ring--outer`.
+- **Added missing API endpoint `GET /conversations/:id`** (was 404'ing on every
+  conversation open, silently degrading the listing title): new `getConversation()` in
+  `messaging.service.ts` (membership-checked, returns one `ConversationDTO`),
+  `getConversationHandler`, and the route. Additive only; no existing logic touched.
+- **Audited, verified non-defects:** `window.open` already passes
+  `noopener,noreferrer`; full frontend→API endpoint coverage confirmed once router mount
+  prefixes are accounted for (`/conversations/:id` was the only genuine gap).
+
+### Verification by execution
+
+- `pnpm lint` → **0 errors** (2 pre-existing script `no-console` warnings).
+- `pnpm typecheck` → all **8 projects ✅**.
+- Frontend tests → **customer 26/26 · partner 30/30 · admin 22/22** (78 total, all pass).
+- `pnpm build` → all **4 services ✅** (customer CSS now 120.8 kB / 22.3 kB gzip).
+- API tests → 44 unit pass; 55 DB-backed integration tests need Atlas network access,
+  unavailable in this sandbox (`querySrv EBADRESP`). This is a pre-existing environment
+  limitation, **not** a regression — only an additive service/handler/route was changed
+  (typechecks clean).
+
+### Docs
+
+- Created `docs/UI_UX_AUDIT.md` (bugs, broken pages, responsive issues, reference
+  comparison, functional/perf notes, prioritized checklist — verified vs. assumed).
+
+### Next steps (external / not code defects)
+
+- Razorpay keys + `PAYMENT_WEBHOOK_SECRET`; Resend API key; Cloudinary credentials;
+  reachable Atlas + `pnpm db:indexes`.
+- Deployed-build visual verification at matched viewports (needs browser access).
+- Optional: trim the lazy-split `HeroScene` chunk (~831 kB / 221 kB gzip).
+
+## Phase — fresh code drop (`BookMyWarehouse-Redesigned.zip`) + verification pass ✅
+
+The redesigned archive was imported as the working tree and re-verified from scratch
+instead of being trusted, because the previous pass could not run any checks.
+
+### Verification by execution
+
+- `pnpm install --frozen-lockfile` → lockfile up to date, no dependency drift.
+- `pnpm lint` → **0 errors** (2 pre-existing `no-console` warnings in build scripts).
+- `pnpm typecheck` → all **8 projects ✅**.
+- Frontend tests → **customer 26/26 · partner 30/30 · admin 22/22 = 78/78 ✅**.
+- API tests → **44 unit tests ✅**; 55 DB-backed integration tests skip because MongoDB
+  Atlas is unreachable from this sandbox (`querySrv EBADRESP`) — pre-existing, and no
+  API business logic changed in this pass.
+- `pnpm build` → all **4 services ✅**.
+- **Headless-browser pass (Playwright + Chromium)** — a green build does not prove a
+  class has styles, so 34 routes across the three SPAs were loaded at 1366px and 390px:
+  no page errors, no thin/unstyled content, no horizontal scroll possible. Class coverage
+  was also checked programmatically against the *built* CSS.
+
+### Bugs found by that verification and fixed
+
+1. **`.hero-scene-canvas` had no rule** → the customer hero 3D scene rendered as a 150px
+   strip in a 900px card (R3F falls back to intrinsic canvas height) and kept
+   `pointer-events: auto` despite being decorative. Now absolute-fill +
+   `pointer-events: none` (1126×900 measured).
+2. **Custom `.hero-grid { grid-template-columns: 1.4fr 1fr }` beat Tailwind's layered
+   `lg:grid-cols-12`** → the markup's `lg:col-span-7` / `lg:col-span-5` spanned phantom
+   auto tracks (computed `527px 376px 0 0 0 0 0`), stacking the hero with full-bleed copy
+   and the scene pushed to a second row. Removed the duplicate declaration; the hero is
+   now two columns (copy 700px / scene 484px).
+3. **Partner `AuthShell` brand lockup unstyled** — `.brand`, `.brand-mark`,
+   `.auth-brand-mark` and `.orbit-ring--outer` were used in markup but never defined, so
+   the "BMW" chip rendered as plain text. Also `.orbit-ring--inner` used
+   `rgb(var(--brand) / 0.32)`, invalid once `--brand` substitutes `#10b981`; the
+   declaration was dropped and the inner ring became invisible on the dark panel.
+   Ported the token-driven rules and switched to `color-mix(in oklab, var(--brand) 32%, transparent)`.
+
+Remaining classes absent from the built CSS were reviewed and confirmed non-defects
+(`is-read`, `mobile-open`, `brand-footer`, `revenue-block`, `review-card`, `bell-btn`) —
+see `docs/REDESIGN_NOTES.md`.
+
+### Docs
+
+- `docs/REDESIGN_NOTES.md` verification section rewritten: it previously recorded that
+  no check could be run; the checks now have been run and their results recorded.

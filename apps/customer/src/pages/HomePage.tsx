@@ -122,8 +122,6 @@ export function HomePage() {
     navigate(`/search?${buildSearchQuery(filters).toString()}`);
   };
 
-  const categoryList = categories.data ?? [];
-
   return (
     <div className="home-page">
       {/* Hero Section - BookMyStudio style */}

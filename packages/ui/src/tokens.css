@@ -21,6 +21,11 @@
   --blur-glass: 16px;
   --glass-sheen: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 
+  /* Dotted grid backdrop (partner/admin page bodies, customer legacy) */
+  --bg-grid: radial-gradient(circle at 1px 1px, rgb(15 23 42 / 0.05) 1px, transparent 0);
+  /* Solid scrolled-header fill */
+  --glass-strong: rgb(255 255 255 / 0.92);
+
   /* Atmospheric backdrops — subtle emerald/blue glows */
   --atmosphere: radial-gradient(800px 400px at 85% -10%, rgba(16, 185, 129, 0.08), transparent 60%),
     radial-gradient(600px 300px at 5% 110%, rgba(59, 130, 246, 0.06), transparent 55%);
@@ -112,6 +117,9 @@
   --glass-border: rgba(71, 85, 105, 0.2);  /* slate-600/20 */
   --blur-glass: 16px;
   --glass-sheen: inset 0 1px 0 rgba(71, 85, 105, 0.1);
+
+  --bg-grid: radial-gradient(circle at 1px 1px, rgb(148 163 184 / 0.07) 1px, transparent 0);
+  --glass-strong: rgb(24 24 27 / 0.9);
 
   --atmosphere: radial-gradient(800px 400px at 85% -10%, rgba(16, 185, 129, 0.15), transparent 60%),
     radial-gradient(600px 300px at 5% 110%, rgba(59, 130, 246, 0.1), transparent 55%);
@@ -233,7 +241,7 @@
 }
 
 /* Class-based dark mode (BookMyStudio style) */
-@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 /* -----------------------------------------------------------------------------
    Glass system — production-grade glassmorphism
@@ -298,7 +306,7 @@
     color: var(--brand-soft-fg);
   }
 
-  .dark .step-badge {
+  [data-theme='dark'] .step-badge {
     background: rgba(16, 185, 129, 0.18);
     color: var(--brand-soft-fg);
   }

@@ -1713,9 +1713,13 @@ select.input {
   border-radius: 50%;
   border: 1px dashed rgb(148 163 184 / 0.3);
 }
+.orbit-ring--outer {
+  inset: -46px;
+  border-color: rgb(148 163 184 / 0.22);
+}
 .orbit-ring--inner {
   inset: 56px;
-  border-color: rgb(var(--brand) / 0.32);
+  border-color: color-mix(in oklab, var(--brand) 32%, transparent);
 }
 .orbit-track {
   position: absolute;
@@ -1796,6 +1800,35 @@ select.input {
   display: flex;
   flex-direction: column;
   max-width: 440px;
+}
+/* Wordmark lockup — same lockup the customer app renders in its auth panel. */
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 800;
+  font-size: 1.04rem;
+  color: var(--fg-strong);
+  text-decoration: none !important;
+  letter-spacing: -0.02em;
+}
+.brand-mark {
+  background: var(--grad-brand);
+  color: var(--brand-fg);
+  font-size: 0.7rem;
+  font-weight: 800;
+  border-radius: var(--radius-sm);
+  padding: 0.38rem 0.5rem;
+  letter-spacing: 0.06em;
+  box-shadow: var(--shadow-brand);
+}
+.brand-accent {
+  color: var(--brand);
+}
+
+/* Brand chip sits above the headline in the dark brand panel. */
+.auth-brand-mark {
+  margin-bottom: 1.1rem;
 }
 .auth-brand .brand-text {
   color: var(--on-brand);
@@ -3217,3 +3250,40 @@ select.input {
     padding: 0.12rem 0.35rem;
   }
 }
+
+/* 2026 responsive polish: keep dashboard layouts readable without changing workflows. */
+html { scroll-padding-top: calc(var(--topbar-h) + 1rem); }
+body { min-width: 320px; overflow-x: clip; }
+#root, .shell, .shell__main, .shell__content { min-width: 0; }
+.shell__content { max-width: 1320px; padding: clamp(1rem, 2.2vw, 2rem) clamp(.8rem, 2.4vw, 1.75rem) 3rem; }
+.card { border-radius: var(--radius-xl); box-shadow: var(--shadow-sm); }
+.card:hover { border-color: color-mix(in oklab, var(--brand) 20%, var(--line)); }
+.stat-card { border-radius: var(--radius-xl); }
+.input, select.input, textarea.input { min-height: 42px; max-width: 100%; }
+.btn { min-height: 40px; }
+.table-wrap { max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; }
+.data-table { min-width: 620px; }
+img, video, canvas, svg { max-width: 100%; }
+:where(button, a, input, select, textarea, [tabindex]):focus-visible { outline: 3px solid color-mix(in oklab, var(--brand) 72%, white); outline-offset: 3px; }
+@media (max-width: 760px) {
+  .shell__content { padding: 1rem .75rem 2rem; }
+  .page { gap: 1rem; }
+  .page__toolbar { align-items: stretch; }
+  .filters { min-width: 0; }
+  .filters__search { min-width: min(100%, 220px); }
+  .field-row { gap: .75rem; }
+  .card { padding: 1rem; }
+  .data-table { min-width: 0; }
+}
+@media (max-width: 420px) {
+  .shell__content { padding-inline: .65rem; }
+  .shell__title { max-width: 46vw; }
+  .shell__topbar-actions { gap: .25rem; }
+  .filters__search { min-width: 100%; }
+  .stat-grid { grid-template-columns: minmax(0, 1fr); }
+  .modal { width: calc(100vw - 1rem); max-width: calc(100vw - 1rem); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+

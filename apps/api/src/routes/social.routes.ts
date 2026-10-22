@@ -27,6 +27,7 @@ import {
   listFavoritesHandler,
   createConversationHandler,
   listConversationsHandler,
+  getConversationHandler,
   listMessagesHandler,
   sendMessageHandler,
   markReadHandler,
@@ -70,6 +71,7 @@ export function socialRoutes(): Router {
   // Messaging
   router.get('/conversations', validate({ query: conversationListQuerySchema }), asyncHandler(listConversationsHandler));
   router.post('/conversations', validate({ body: createConversationSchema }), asyncHandler(createConversationHandler));
+  router.get('/conversations/:id', asyncHandler(getConversationHandler));
   router.get(
     '/conversations/:id/messages',
     validate({ query: messageListQuerySchema }),

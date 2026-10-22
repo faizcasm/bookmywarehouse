@@ -24,6 +24,8 @@ import { ConversationPage } from './pages/ConversationPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { DisputesPage } from './pages/DisputesPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { TermsPage } from './pages/TermsPage';
+import { PartnerBenefitsPage } from './pages/PartnerBenefitsPage';
 
 function NotFoundPage() {
   return (
@@ -106,6 +108,8 @@ export default function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/partner-benefits" element={<PartnerBenefitsPage />} />
             <Route
               path="/bookings"
               element={
