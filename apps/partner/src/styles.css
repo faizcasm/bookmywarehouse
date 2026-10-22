@@ -3287,3 +3287,74 @@ img, video, canvas, svg { max-width: 100%; }
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 
+
+/* --------------------------------------------------------------------------
+   Responsiveness fixes — measured at 320 / 375 / 768 / 1024 / 1440.
+
+   1. Grid/flex children default to `min-width: auto`, so a single long child
+      widens the whole row past the viewport (measured on the customer app at
+      320px: a 384px auth shell inside a 320px window). Zero the automatic
+      minimum so rows use the width they actually have and contents wrap.
+   -------------------------------------------------------------------------- */
+.auth-shell > *,
+.auth-brand-copy,
+.auth-panel-inner,
+.shell__topbar > *,
+.shell__title,
+.table-wrap,
+.detail-grid > *,
+.stat-grid > * {
+  min-width: 0;
+}
+
+/* 2. Long tokens (references, company names) must wrap, not widen their box. */
+.shell__title,
+.listing-card__title,
+.booking-card__title,
+.review__body,
+.chat__bubble p {
+  overflow-wrap: break-word;
+}
+
+/* 3. Touch targets: the marketplace link measured 20px tall and the hamburger
+      31px — both under a comfortable 32px floor on a phone. */
+.shell__customer-link {
+  padding: 0.5rem 0.25rem;
+}
+.shell__hamburger {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+}
+
+/* 4. At phone widths the topbar must never push actions off the right edge.
+      The title wraps onto two lines rather than ellipsising away. */
+@media (max-width: 480px) {
+  .shell__topbar {
+    gap: 0.4rem;
+    padding: 0 0.75rem;
+  }
+  .shell__topbar-actions {
+    gap: 0.2rem;
+  }
+  .shell__customer-link {
+    font-size: 0.8rem;
+  }
+  .shell__title {
+    font-size: 1rem;
+    line-height: 1.15;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+/* 5. Touch targets, second pass: standalone booking links in cards and table
+      rows measured 19–23px tall. Links inside a sentence are left alone (WCAG
+      2.5.8 "inline" exception). */
+.link-strong {
+  display: inline-block;
+  padding: 0.3rem 0;
+}

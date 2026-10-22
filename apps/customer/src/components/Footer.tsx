@@ -37,7 +37,6 @@ export function Footer() {
           <h4>Support</h4>
           <Link to="/disputes">Raise a dispute</Link>
           <Link to="/messages">Messages</Link>
-          <a href="mailto:support@bookmywarehouse.dev">support@bookmywarehouse.dev</a>
         </div>
       </div>
       <div className="container footer-bottom">

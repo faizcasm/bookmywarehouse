@@ -4315,3 +4315,167 @@ img, video, canvas, svg { max-width: 100%; }
   .reveal { opacity: 1; transform: none; }
 }
 
+
+/* --------------------------------------------------------------------------
+   Responsiveness fixes — measured at 320 / 375 / 768 / 1024 / 1440, not guessed.
+
+   1. Grid and flex children default to `min-width: auto`, so one long child
+      widens its whole row. Measured at a 320px viewport:
+        • `.hero-grid` computed a 332.8px column inside a 276px track — the
+          eyebrow, headline, both search fields and the Search button were all
+          pushed past the right edge and clipped by `.hero-section`;
+        • `.auth-shell` computed to 384px — the login/register card was cut off.
+      Zeroing the automatic minimum makes the row use the width it really has
+      and lets the contents wrap instead of spilling past the viewport.
+   -------------------------------------------------------------------------- */
+.hero-grid > *,
+.auth-shell > *,
+.auth-panel-inner,
+.auth-brand-copy,
+.search-layout > *,
+.listing-layout > *,
+.detail-layout > *,
+.profile-layout > *,
+.page-head > *,
+.section-head > * {
+  min-width: 0;
+}
+
+/* 2. Long unbroken tokens (references, cities, e-mail-shaped strings) wrap
+      instead of widening their container. */
+.footer-blurb,
+.listing-title,
+.conversation-subject,
+.conversation-preview,
+.conversation-row,
+.notification-body,
+.booking-title {
+  overflow-wrap: break-word;
+}
+
+/* 3. Header at phone widths: brand + bell + user pill + menu button stopped
+      fitting on one row — the menu button measured right=390px at 375px and the
+      user pill right=340px at 320px, i.e. both clipped off the right edge.
+      The brand may now abbreviate, and the first name is dropped (the avatar
+      already identifies the account). */
+@media (max-width: 480px) {
+  .header-inner {
+    gap: 0.45rem;
+  }
+  .brand {
+    flex-shrink: 1;
+    min-width: 0;
+  }
+  .brand-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .header-actions {
+    gap: 0.2rem;
+  }
+  .user-btn {
+    padding: 0.26rem;
+  }
+  .user-btn-name {
+    display: none;
+  }
+}
+
+/* 4. Touch targets. Footer links measured 29px tall and the password reveal
+      toggle 27×27 — both under a comfortable 32px floor. */
+.site-footer a {
+  padding: 0.4rem 0;
+}
+.input-action {
+  min-width: 34px;
+  min-height: 34px;
+  justify-content: center;
+}
+
+/* 5. The profile avatar `<input type="file">` has a ~335px intrinsic width that
+      pushed its wrapper past the right edge at 320px. */
+.avatar-editor > * {
+  min-width: 0;
+}
+.avatar-editor input[type='file'] {
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* 6. Register role cards: two columns leave ~110px each at 320px, which forces
+      mid-word breaks ("Cust ome r"). Stack them on phones instead — one card
+      per row, full width. */
+@media (max-width: 440px) {
+  .role-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .role-option {
+    min-width: 0;
+  }
+}
+
+/* 7. The header brand wordmark truncated to "Book…" at 320px once the bell,
+      avatar and menu button joined the row (each control is a 44px touch
+      target, so there is little slack). A smaller wordmark fits whole from
+      375px up (measured: 112px of text in a 127px slot); below that the
+      compact "BMW" mark stands alone rather than showing a chopped wordmark. */
+@media (max-width: 400px) {
+  .brand {
+    font-size: 0.76rem;
+    gap: 0.32rem;
+  }
+  .brand-mark {
+    padding: 0.3rem 0.4rem;
+    font-size: 0.56rem;
+  }
+}
+@media (max-width: 380px) {
+  .brand-text {
+    display: none;
+  }
+}
+
+/* 8. Footer: the `max-width: 1020px` rule appears later in the file than the
+      `max-width: 560px` one, so it wins and the grid stayed two columns on
+      phones (links wrapped mid-phrase). One column on phones, as the 560px
+      rule always intended. */
+@media (max-width: 520px) {
+  .footer-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+  }
+  .footer-grid > :first-child {
+    grid-column: span 1;
+  }
+}
+
+/* 9. Invoice "Billed to / Issued by" blocks measured 517px wide at a 320px
+      viewport: a customer e-mail is one unbreakable token, and `1fr` tracks
+      floor at min-content. `anywhere` (unlike `break-word`) also shrinks the
+      intrinsic size, so the column can actually narrow. */
+.invoice-parties {
+  grid-template-columns: minmax(0, 1fr);
+}
+.invoice-parties p,
+.invoice-parties address {
+  overflow-wrap: anywhere;
+}
+
+/* 10. Touch targets, second pass: standalone action links ("View booking",
+       "Load older messages", "Clear all filters") measured 16–25px tall. Links
+       sitting inside a sentence are deliberately left alone — WCAG 2.5.8
+       exempts those (the "inline" exception). */
+.link-btn {
+  padding: 0.32rem 0;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* 11. The register role cards put a 20px check badge in the top-right corner
+      over the copy; once the cards are ~170px wide (two columns on a tablet)
+      the label ran underneath it ("Custome[r]"). Reserve the badge's column
+      with right padding so the text can never slide under it. */
+.role-option {
+  padding: 0.75rem 2rem 0.75rem 0.8rem;
+}

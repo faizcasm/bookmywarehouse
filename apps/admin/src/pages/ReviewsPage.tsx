@@ -83,7 +83,7 @@ export function ReviewsPage() {
         subtitle="Moderate customer reviews across the marketplace"
         actions={
           <select className="select select--sm" value={''} onChange={(e) => setParam('status', e.target.value)} aria-label="Filter by status (server-side not supported)" disabled>
-            <option value="">All statuses (client-side filter unavailable)</option>
+            <option value="">All statuses</option>
           </select>
         }
       />

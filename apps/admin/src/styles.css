@@ -2943,3 +2943,67 @@ img, video, canvas, svg { max-width: 100%; }
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 
+
+/* --------------------------------------------------------------------------
+   Responsiveness fixes — measured at 320 / 375 / 768 / 1024 / 1440.
+
+   1. Auto-width selects (`select--sm` in page-header actions) keep their full
+      option width, so a long label overflowed the viewport at 320px. Cap them
+      and let the row wrap instead. Grid/flex children also need `min-width: 0`
+      or one long child widens the whole row (the same class of bug measured
+      on the customer app at 320px).
+   -------------------------------------------------------------------------- */
+.select--sm {
+  max-width: 100%;
+}
+.page-header__actions > *,
+.stat-grid > *,
+.queue-item {
+  min-width: 0;
+}
+/* 1b. Tracks written as `Nfr` are really `minmax(auto, Nfr)`, so they floor at
+      the item's min-content and one long token widens the whole row: the
+      booking-detail page measured 1127px of content inside a 1024px window
+      (the "Timeline" card was cut off at the right edge). Zeroing the automatic
+      minimum lets the columns use the space that exists and the content wrap. */
+.detail-grid > *,
+.grid-2 > * {
+  min-width: 0;
+}
+.page-header__subtitle,
+.card__title,
+.queue-item__title {
+  overflow-wrap: break-word;
+}
+
+/* 2. The topbar squeezed the page title to 83px at 320px. Give it room back:
+      tighter gaps, no divider, slightly smaller title. At phone widths the
+      title wraps onto two lines instead of ellipsising away — every admin
+      page title is short enough for that, and the topbar is tall enough. */
+@media (max-width: 480px) {
+  .topbar {
+    gap: 8px;
+    padding: 0 10px;
+  }
+  .topbar__sep {
+    display: none;
+  }
+  .topbar__title {
+    font-size: 14px;
+    line-height: 1.15;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .topbar__actions {
+    gap: 4px;
+  }
+}
+
+/* 3. Touch targets, second pass: the standalone "View all …" card links measured
+      20px tall. Links inside a sentence are left alone (WCAG 2.5.8 inline
+      exception). */
+.card__link {
+  padding: 0.4rem 0;
+}

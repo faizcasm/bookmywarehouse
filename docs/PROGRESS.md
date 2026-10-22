@@ -431,3 +431,67 @@ see `docs/REDESIGN_NOTES.md`.
 
 - `docs/REDESIGN_NOTES.md` verification section rewritten: it previously recorded that
   no check could be run; the checks now have been run and their results recorded.
+
+## Phase — responsiveness pass (2026-10-22)
+
+**Goal:** make all three SPAs hold up on phone widths, starting from the reported
+footer problem ("an unnecessary e-mail address is breaking the layout") and continuing
+into a measured audit of every route at 320 / 375 / 390 / 420 / 768 / 1024 / 1440.
+
+### How it was verified
+
+Two headless-browser audits (Playwright + Chromium against the Vite dev servers):
+
+- **Public routes** — 40 route/viewport combinations.
+- **Authenticated routes** — 43 combinations, unlocked by a mock API that answers with
+  the real `{ success, data, meta.pagination }` envelopes plus deliberately long names,
+  cities and e-mail-shaped strings. A logged-out sweep cannot reach tables, dashboards,
+  search grids, chat or invoices, and a bare-array mock renders them empty (which looks
+  like "no issues"), so the envelope had to match the real API.
+
+Each page was scanned for content spilling past the right edge, content clipped inside
+its own box, horizontally scrollable containers, and touch targets under 32px. A
+`pageerror` listener plus a blank-body check makes sure a crashed page can never be
+reported as clean.
+
+### What was found and fixed
+
+1. **Footer e-mail removed** (`support@bookmywarehouse.dev`) — the widest string in the
+   footer and the reason the Support column wrapped mid-phrase. The column keeps "Raise a
+   dispute" and "Messages".
+2. **The recurring root cause: `min-width: auto`.** Grid/flex children refuse to shrink
+   below min-content and `1fr` is `minmax(auto, 1fr)`, so one long child widened its
+   whole row past the viewport — and `body { overflow-x: clip }` then hid the scroll,
+   cutting the content off. Measured: hero column 332.8px inside a 276px track at 320px;
+   auth shell 384px inside a 320px window; invoice parties 517px at 320px (one
+   unbreakable e-mail — needs `overflow-wrap: anywhere`, because `break-word` does not
+   reduce intrinsic size); admin booking detail 1127px inside a 1024px window. All fixed
+   with `min-width: 0` / `minmax(0, 1fr)`.
+3. **Headers stopped fitting at ≤375px** — menu button at `right=390px`, user pill at
+   `right=340px`. First name dropped below 480px, wordmark scaled so it is whole from
+   375px up (compact "BMW" mark below that), and partner/admin page titles wrap to two
+   lines instead of ellipsising to 71–93px.
+4. **Touch targets** — footer links 29px, password-reveal toggle 27×27 and standalone
+   action links 16–25px, all now ≥34px. In-sentence links left alone (WCAG 2.5.8
+   "inline" exception).
+5. **Smaller corrections** — footer stuck in two columns on phones because the
+   `max-width: 1020px` rule appears later in the file than the `560px` one and wins by
+   source order; profile `<input type="file">` intrinsic width (~335px) pushing its
+   wrapper off-screen; admin reviews filter select overflowing at 320px (label
+   shortened, `.select--sm` capped); register role-card label sliding under its check
+   badge at tablet width.
+
+### Verification by execution
+
+- `pnpm lint` → 0 errors · `pnpm typecheck` → 8/8 projects.
+- `pnpm test` → **177/177** (customer 26, partner 30, admin 22, API 99). The MongoDB
+  Atlas DNS issue that had blocked 55 integration tests cleared, so they run now too.
+- `pnpm build` → 4/4 services.
+- Final audit: no content clipped at the right edge on any route or viewport; the only
+  remaining off-screen children are inside horizontal scroll containers (tab strips,
+  `.table-wrap` data tables, hero type tabs), which is by design.
+
+### Docs
+
+- `docs/REDESIGN_NOTES.md` — new "Third pass — responsiveness" section with the measured
+  table of overflow findings, and the verification block updated to the current results.
