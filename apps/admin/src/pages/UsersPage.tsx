@@ -139,7 +139,7 @@ export function UsersPage() {
           </div>
         ),
       },
-      { key: 'role', header: 'Role', render: (u) => <StatusBadge status={u.role} tone={u.role === 'ADMIN' ? 'danger' : u.role === 'PARTNER' ? 'accent' : 'info'} /> },
+      { key: 'role', header: 'Role', render: (u) => <StatusBadge status={u.role} group="role" /> },
       { key: 'status', header: 'Status', render: (u) => <StatusBadge status={u.status} group="account" /> },
       { key: 'phone', header: 'Phone', secondary: true, render: (u) => u.phone ?? '—' },
       { key: 'verified', header: 'Email verified', secondary: true, render: (u) => (u.emailVerified ? 'Yes' : 'No') },

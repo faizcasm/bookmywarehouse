@@ -1047,6 +1047,25 @@ fieldset.field {
   max-width: 48ch;
 }
 
+/* Hero visual column. On mobile it keeps the aspect-ratio utility from the
+   markup; on desktop the grid item stretches to the copy column's height and
+   the inner frame fills it, so both columns end flush instead of leaving the
+   scene floating in the upper third. The frame's `lg:aspect-[5/4]` utility is
+   a layered Tailwind rule, so these unlayered desktop overrides outrank it. */
+.hero-visual {
+  min-height: 300px;
+}
+@media (min-width: 1024px) {
+  .hero-visual {
+    align-self: stretch;
+    min-height: 420px;
+  }
+  .hero-visual-frame {
+    aspect-ratio: auto;
+    height: 100%;
+  }
+}
+
 .hero-eyebrow {
   display: inline-flex;
   align-items: center;
@@ -1058,11 +1077,23 @@ fieldset.field {
   color: var(--brand);
   margin-bottom: 1rem;
 }
+/* Keep the eyebrow on one line on small phones — at default tracking the
+   uppercase text overruns 375px and wraps mid-phrase. */
+@media (max-width: 430px) {
+  .hero-eyebrow {
+    font-size: 0.66rem;
+    letter-spacing: 0.05em;
+  }
+}
 
 .hero-title {
   font-size: clamp(2.5rem, 5vw, 4rem);
   line-height: 1.1;
   letter-spacing: -0.03em;
+  /* The animated per-word spans would otherwise break on their own spaces at
+     arbitrary points ("equipment" / "& logistics"). Balance keeps the ragged
+     edge even instead of leaving orphaned words. */
+  text-wrap: balance;
 }
 .hero-title .grad {
   background: var(--grad-brand);
@@ -3366,8 +3397,30 @@ fieldset.field {
   align-items: center;
   flex-wrap: wrap;
 }
+/* The native file input is visually hidden (kept focusable for keyboard/AT);
+   its <label> renders the button surface. */
 .avatar-editor input[type='file'] {
-  font-size: 0.9rem;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+.avatar-file-btn {
+  cursor: pointer;
+}
+/* Show a focus ring on the visible label when the hidden input is focused. */
+.avatar-editor input[type='file']:focus-visible + .avatar-file-btn {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+.avatar-editor input[type='file']:disabled + .avatar-file-btn {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .invoice-parties {
@@ -4271,7 +4324,10 @@ input, select, textarea { max-width: 100%; }
 .header-nav { flex-shrink: 0; }
 .hero-section { padding-block: clamp(2.25rem, 5vw, 4.5rem); }
 .hero-grid { gap: clamp(1.5rem, 4vw, 3.5rem); }
-.hero-title { max-width: 13ch; text-wrap: balance; }
+/* 13ch choked the hero headline at desktop sizes ("equipment" and
+   "& logistics" stranded on their own lines). The col-span-7 column already
+   caps the width, so only guard against absurdly wide containers. */
+.hero-title { max-width: 22ch; text-wrap: balance; }
 .hero-search { padding: clamp(.9rem, 2vw, 1.25rem); border: 1px solid var(--line); border-radius: 22px; background: color-mix(in oklab, var(--surface) 92%, transparent); box-shadow: var(--shadow-lg); }
 .hero-tabs { width: fit-content; max-width: 100%; overflow-x: auto; }
 .hero-fields { min-width: 0; }
@@ -4398,8 +4454,7 @@ img, video, canvas, svg { max-width: 100%; }
 .avatar-editor > * {
   min-width: 0;
 }
-.avatar-editor input[type='file'] {
-  max-width: 100%;
+.avatar-editor > * {
   min-width: 0;
 }
 

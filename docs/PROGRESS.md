@@ -581,3 +581,54 @@ viewport, nothing exceeds the viewport.
 
 - `docs/REDESIGN_NOTES.md` — new "Fourth pass — production readiness" section, 20 numbered
   findings; verification block updated to 180/180.
+
+## Phase — design consistency pass (2026-10-22)
+
+**Goal:** "still not aligned design … think and research and make it the best production
+ready platform end to end."
+
+### How it was verified
+
+A design-QA sweep ran first, before changing anything: an admin account was promoted
+directly in the database (registration correctly rejects `ADMIN`), then 18 screenshots were
+captured across all three SPAs at 1440px and 390px, logged in and out, and reviewed. Every
+finding below was reproduced in the browser and re-measured after the fix.
+
+### What was found and fixed
+
+1. **`/search` rendered no listing cards on a hard load (critical).** "66 listings found"
+   above an empty grid. Direct load/refresh reproduced it every time; SPA navigation never
+   did. The results grid wrapped cards in `<AnimatePresence mode="popLayout">`, and its
+   late-mounted children never resolved the inherited `show` variant — every card stayed
+   pinned at `opacity: 0`. Removed the wrapper to match every other list in the app.
+2. **Statuses coloured differently per console.** A `CONFIRMED` booking was green in
+   customer/partner but blue in admin. Aligned admin's booking tones to the tested
+   partner/customer values, aligned customer's `CANCELLED` to neutral, and locked all eleven
+   booking tones in a contract test.
+3. **Role badges visually identical.** `--info` and `--accent` are the same blue, so
+   `CUSTOMER` and `PARTNER` matched. Gave each role a distinct hue, made `UsersPage` read
+   the shared map instead of an inline ternary, and asserted the three differ.
+4. **Dashboard chart colours swapped** vs. the partner console. Revenue line is now brand
+   green, bookings bars accent blue, with tooltips and hover cursors threaded through.
+5. **Hero alignment (the reported issue).** Widened the headline's `max-width` and added
+   `text-wrap: balance` (three even lines instead of stranded words); stretched the scene
+   column so both columns end flush; added `ResponsiveCamera` to dolly back by
+   `designAspect / aspect` so the taller frame no longer crops the 3D warehouse.
+6. **Login and profile polish.** Admin login gained the heading/lead the other two logins
+   have; the profile avatar's raw "Choose File" input became a labelled button that keeps
+   the native input focusable.
+
+### Verification by execution
+
+- `pnpm lint` → 0 errors · `pnpm typecheck` → 8/8.
+- `pnpm test` → **181/181** (customer 26, partner 30, admin 23, API 102 — was 180, the new
+  one is the role-hue contract test).
+- `pnpm build` → 4/4 services.
+- Chromium: `/search` hard-loaded 3× at 1440px and 1× at 390px with all 12 cards at
+  `opacity: 1`; hero columns measured flush with the scene keeping its framing; admin
+  users table, dashboard charts and login heading re-screenshotted after the fixes.
+
+### Docs
+
+- `docs/REDESIGN_NOTES.md` — new "Fifth pass — design consistency + a blank-results bug"
+  section; verification block updated to 181/181.

@@ -122,6 +122,7 @@ export function DashboardPage() {
               <SimpleLineChart
                 data={grossSeries}
                 height={180}
+                lineColor="var(--brand)"
                 formatValue={(v) => formatMoneyCompact(v, currency)}
                 ariaLabel={`Gross collected per day over the last ${revenue.periodDays} days`}
               />
@@ -137,6 +138,7 @@ export function DashboardPage() {
             <SimpleBarChart
               data={trendSeries}
               height={244}
+              barColor="var(--accent)"
               formatValue={(v) => `${v} booking${v === 1 ? '' : 's'}`}
               formatSecondary={(v) => formatMoney(v, currency)}
               ariaLabel="Bookings per day over the last 14 days"

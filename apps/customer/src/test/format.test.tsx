@@ -37,7 +37,7 @@ describe('status badge mapping', () => {
     expect(bookingStatusMeta('AWAITING_PAYMENT')).toEqual({ label: 'Awaiting payment', tone: 'info' });
     expect(bookingStatusMeta('CONFIRMED')).toEqual({ label: 'Confirmed', tone: 'success' });
     expect(bookingStatusMeta('COMPLETED')).toEqual({ label: 'Completed', tone: 'success' });
-    expect(bookingStatusMeta('CANCELLED')).toEqual({ label: 'Cancelled', tone: 'danger' });
+    expect(bookingStatusMeta('CANCELLED')).toEqual({ label: 'Cancelled', tone: 'neutral' });
     expect(bookingStatusMeta('DISPUTED')).toEqual({ label: 'Disputed', tone: 'danger' });
     expect(bookingStatusMeta('REFUNDED')).toEqual({ label: 'Refunded', tone: 'neutral' });
   });

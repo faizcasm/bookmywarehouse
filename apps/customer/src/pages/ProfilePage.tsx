@@ -161,14 +161,20 @@ export function ProfilePage() {
               </span>
             )}
             <div>
+              {/* Visually-hidden native input keeps the keyboard/AT contract;
+                  the label renders the button surface. */}
               <input
                 ref={fileRef}
                 id="avatar-file"
+                className="avatar-file-input"
                 type="file"
                 accept="image/*"
                 onChange={(event) => void onAvatarChange(event)}
                 disabled={avatarBusy}
               />
+              <label htmlFor="avatar-file" className={`btn btn-outline avatar-file-btn${avatarBusy ? ' is-busy' : ''}`}>
+                {avatarBusy ? 'Uploading…' : 'Choose photo'}
+              </label>
               <p className="field-hint">JPG or PNG, up to 2 MB. Uploaded to /avatars via the API.</p>
             </div>
           </div>

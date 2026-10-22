@@ -125,7 +125,9 @@ const BOOKING_STATUS_META: Record<string, StatusMeta> = {
   CONFIRMED: { label: 'Confirmed', tone: 'success' },
   IN_PROGRESS: { label: 'In progress', tone: 'info' },
   COMPLETED: { label: 'Completed', tone: 'success' },
-  CANCELLED: { label: 'Cancelled', tone: 'danger' },
+  // Booking tones mirror apps/partner and apps/admin so the same status looks
+  // identical across the three consoles.
+  CANCELLED: { label: 'Cancelled', tone: 'neutral' },
   REJECTED: { label: 'Rejected', tone: 'danger' },
   REFUND_PENDING: { label: 'Refund pending', tone: 'warn' },
   REFUNDED: { label: 'Refunded', tone: 'neutral' },

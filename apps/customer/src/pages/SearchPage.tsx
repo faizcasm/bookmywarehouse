@@ -511,13 +511,11 @@ export function SearchPage() {
                 initial="hidden"
                 animate="show"
               >
-                <AnimatePresence mode="popLayout">
-                  {(payload?.items ?? []).map((listing) => (
-                    <motion.div key={listing.id} variants={fadeSoft}>
-                      <ListingCard listing={listing} />
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+                {(payload?.items ?? []).map((listing) => (
+                  <motion.div key={listing.id} variants={fadeSoft}>
+                    <ListingCard listing={listing} />
+                  </motion.div>
+                ))}
               </motion.div>
               <motion.div
                 initial={{ opacity: 0, y: 10 }}

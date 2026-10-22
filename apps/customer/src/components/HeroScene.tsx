@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, invalidate, useFrame, useThree } from '@react-three/fiber';
 import { MathUtils, Vector3 } from 'three';
 import type { Group } from 'three';
 
@@ -342,6 +342,41 @@ function FloatGroup({ animate }: { animate: boolean }) {
 
 const LOOK_AT = new Vector3(0.55, 0.8, 0);
 const CAMERA_BASE = new Vector3(4.4, 3.1, 7.8);
+/** The frame proportion the camera pose above was composed for (w/h). */
+const DESIGN_ASPECT = 1.25;
+
+/**
+ * Aspect-adaptive dolly. The hero column is a fixed 5:4 on desktop, but the
+ * grid stretches it to the copy column's height — so the live frame can be
+ * much taller than wide. A perspective camera crops horizontally when the
+ * frame narrows, which cut the warehouse off. Pull the camera back along its
+ * view axis (Z) as the aspect drops below the design ratio so the whole
+ * composition stays in frame. The whole camera pose is set here (not in the
+ * Canvas `camera` prop): R3F re-applies that prop on every re-render, which
+ * would silently reset a manual dolly. CameraRig only animates X/Y.
+ */
+function ResponsiveCamera() {
+  const camera = useThree((state) => state.camera);
+  const width = useThree((state) => state.size.width);
+  const height = useThree((state) => state.size.height);
+
+  useEffect(() => {
+    const aspect = width / Math.max(height, 1);
+    // "Contain" compensation: a perspective camera with fixed vertical FOV
+    // loses horizontal coverage as the frame narrows (w/h drops below the
+    // design ratio). Backing off by exactly DESIGN_ASPECT / aspect restores
+    // the design's horizontal framing; the extra vertical space shows more
+    // sky/yard instead of cropping the warehouse.
+    const k = aspect >= DESIGN_ASPECT ? 1 : DESIGN_ASPECT / aspect;
+    camera.position.set(CAMERA_BASE.x, CAMERA_BASE.y, CAMERA_BASE.z * k);
+    camera.lookAt(LOOK_AT);
+    camera.updateProjectionMatrix();
+    // Under frameloop="demand" a resize alone won't repaint — request a frame.
+    invalidate();
+  }, [camera, width, height]);
+
+  return null;
+}
 
 /**
  * Pointer-responsive camera: damped parallax + slow idle drift. Reads window
@@ -387,7 +422,11 @@ export default function HeroScene() {
     <div className="hero-scene-canvas" aria-hidden="true">
       <Canvas
         dpr={[1, 1.75]}
-        camera={{ position: [4.4, 3.1, 7.8], fov: 30 }}
+        /* Position is owned by <ResponsiveCamera/> below: R3F re-applies the
+           `camera` prop on every re-render (the inline object changes each
+           parent render), which silently reset any manual z-dolly. Only the
+           static fov lives here. */
+        camera={{ fov: 30 }}
         gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
         onCreated={({ camera }) => camera.lookAt(0.55, 0.8, 0)}
         frameloop={animate ? 'always' : 'demand'}
@@ -397,6 +436,7 @@ export default function HeroScene() {
         <directionalLight position={[-6, 4, -3]} intensity={0.55} color="#60a5fa" />
         <pointLight position={[-3.4, 1.4, 3]} intensity={12} color="#2dd4bf" distance={12} />
         <CameraRig animate={animate} />
+        <ResponsiveCamera />
         <FloatGroup animate={animate} />
       </Canvas>
     </div>

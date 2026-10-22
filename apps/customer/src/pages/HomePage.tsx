@@ -227,8 +227,8 @@ export function HomePage() {
             </div>
 
             {/* Right: Hero Scene / 3D Fallback */}
-            <div className="lg:col-span-5 reveal stagger-0">
-              <div className="relative aspect-[4/3] sm:aspect-[4/3] lg:aspect-[5/4] rounded-2xl overflow-hidden bg-gradient-to-br from-slate-900/95 to-slate-800 dark:from-slate-950 dark:to-slate-900 border border-slate-200/80 dark:border-slate-700/80">
+            <div className="hero-visual lg:col-span-5 reveal stagger-0">
+              <div className="hero-visual-frame relative aspect-[4/3] sm:aspect-[4/3] lg:aspect-[5/4] rounded-2xl overflow-hidden bg-gradient-to-br from-slate-900/95 to-slate-800 dark:from-slate-950 dark:to-slate-900 border border-slate-200/80 dark:border-slate-700/80">
                 {sceneMode === '3d' ? (
                   <Suspense
                     fallback={

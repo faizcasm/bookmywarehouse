@@ -17,17 +17,19 @@ export interface LineDatum {
 interface LineTooltipProps {
   active?: boolean;
   payload?: { payload?: LineDatum }[];
+  /** Swatch colour — keep in sync with the line stroke. */
+  color?: string;
   formatValue: (value: number) => string;
 }
 
-function LineTooltip({ active, payload, formatValue }: LineTooltipProps) {
+function LineTooltip({ active, payload, color = 'var(--accent)', formatValue }: LineTooltipProps) {
   const datum = payload?.[0]?.payload;
   if (!active || !datum) return null;
   return (
     <div className="chart-tooltip">
       <p className="chart-tooltip__label">{datum.label}</p>
       <p className="chart-tooltip__row">
-        <span className="chart-legend__swatch" style={{ background: 'var(--accent)' }} aria-hidden="true" />
+        <span className="chart-legend__swatch" style={{ background: color }} aria-hidden="true" />
         {formatValue(datum.value)}
       </p>
     </div>
@@ -87,7 +89,7 @@ export function SimpleLineChart({
           />
           <Tooltip
             cursor={{ stroke: 'var(--line-strong)', strokeDasharray: '3 3' }}
-            content={<LineTooltip formatValue={formatValue} />}
+            content={<LineTooltip color={lineColor} formatValue={formatValue} />}
           />
           <Line
             type="monotone"
@@ -96,7 +98,7 @@ export function SimpleLineChart({
             strokeWidth={2.5}
             fill={`url(#${gradientId})`}
             dot={false}
-            activeDot={{ r: 4.5, strokeWidth: 0 }}
+            activeDot={{ r: 4.5, strokeWidth: 0, fill: lineColor }}
           />
         </LineChart>
       </ResponsiveContainer>

@@ -20,18 +20,20 @@ export interface ChartDatum {
 interface ChartTooltipProps {
   active?: boolean;
   payload?: { payload?: ChartDatum }[];
+  /** Swatch/series colour for the primary value — keep in sync with the bar fill. */
+  color?: string;
   formatValue: (value: number) => string;
   formatSecondary?: (value: number) => string;
 }
 
-function ChartTooltip({ active, payload, formatValue, formatSecondary }: ChartTooltipProps) {
+function ChartTooltip({ active, payload, color = 'var(--brand)', formatValue, formatSecondary }: ChartTooltipProps) {
   const datum = payload?.[0]?.payload;
   if (!active || !datum) return null;
   return (
     <div className="chart-tooltip">
       <p className="chart-tooltip__label">{datum.label}</p>
       <p className="chart-tooltip__row">
-        <span className="chart-legend__swatch" style={{ background: 'var(--brand)' }} aria-hidden="true" />
+        <span className="chart-legend__swatch" style={{ background: color }} aria-hidden="true" />
         {formatValue(datum.value)}
       </p>
       {datum.secondary !== undefined && formatSecondary ? (
@@ -101,9 +103,13 @@ export function SimpleBarChart({
             domain={[0, 'dataMax + 1']}
           />
           <Tooltip
-            cursor={{ fill: 'var(--brand-soft)', fillOpacity: 0.5 }}
+            cursor={{ fill: barColor, fillOpacity: 0.08 }}
             content={
-              <ChartTooltip formatValue={formatValue} formatSecondary={formatSecondary} />
+              <ChartTooltip
+                color={barColor}
+                formatValue={formatValue}
+                formatSecondary={formatSecondary}
+              />
             }
           />
           <Bar dataKey="value" fill={`url(#${gradientId})`} radius={[5, 5, 0, 0]} maxBarSize={26} />

@@ -200,6 +200,85 @@ the viewport.
     removed** where provably safe — the other 6 kept with a written reason, since each
     would either loop or change behaviour.
 
+## Fifth pass — design consistency + a blank-results bug
+
+Triggered by "still not aligned design … make it the best production ready platform end to
+end". A headless design-QA sweep of all three SPAs (18 screenshots at 1440px and 390px,
+logged in and out) found one blank-page defect and several consistency gaps.
+
+### 1. `/search` rendered zero listing cards on a hard load (critical)
+
+Directly loading or refreshing `/search` — the core marketplace page — showed
+"66 listings found" above an **empty grid**. SPA navigation to the same route worked, so
+manual clicking never reproduced it.
+
+Cause: the results grid wrapped its cards in `<AnimatePresence mode="popLayout">`, whose
+children use inherited `motion` variants (`initial="hidden"`, resolved from a `stagger`
+parent). On a hard load the data arrives after mount, and the pop-layout presence context
+fails to resolve the inherited `show` variant for late-mounted children, so each card
+stayed pinned at its `hidden` state — `style="opacity: 0; transform: translateY(8px)"`
+forever. Every other list in the app (bookings, notifications, invoices, disputes) renders
+plain inherited-variant children with no `AnimatePresence` wrapper and was unaffected.
+
+Fix: dropped the wrapper and render the mapped `motion.div` children directly. Verified
+with 3 consecutive hard loads at 1440px and 1× at 390px — all 12 cards at `opacity: 1`,
+none stuck.
+
+### 2. Same booking status, different colours in each console
+
+Statuses were coloured per-app, so a `CONFIRMED` booking was **green** in customer and
+partner but **blue** in admin; `AWAITING_PAYMENT`, `IN_PROGRESS` and `REFUNDED` also
+diverged, and customer rendered `CANCELLED` red where both consoles used neutral. Because
+admin read `statusTone` from its own map, the fix is to treat the map as a contract rather
+than a per-page choice.
+
+- Aligned `apps/admin/src/lib/format.ts` booking tones to the partner/customer values.
+- Aligned customer's `CANCELLED` to `neutral` (matching both consoles).
+- Aligned verification `SUBMITTED` and invoice `REFUNDED`.
+- Documented the contract in the source and locked all eleven booking tones in
+  `apps/admin/src/test/format.test.ts` so a future edit to one app fails loudly.
+
+### 3. Role badges were visually identical
+
+`--info` and `--accent` resolve to the **same** blue in the token layer, so the admin
+users table rendered `CUSTOMER` and `PARTNER` as the same colour (and `IN_PROGRESS` as
+`info`). Gave each role a distinct hue — customer blue, partner green, admin red — and made
+`UsersPage` read the shared `toneFor('role', …)` map instead of an inline ternary, so the
+map is now the single source of truth. Added a test asserting the three roles differ.
+
+### 4. Admin dashboard charts used swapped colours
+
+The revenue line chart was **blue** and the bookings bar chart **green** — the reverse of
+the partner console. Passed the brand token to the line chart and the accent token to the
+bar chart, threaded the colour through both components' tooltips and hover cursors so the
+swatch always matches the series, and matched the metric→colour convention used on the
+partner dashboard (revenue = brand green, volume = accent blue).
+
+### 5. Hero alignment (the reported issue)
+
+- **Headline:** `text-wrap: balance` with the old `13ch` cap still stranded "equipment" and
+  "& logistics" on their own lines at desktop sizes. Widened the cap to `22ch` (the
+  `col-span-7` column already bounds the real width) — now three even lines.
+- **Scene column:** the grid used `align-items: start` and the scene kept a fixed 4:3/5:4
+  ratio, so it ended ~200px above the search card. The grid item now stretches and the
+  inner frame fills it, so both columns end flush.
+- **3D framing:** stretching the frame makes it taller than wide (w/h 0.82), and a fixed
+  vertical-FOV camera loses horizontal coverage as the frame narrows — which cropped the
+  warehouse. Added `ResponsiveCamera`, which dollies the camera back by exactly
+  `designAspect / aspect` so the horizontal framing matches the composed 5:4 pose and the
+  extra vertical space shows more sky and yard. The camera pose is owned there rather than
+  in the `Canvas camera` prop, because R3F re-applies that inline prop on every parent
+  re-render and silently resets a manual dolly.
+
+### 6. Login and profile polish
+
+- **Admin login** had no heading — just the "Admin console" brand row above the fields.
+  Added a real `<h1>` and a lead line ("Restricted access — every sign-in is logged for
+  audit") so it matches the customer and partner login cards.
+- **Profile avatar** used the raw `<input type="file">` ("Choose File / No file chosen").
+  Replaced it with a labelled button; the native input stays in the DOM, visually hidden
+  but focusable, with a focus ring on the visible label.
+
 ## Verification status
 
 All checks were executed in this workspace (dependencies installed, lockfile unchanged):
@@ -208,8 +287,9 @@ All checks were executed in this workspace (dependencies installed, lockfile unc
 pnpm install --frozen-lockfile   # lockfile up to date
 pnpm lint                        # 0 errors (2 pre-existing no-console warnings in build scripts)
 pnpm typecheck                   # 8/8 workspace projects pass
-pnpm test                        # 180/180 (customer 26, partner 30, admin 22, API 102 —
-                                 # including 3 new security regression tests)
+pnpm test                        # 181/181 (customer 26, partner 30, admin 23, API 102 —
+                                 # including 3 security regression tests and the new
+                                 # cross-console tone + role-hue contracts)
 pnpm build                       # API bundle + 3 Vite SPAs build clean
 ```
 
@@ -223,6 +303,11 @@ pass (Playwright + Chromium against the Vite dev servers) was run as well:
   tracks, stacked, before).
 - Partner `.brand-mark` measured with padding, 8px radius and the `--grad-brand`
   background after fix 3.
+- Fifth pass: `/search` hard-loaded 3× at 1440px and 1× at 390px — all 12 cards at
+  `opacity: 1` (previously stuck at 0 on every hard load); hero columns end flush and the
+  3D scene keeps its horizontal framing at the stretched aspect; admin users table shows
+  three distinct role hues; admin dashboard revenue line renders brand green and bookings
+  bars accent blue; admin login renders its new heading.
 
 ## Deployment notes
 

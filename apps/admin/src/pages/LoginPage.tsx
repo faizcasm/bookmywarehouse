@@ -68,10 +68,14 @@ export function LoginPage() {
             BMW
           </span>
           <div>
-            <h1 className="login-card__title">Admin console</h1>
             <p className="login-card__sub">BookMyWarehouse operations</p>
           </div>
         </div>
+
+        <h1 className="login-card__title">Sign in to the admin console</h1>
+        <p className="login-card__lead">
+          Restricted access — every sign-in is logged for audit.
+        </p>
 
         {errors.form ? (
           <div className="alert alert--error" role="alert">

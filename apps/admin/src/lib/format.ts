@@ -97,18 +97,26 @@ export function statusLabel(status: string): string {
     .join(' ');
 }
 
+/**
+ * Badge tones per status group.
+ *
+ * The booking tones are a cross-console contract: customer, partner and admin
+ * render the same booking status with the same colour, so a "Confirmed"
+ * booking looks identical in all three apps. When changing a tone here, change
+ * apps/customer/src/lib/format.ts and apps/partner/src/lib/format.ts too.
+ */
 const toneMaps = {
   booking: {
     DRAFT: 'neutral',
     PENDING_APPROVAL: 'warning',
-    AWAITING_PAYMENT: 'warning',
-    CONFIRMED: 'info',
-    IN_PROGRESS: 'accent',
+    AWAITING_PAYMENT: 'info',
+    CONFIRMED: 'success',
+    IN_PROGRESS: 'info',
     COMPLETED: 'success',
     CANCELLED: 'neutral',
     REJECTED: 'danger',
     REFUND_PENDING: 'warning',
-    REFUNDED: 'info',
+    REFUNDED: 'neutral',
     DISPUTED: 'danger',
   } as Record<string, BadgeTone>,
   listing: {
@@ -143,7 +151,7 @@ const toneMaps = {
   } as Record<string, BadgeTone>,
   verification: {
     DRAFT: 'neutral',
-    SUBMITTED: 'warning',
+    SUBMITTED: 'info',
     UNDER_REVIEW: 'warning',
     VERIFIED: 'success',
     REJECTED: 'danger',
@@ -168,11 +176,14 @@ const toneMaps = {
     ISSUED: 'info',
     PAID: 'success',
     VOID: 'danger',
-    REFUNDED: 'info',
+    REFUNDED: 'warning',
   } as Record<string, BadgeTone>,
+  // Role badges need to be distinguishable from each other AND from the
+  // status badges beside them — note --info and --accent are the same blue in
+  // the token layer, so each role gets a distinct hue here.
   role: {
     CUSTOMER: 'info',
-    PARTNER: 'accent',
+    PARTNER: 'success',
     ADMIN: 'danger',
   } as Record<string, BadgeTone>,
 } as const;

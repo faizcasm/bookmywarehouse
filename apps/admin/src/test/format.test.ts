@@ -41,11 +41,27 @@ describe('statusLabel', () => {
 });
 
 describe('badge tone maps', () => {
-  it('maps booking statuses', () => {
-    expect(toneFor('booking', 'COMPLETED')).toBe('success');
+  it('maps booking statuses to the cross-console tone contract', () => {
+    // These tones must match apps/customer and apps/partner exactly — the
+    // same booking status renders with the same colour in all three apps.
     expect(toneFor('booking', 'PENDING_APPROVAL')).toBe('warning');
+    expect(toneFor('booking', 'AWAITING_PAYMENT')).toBe('info');
+    expect(toneFor('booking', 'CONFIRMED')).toBe('success');
+    expect(toneFor('booking', 'IN_PROGRESS')).toBe('info');
+    expect(toneFor('booking', 'COMPLETED')).toBe('success');
     expect(toneFor('booking', 'CANCELLED')).toBe('neutral');
+    expect(toneFor('booking', 'REJECTED')).toBe('danger');
+    expect(toneFor('booking', 'REFUND_PENDING')).toBe('warning');
+    expect(toneFor('booking', 'REFUNDED')).toBe('neutral');
     expect(toneFor('booking', 'DISPUTED')).toBe('danger');
+  });
+
+  it('renders role badges in distinct hues', () => {
+    // --info and --accent are the same blue in the token layer, so roles must
+    // not rely on them interchangeably.
+    expect(toneFor('role', 'CUSTOMER')).toBe('info');
+    expect(toneFor('role', 'PARTNER')).not.toBe(toneFor('role', 'CUSTOMER'));
+    expect(toneFor('role', 'ADMIN')).toBe('danger');
   });
 
   it('maps listing statuses', () => {
@@ -69,7 +85,8 @@ describe('badge tone maps', () => {
 
   it('maps KYC verification statuses', () => {
     expect(toneFor('verification', 'VERIFIED')).toBe('success');
-    expect(toneFor('verification', 'SUBMITTED')).toBe('warning');
+    expect(toneFor('verification', 'SUBMITTED')).toBe('info');
+    expect(toneFor('verification', 'UNDER_REVIEW')).toBe('warning');
     expect(toneFor('verification', 'REJECTED')).toBe('danger');
   });
 
