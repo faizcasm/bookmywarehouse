@@ -112,6 +112,38 @@ describe('payments, webhooks and invoices', () => {
     expect(invoices).toHaveLength(1);
   });
 
+  it('refuses to let another user simulate someone else\'s payment', async () => {
+    const bookingId = await bookingAwaitingPayment('Payment ownership warehouse');
+
+    const intent = await request(app)
+      .post(`/api/v1/payments/bookings/${bookingId}/initiate`)
+      .set(authHeaders(customer));
+    const paymentId = intent.body.data.payment.id as string;
+
+    // A stranger must not be able to flip the owner's payment (and thereby the
+    // booking) to CONFIRMED — that would be a free booking with an invoice.
+    const forged = await request(app)
+      .post('/api/v1/payments/simulate')
+      .set(authHeaders(stranger))
+      .send({ paymentId, outcome: 'SUCCESS' });
+    expect(forged.status).toBe(403);
+
+    const booking = await request(app)
+      .get(`/api/v1/bookings/${bookingId}`)
+      .set(authHeaders(customer));
+    expect(booking.body.data.status).toBe('AWAITING_PAYMENT');
+
+    const payment = await Payment.findById(paymentId).lean();
+    expect(payment?.status).toBe('PENDING');
+
+    // The owner can still run the sandbox simulation.
+    const owner = await request(app)
+      .post('/api/v1/payments/simulate')
+      .set(authHeaders(customer))
+      .send({ paymentId, outcome: 'SUCCESS' });
+    expect(owner.status).toBe(200);
+  });
+
   it('keeps the booking unpaid when the gateway reports failure', async () => {
     const bookingId = await bookingAwaitingPayment('Gateway failure warehouse');
 

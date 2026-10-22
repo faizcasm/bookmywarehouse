@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { requireAuth, requireRole, optionalAuth } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { asyncHandler } from '../middleware/async-handler.js';
-import { authLimiter } from '../middleware/rate-limit.js';
+import { authLimiter, sensitiveLimiter } from '../middleware/rate-limit.js';
 import {
   changePasswordSchema,
   forgotPasswordSchema,
@@ -66,6 +66,7 @@ export function authRoutes(): Router {
   router.post(
     '/change-password',
     requireAuth,
+    sensitiveLimiter,
     validate({ body: changePasswordSchema }),
     asyncHandler(changePasswordHandler),
   );

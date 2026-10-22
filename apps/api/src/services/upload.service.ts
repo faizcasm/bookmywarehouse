@@ -59,15 +59,19 @@ export async function uploadImage(
   if (!isDataImage) {
     throw errors.badRequest('Only JPEG, PNG, WebP or GIF images are supported');
   }
+
+  if (config.cloudinary.enabled) {
+    // Cloudinary's own limits apply here; the request body is already capped at
+    // 2 MB by express.json, so no extra size gate is needed on this path.
+    return uploadToCloudinary(file, folder);
+  }
+
+  // Inline dev storage keeps files in the page payload, so it stays size-capped.
   const approxBytes = Math.ceil((file.length * 3) / 4);
   if (approxBytes > MAX_BYTES) {
     throw errors.badRequest(
       `Image is larger than ${Math.round(MAX_BYTES / 1000)} KB. Configure Cloudinary for larger uploads.`,
     );
-  }
-
-  if (config.cloudinary.enabled) {
-    return uploadToCloudinary(file, folder);
   }
 
   if (env.NODE_ENV === 'production') {

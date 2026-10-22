@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { MotionConfig } from 'motion/react';
 import { ThemeProvider } from '@bmw/ui';
 import { App } from './App';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import '@fontsource-variable/inter';
 import './styles.css';
 
@@ -13,7 +14,9 @@ createRoot(rootEl).render(
   <StrictMode>
     <ThemeProvider>
       <MotionConfig reducedMotion="user">
-        <App />
+        <ErrorBoundary>
+          <App />
+        </ErrorBoundary>
       </MotionConfig>
     </ThemeProvider>
   </StrictMode>,

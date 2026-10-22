@@ -15,10 +15,29 @@ import {
   type TestUser,
 } from '../helpers.js';
 import { AuditLog } from '../../models/index.js';
+import { csvField } from '../../services/export.service.js';
 
 function isoInDays(days: number): string {
   return new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
+
+describe('CSV formula-injection escaping', () => {
+  it('neutralises values a spreadsheet would evaluate as a formula', () => {
+    // Exported cells contain partner-authored titles and user e-mails; without
+    // the prefix, `=cmd|' /C calc'!A0` would execute when the file is opened.
+    expect(csvField('=SUM(A1:A9)')).toBe("'=SUM(A1:A9)");
+    expect(csvField('+1+1')).toBe("'+1+1");
+    expect(csvField('-1+1')).toBe("'-1+1");
+    expect(csvField('@SUM(1)')).toBe("'@SUM(1)");
+  });
+
+  it('leaves ordinary values untouched and keeps RFC 4180 quoting', () => {
+    expect(csvField('Bulk, "Prime" warehouse')).toBe('"Bulk, ""Prime"" warehouse"');
+    expect(csvField('plain value')).toBe('plain value');
+    expect(csvField(null)).toBe('');
+    expect(csvField(1250)).toBe('1250');
+  });
+});
 
 const BOOKINGS_HEADER =
   'reference,customer_email,partner_business,listing_title,status,currency,total_amount,start_date,end_date,created_at';

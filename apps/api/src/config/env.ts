@@ -28,6 +28,20 @@ const booleanish = z
 const devSecret = (name: string): string =>
   `dev-insecure-${name}-replace-before-production-0000000000`;
 
+/**
+ * True when the process is running on a deployment platform. `NODE_ENV` is a
+ * single typo away from being wrong, but these platform variables are injected
+ * by the host and cannot be "forgot" — so they are a stronger production signal
+ * than NODE_ENV alone.
+ */
+const isHostedEnvironment =
+  process.env.VERCEL === '1' ||
+  process.env.VERCEL === 'true' ||
+  process.env.RENDER !== undefined ||
+  process.env.RAILWAY_ENVIRONMENT !== undefined ||
+  process.env.HEROKU_APP_NAME !== undefined ||
+  process.env.AWS_EXECUTION_ENV !== undefined;
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().min(1).max(65535).default(4000),
@@ -82,7 +96,15 @@ function buildEnv(): AppEnv {
       throw new Error(message);
     }
     // Development/test convenience: fill obvious gaps so the API can boot with
-    // actionable warnings instead of a hard failure.
+    // actionable warnings instead of a hard failure. Never on a host, though:
+    // a mis-set NODE_ENV there would otherwise ship publicly known secrets.
+    if (isHostedEnvironment) {
+      throw new Error(
+        `${message}\n\nRefusing to fall back to development secrets on a deployment platform. ` +
+          'Set ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, SESSION_SECRET and PAYMENT_WEBHOOK_SECRET ' +
+          'to random values of at least 32 characters.',
+      );
+    }
     const fallbacks: Record<string, string> = {
       ACCESS_TOKEN_SECRET: devSecret('access'),
       REFRESH_TOKEN_SECRET: devSecret('refresh'),
@@ -128,6 +150,20 @@ function enforceProductionRequirements(data: AppEnv): AppEnv {
     throw new Error(
       `Missing required production secrets: ${missing.join(', ')}. ` +
         'Set each to a random value of at least 32 characters in the deployment environment.',
+    );
+  }
+
+  // Belt and braces: a secret that is still the known development placeholder
+  // (e.g. copied from a local .env) would let anyone mint admin tokens.
+  const isPlaceholder = (value: string | undefined): boolean => Boolean(value?.startsWith('dev-insecure-'));
+  const placeholderSecrets = [
+    ...requiredSecrets.filter((key) => isPlaceholder(data[key])),
+    ...(isPlaceholder(data.PAYMENT_WEBHOOK_SECRET) ? ['PAYMENT_WEBHOOK_SECRET'] : []),
+  ];
+  if (placeholderSecrets.length > 0) {
+    throw new Error(
+      `These secrets still hold the development placeholder value: ${placeholderSecrets.join(', ')}. ` +
+        'Replace each with a random value of at least 32 characters.',
     );
   }
 

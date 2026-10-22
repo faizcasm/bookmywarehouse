@@ -33,6 +33,8 @@ export function ConversationPage() {
   const messages = threadState.data?.data?.items ?? [];
   const pagination = threadState.data?.meta?.pagination;
   const conversation = conversationState.data;
+  // Stable useCallback reference from useAsyncData — safe to depend on.
+  const reloadThread = threadState.reload;
 
   // Page meta
   const listingTitle = conversation?.listing?.title ?? 'Conversation';
@@ -43,10 +45,10 @@ export function ConversationPage() {
 
   // Poll for new messages every 8 seconds while the thread is open.
   useEffect(() => {
-    const timer = window.setInterval(() => threadState.reload(), POLL_MS);
+    const timer = window.setInterval(() => reloadThread(), POLL_MS);
     return () => window.clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+    // `reloadThread` is a stable useCallback reference, so the interval is only re-created when the conversation id changes.
+  }, [id, reloadThread]);
 
   // Mark the conversation read once after the first successful load.
   useEffect(() => {

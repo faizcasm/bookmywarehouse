@@ -16,9 +16,9 @@ export function ListingCard({ listing, onToggleFavorite }: ListingCardProps) {
       <div className="listing-media">
         <Link to={`/listing/${listing.slug}`} tabIndex={-1} aria-hidden="true">
           {listing.coverImage ? (
-            <img src={listing.coverImage} alt="" loading="lazy" />
+            <img src={listing.coverImage} alt={listing.title} loading="lazy" />
           ) : (
-            <img src={placeholderCover(listing.type, listing.title)} alt="" loading="lazy" />
+            <img src={placeholderCover(listing.type, listing.title)} alt={listing.title} loading="lazy" />
           )}
         </Link>
         <span className="badge tone-accent listing-type-badge">{listingTypeLabel(listing.type)}</span>

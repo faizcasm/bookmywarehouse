@@ -41,7 +41,7 @@ export function usePagedList<T>(
         setState({ items: [], pagination: null, loading: false, error: err });
       });
     return () => controller.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `params` is a fresh object every render; adding it (or deriving deps from it ad hoc) would refetch on every render — the serialized `key` is the intentional dependency.
   }, [key]);
 
   const reload = useCallback(() => setNonce((n) => n + 1), []);

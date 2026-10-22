@@ -11,7 +11,6 @@ import { getSettings, toSettingsDTO } from '../services/settings.service.js';
 import { uploadImage } from '../services/upload.service.js';
 import { databaseHealth } from '../config/db.js';
 import { listListingReviews } from '../services/review.service.js';
-import { describeEmailConfig } from '../services/email.service.js';
 import { Listing } from '../models/index.js';
 
 const startedAt = Date.now();
@@ -70,6 +69,8 @@ export async function platformSettingsHandler(_req: Request, res: Response): Pro
 
 export async function healthHandler(_req: Request, res: Response): Promise<void> {
   const db = await databaseHealth();
+  // Only the database matters to an uptime probe; integration details (which
+  // email provider is configured) are not disclosed on an unauthenticated route.
   res.status(db.connected ? 200 : 503).json({
     success: true,
     data: {
@@ -77,7 +78,6 @@ export async function healthHandler(_req: Request, res: Response): Promise<void>
       version: VERSION,
       uptimeSeconds: Math.round((Date.now() - startedAt) / 1000),
       database: db,
-      email: describeEmailConfig(),
       timestamp: new Date().toISOString(),
     },
     requestId: 'health',

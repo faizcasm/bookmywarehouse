@@ -10,6 +10,7 @@ import { corsOrigins, env, isProd } from './config/env.js';
 import { connectDatabase, disconnectDatabase } from './config/db.js';
 import { logger } from './lib/logger.js';
 import { requestIdMiddleware } from './middleware/request-context.js';
+import { accessLog } from './lib/middleware/access-log.js';
 import { optionalAuth } from './middleware/auth.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { apiLimiter } from './middleware/rate-limit.js';
@@ -32,7 +33,7 @@ import { openapiSpec } from './docs/openapi.js';
 export function createApp(): Express {
   const app = express();
 
-  app.set('trust proxy', true);
+  app.set('trust proxy', env.TRUST_PROXY);
   app.disable('x-powered-by');
 
   // Security & performance baselines.
@@ -46,6 +47,7 @@ export function createApp(): Express {
 
   // Per-request id + structured logging context.
   app.use(requestIdMiddleware);
+  app.use(accessLog);
 
   // CORS for the three local frontends (and any configured origins).
   const origins = new Set(corsOrigins());

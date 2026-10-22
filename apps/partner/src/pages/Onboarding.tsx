@@ -226,7 +226,7 @@ function VerificationSection({ profile, onSaved }: { profile: PartnerProfileDTO;
             <ul>
               {verification.documents.map((doc) => (
                 <li key={doc.id}>
-                  <a href={doc.url} target="_blank" rel="noreferrer">
+                  <a href={doc.url} target="_blank" rel="noopener noreferrer">
                     {doc.label}
                   </a>{' '}
                   — <StatusBadge value={doc.status} kind="generic" />

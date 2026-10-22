@@ -495,3 +495,89 @@ reported as clean.
 
 - `docs/REDESIGN_NOTES.md` — new "Third pass — responsiveness" section with the measured
   table of overflow findings, and the verification block updated to the current results.
+
+## Phase — production readiness pass (2026-10-22)
+
+**Goal:** "menu bar and theme icon should be at right end … check more details and bugs
+errors fix them and make this ready for production, treat it as a real product project
+not just dummy."
+
+### How it was verified
+
+Two independent audits, run before touching anything — an API security/operations review
+(read `app.ts`, `env.ts`, auth/payment/rate-limit/export paths, every model vs. every
+service query) and a frontend hygiene review (every `src/**/*.tsx` for console leftovers,
+dead links, alt/label coverage, `index.html` head tags, route catch-alls, error
+boundaries). Only findings verified in the source were fixed; audit assumptions that did
+not hold were discarded. Header changes were then measured in Chromium element-by-element
+at 1280/768/420/375/320 with a real logged-in session.
+
+### Header control order (reported)
+
+`ThemeToggle` was the *first* child of each actions cluster, so it rendered mid-header
+while the menu button sat at the right edge. It is now the last child in all three apps:
+customer `bell → account → menu → theme`, partner `bell → account → theme`, admin
+`bell → sep → account → theme`. Measured: theme is the right-most element at every
+viewport, nothing exceeds the viewport.
+
+### Security (API)
+
+1. **Payment forgery (critical).** `/payments/simulate` let any authenticated user flip
+   *any* payment to `SUCCEEDED` — booking → `CONFIRMED` + invoice, for free. Now checks
+   the payment's booking belongs to the caller and refuses in production. Regression
+   test: stranger → 403, payment stays `PENDING`, owner still succeeds.
+2. **Spoofable rate limits.** `trust proxy` was hardcoded `true`, so client-supplied
+   `X-Forwarded-For` fed the auth lockout and audit IPs. Now follows `TRUST_PROXY`.
+3. **Revoked sessions stayed valid ≤15 min** — `payload.sid` was read but never checked.
+   Now validated against `RefreshToken` (one `_id` lookup) on every request.
+4. **Dev secrets could reach production** if `NODE_ENV` was wrong: the loader silently
+   substituted published `dev-insecure-…` placeholders. Now refuses to boot on a
+   deployment platform and rejects placeholders in production.
+5. **`sensitiveLimiter` was dead code** (defined, never attached) → wired to
+   change-password, user moderation, refunds, disputes, settings and CSV exports.
+6. **CSV formula injection** — exports carry partner-authored titles; `csvField` now
+   neutralises `= + - @` (4 assertions added).
+7. Refresh cookie `maxAge` ignored `REFRESH_TOKEN_TTL_DAYS`; `/health` disclosed email
+   provider config to unauthenticated probes. Both fixed.
+
+### Operations (API)
+
+8. **Indexes were never built in production** (`autoIndex:false`, no deploy step runs
+   `db:indexes`) → one non-blocking `syncIndexes()` pass per process at connect,
+   failures logged and never fatal.
+9. **No access logging** → completion logger on `res.finish` (method/path/status/
+   duration/requestId/userId), levelled by status, skipping health/docs probes.
+10. Partner booking lists sorted in memory — added the missing `{partner,status,createdAt}` index.
+11. Upload size cap ran before the Cloudinary branch, contradicting its own error message.
+
+### Frontend
+
+12. **No error boundary in any app (critical)** — any render exception or failed lazy
+    chunk white-screened all three SPAs. Added `ErrorBoundary` (+ `lazyWithRetry` for the
+    customer's 3D hero) in each app.
+13. partner/admin had **no favicon, no icons, no description, no OG tags**; customer
+    declared `summary_large_image` with no image anywhere; admin preconnected to Google
+    Fonts it never loads. All corrected (relative icon paths so they work at `/` in dev
+    and `/partner/`, `/admin/` on Vercel).
+14. partner silently redirected unknown URLs to the dashboard (no 404) → NotFound page
+    inside the authenticated shell, matching the other two apps.
+15. Duplicate DOM id `city-suggestions` (desktop sidebar + mobile drawer coexist);
+    partner/admin never updated `document.title`; 5× `rel="noreferrer"` without
+    `noopener`; listing cover images with empty `alt`; two React Router v7 deprecation
+    warnings on every load; 2 of 8 `exhaustive-deps` suppressions removed where provably
+    safe (the other 6 kept with a written reason — each would loop or change behaviour).
+
+### Verification by execution
+
+- `pnpm lint` → 0 errors · `pnpm typecheck` → 8/8.
+- `pnpm test` → **180/180** (customer 26, partner 30, admin 22, API 102 — was 177 before,
+  the 3 new ones are the payment-forgery and CSV-injection regression tests).
+- `pnpm build` → 4/4 services.
+- Chromium: header order measured across 5 viewports with a real session; partner/admin
+  meta + icon fetch verified; all three apps render with 0 page errors; per-route
+  `document.title` confirmed.
+
+### Docs
+
+- `docs/REDESIGN_NOTES.md` — new "Fourth pass — production readiness" section, 20 numbered
+  findings; verification block updated to 180/180.

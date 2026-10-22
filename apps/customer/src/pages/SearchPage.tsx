@@ -69,8 +69,7 @@ export function SearchPage() {
       update({ city: cityDraft });
     }, 500);
     return () => window.clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cityDraft, update]);
+  }, [cityDraft, filters.city, update]);
 
   const results = useAsyncData(
     () => api.getWithMeta<SearchResponseDTO>('/catalog/search', filtersToApiQuery(filters)),
@@ -172,11 +171,11 @@ export function SearchPage() {
               className="input"
               type="text"
               placeholder="e.g. Pune"
-              list="city-suggestions"
+              list="city-suggestions-desktop"
               value={cityDraft}
               onChange={(event) => setCityDraft(event.target.value)}
             />
-            <datalist id="city-suggestions">
+            <datalist id="city-suggestions-desktop">
               {(payload?.facets?.cities ?? []).map((city) => (
                 <option key={city.value} value={city.value}>
                   {city.count}
@@ -354,11 +353,11 @@ export function SearchPage() {
                       className="input"
                       type="text"
                       placeholder="e.g. Pune"
-                      list="city-suggestions"
+                      list="city-suggestions-mobile"
                       value={cityDraft}
                       onChange={(event) => setCityDraft(event.target.value)}
                     />
-                    <datalist id="city-suggestions">
+                    <datalist id="city-suggestions-mobile">
                       {(payload?.facets?.cities ?? []).map((city) => (
                         <option key={city.value} value={city.value}>
                           {city.count}

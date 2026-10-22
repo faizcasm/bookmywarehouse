@@ -128,6 +128,11 @@ export function AppShell() {
 
   const pageTitle = TITLES.find((t) => t.match(location.pathname))?.title ?? 'Admin';
 
+  // Keep the tab title in sync with the visible page heading.
+  useEffect(() => {
+    document.title = `${pageTitle} · BookMyWarehouse`;
+  }, [pageTitle]);
+
   // Close transient chrome whenever the route changes.
   useEffect(() => {
     setMenuOpen(false);
@@ -303,8 +308,6 @@ export function AppShell() {
               ) : null}
             </div>
 
-            <ThemeToggle />
-
             <div className="topbar__sep" aria-hidden="true" />
 
             <div className="topbar__user">
@@ -354,6 +357,8 @@ export function AppShell() {
                 </div>
               ) : null}
             </div>
+
+            <ThemeToggle />
           </div>
         </header>
         <main className="content">

@@ -5,6 +5,7 @@ import { MotionConfig } from 'motion/react';
 import { ThemeProvider } from '@bmw/ui';
 import App from './App';
 import { AuthProvider } from './auth/AuthContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastProvider } from './components/Toast';
 import '@fontsource-variable/inter';
 import './styles.css';
@@ -14,9 +15,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <ThemeProvider>
       <MotionConfig reducedMotion="user">
         <ToastProvider>
-          <BrowserRouter>
+          <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <AuthProvider>
-              <App />
+              <ErrorBoundary>
+                <App />
+              </ErrorBoundary>
             </AuthProvider>
           </BrowserRouter>
         </ToastProvider>

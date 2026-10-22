@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState, type FormEvent } from 'react';
+import { Suspense, useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Search, FileText, CreditCard, ArrowRight, Warehouse, Forklift, HardHat, ShieldCheck, Zap, Lock, LifeBuoy, ArrowUpRight, ArrowRight as ArrowRightIcon } from 'lucide-react';
@@ -12,8 +12,9 @@ import { PARTNER_APP_URL } from '../auth/AuthContext';
 import type { CategoryDTO, ListingSummaryDTO, PlatformSettingsDTO } from '../lib/types';
 import { ListingCard } from '../components/ListingCard';
 import { EmptyState, ErrorState, SkeletonGrid } from '../components/Skeleton';
+import { lazyWithRetry } from '../components/ErrorBoundary';
 
-const HeroScene = lazy(() => import('../components/HeroScene'));
+const HeroScene = lazyWithRetry(() => import('../components/HeroScene'));
 
 const TYPE_TABS = ['', 'WAREHOUSE', 'EQUIPMENT', 'SERVICE'] as const;
 

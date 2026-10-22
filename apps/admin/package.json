@@ -8,6 +8,7 @@
     "build": "tsc -p tsconfig.json --noEmit && vite build && node ../../scripts/nest-dist.mjs admin",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
     "test": "vitest run"
   },
   "dependencies": {

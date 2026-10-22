@@ -185,8 +185,6 @@ export function Header() {
         </nav>
 
         <div className="header-actions">
-          <ThemeToggle />
-
           {user ? (
             <>
               <div className="dropdown-anchor">
@@ -315,6 +313,8 @@ export function Header() {
               <Menu size={18} aria-hidden="true" />
             )}
           </button>
+
+          <ThemeToggle />
         </div>
       </div>
     </header>

@@ -9,10 +9,16 @@ const EXPORT_ROW_LIMIT = 5000;
 /** Bookings whose partner has (or will have) money owed to them — payouts are derived from these. */
 const PAYOUT_BOOKING_STATUSES = ['CONFIRMED', 'IN_PROGRESS', 'COMPLETED'] as const;
 
-/** RFC 4180 field escaping: quote fields containing comma/quote/newline; double embedded quotes. */
+/**
+ * RFC 4180 field escaping: quote fields containing comma/quote/newline; double
+ * embedded quotes. Values that a spreadsheet would evaluate as a formula
+ * (`=`, `+`, `-`, `@`, tab, CR) get a leading apostrophe — exports contain
+ * partner-authored titles, so without this an export is a CSV-injection vector.
+ */
 export function csvField(value: unknown): string {
   if (value === null || value === undefined) return '';
-  const str = String(value);
+  const raw = String(value);
+  const str = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
   return /[",\r\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
 }
 

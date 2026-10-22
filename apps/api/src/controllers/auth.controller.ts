@@ -26,7 +26,7 @@ import {
 } from '../services/auth.service.js';
 import { CustomerProfile, User } from '../models/index.js';
 import { serializeUser } from '../serializers/user.serializer.js';
-import { env } from '../config/env.js';
+import { config, env } from '../config/env.js';
 import { describeEmailConfig } from '../services/email.service.js';
 import { getSettings, toSettingsDTO } from '../services/settings.service.js';
 import { serializePartnerProfile } from '../services/partner.service.js';
@@ -50,7 +50,8 @@ function setAuthCookies(res: Response, tokens: { refreshToken: string; csrfToken
   });
 }
 
-const REFRESH_COOKIE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+/** Cookie lifetime tracks the refresh-token TTL so a cookie can never outlive the session it names. */
+const REFRESH_COOKIE_TTL_MS = config.refresh.ttlDays * 24 * 60 * 60 * 1000;
 
 export async function registerHandler(req: Request, res: Response): Promise<void> {
   const input = req.body as Body<typeof registerSchema>;

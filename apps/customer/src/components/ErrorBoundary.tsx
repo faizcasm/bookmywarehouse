@@ -1,0 +1,72 @@
+import { Component, lazy, type ComponentType, type ErrorInfo, type LazyExoticComponent, type ReactNode } from 'react';
+
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
+/**
+ * Catches render exceptions (including failed lazy chunks) so a single broken
+ * component does not white-screen the whole app.
+ */
+export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  override state: ErrorBoundaryState = { hasError: false };
+
+  static getDerivedStateFromError(): ErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  override componentDidCatch(error: Error, info: ErrorInfo): void {
+    console.error('Unhandled error in customer app:', error, info.componentStack);
+  }
+
+  override render(): ReactNode {
+    if (this.state.hasError) {
+      return (
+        <div
+          className="container"
+          role="alert"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '70vh',
+          }}
+        >
+          <div className="card" style={{ maxWidth: 440, width: '100%', textAlign: 'center', padding: '32px 24px' }}>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--fg-strong)', marginBottom: 8 }}>Something went wrong</h1>
+            <p className="muted" style={{ marginBottom: 24 }}>
+              An unexpected error occurred while loading this page. Try reloading — if it keeps happening, come back a little later.
+            </p>
+            <button type="button" className="btn btn-primary" onClick={() => window.location.reload()}>
+              Reload the page
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+/**
+ * `React.lazy` with one automatic retry: a transient network blip while
+ * fetching a chunk must not permanently break the page.
+ */
+export function lazyWithRetry<T extends ComponentType>(
+  loader: () => Promise<{ default: T }>,
+): LazyExoticComponent<T> {
+  let attempts = 0;
+  return lazy(() =>
+    loader().catch((error: unknown) => {
+      attempts += 1;
+      if (attempts > 1) throw error;
+      return new Promise((resolve) => {
+        window.setTimeout(resolve, 300);
+      }).then(loader);
+    }),
+  );
+}

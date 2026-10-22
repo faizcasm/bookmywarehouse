@@ -573,7 +573,7 @@ async function seedDemoContent(categories: DemoCategories): Promise<void> {
     confirmedId = String(booking._id);
     await acceptBooking(confirmedId, { userId: partner1.id, role: 'PARTNER' });
     const { payment } = await initiatePayment(customer.id, confirmedId);
-    await simulateGatewayResult(String(payment._id), 'SUCCESS');
+    await simulateGatewayResult(customer.id, String(payment._id), 'SUCCESS');
   }
   logger.info('confirmed booking', { id: confirmedId });
 
@@ -597,7 +597,7 @@ async function seedDemoContent(categories: DemoCategories): Promise<void> {
     completedId = String(booking._id);
     await acceptBooking(completedId, { userId: partner1.id, role: 'PARTNER' });
     const { payment } = await initiatePayment(customer.id, completedId);
-    await simulateGatewayResult(String(payment._id), 'SUCCESS');
+    await simulateGatewayResult(customer.id, String(payment._id), 'SUCCESS');
     await transitionBooking(completedId, 'COMPLETED', { userId: partner1.id, role: 'PARTNER' }, {
       note: 'DEMO: work finished',
     });

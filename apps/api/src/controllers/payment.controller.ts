@@ -98,7 +98,15 @@ export async function simulatePaymentHandler(req: Request, res: Response): Promi
   if (!req.auth) throw errors.unauthenticated();
   const { paymentId, outcome } = req.body as { paymentId: string; outcome: 'SUCCESS' | 'FAILURE' };
   if (!paymentId || !outcome) throw errors.badRequest('paymentId and outcome are required');
-  const result = await simulateGatewayResult(paymentId, outcome);
+  const result = await simulateGatewayResult(req.auth.userId, paymentId, outcome);
+  await recordAudit({
+    actorId: req.auth.userId,
+    action: 'payment.simulated',
+    entityType: 'Payment',
+    entityId: paymentId,
+    summary: `Sandbox payment simulated with outcome ${outcome}`,
+    ip: clientIp(req),
+  });
   sendSuccess(res, result);
 }
 

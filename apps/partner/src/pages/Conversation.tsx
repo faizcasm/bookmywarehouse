@@ -55,7 +55,7 @@ export function ConversationPage() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `load` is recreated when `loading` flips, and this effect itself sets `loading`: adding it would loop forever.
   }, [id]);
 
   // Poll every 8s while the thread is open; mark incoming messages read.
@@ -69,7 +69,7 @@ export function ConversationPage() {
         .catch(() => undefined);
     }, POLL_MS);
     return () => clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `load`'s identity tracks the `loading` flag; adding it would tear down and restart the poll interval on every load-state transition.
   }, [id, user?.id]);
 
   // Mark unread messages read on open.
@@ -77,7 +77,7 @@ export function ConversationPage() {
     if (!loading && hasUnread) {
       void api.post(`/conversations/${id}/read`).catch(() => undefined);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally keyed on open/load only; depending on `hasUnread` would POST a mark-read request on every incoming message.
   }, [loading, id]);
 
   useEffect(() => {

@@ -33,6 +33,7 @@ export async function connectDatabase(): Promise<typeof mongoose> {
       })
       .then((instance) => {
         logger.info('MongoDB connected', { db: instance.connection.name });
+        if (isProd) void syncProductionIndexesInBackground();
         return instance;
       });
   }
@@ -46,6 +47,33 @@ export async function connectDatabase(): Promise<typeof mongoose> {
     throw error;
   }
   return cache.conn;
+}
+
+/**
+ * Production runs `autoIndex: false` (building indexes on boot is slow and can
+ * race a deploy), and no deploy step runs `pnpm db:indexes` — so a fresh
+ * database would serve every search and list unindexed. Sync once per process,
+ * in the background, without ever failing the boot or a request.
+ */
+let indexSyncDone = false;
+
+async function syncProductionIndexesInBackground(): Promise<void> {
+  if (indexSyncDone) return;
+  indexSyncDone = true;
+  try {
+    const models = await import('../models/index.js');
+    for (const entry of Object.values(models)) {
+      const candidate = entry as { syncIndexes?: () => Promise<unknown>; modelName?: string };
+      if (typeof candidate?.syncIndexes !== 'function') continue;
+      await candidate.syncIndexes();
+    }
+    logger.info('MongoDB indexes synced');
+  } catch (error) {
+    // Non-fatal: the API serves traffic without indexes rather than not at all.
+    logger.error('MongoDB index sync failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
 }
 
 export async function disconnectDatabase(): Promise<void> {

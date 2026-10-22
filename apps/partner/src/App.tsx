@@ -1,8 +1,9 @@
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Route, Routes, useLocation } from 'react-router-dom';
 import { PublicOnly, RequireAuth } from './auth/RouteGuard';
 import { AppShell } from './components/AppShell';
 import { LoginPage } from './pages/Login';
 import { RegisterPage } from './pages/Register';
+import { NotFoundPage } from './pages/NotFound';
 import { DashboardPage } from './pages/Dashboard';
 import { OnboardingPage } from './pages/Onboarding';
 import { ListingsPage } from './pages/Listings';
@@ -64,9 +65,8 @@ export function App() {
         <Route path="/messages/:id" element={<ConversationPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Route>
-
-      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

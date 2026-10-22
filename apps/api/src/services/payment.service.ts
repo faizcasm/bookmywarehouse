@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { Types } from 'mongoose';
 import type { Currency, PaymentStatus } from '@bmw/shared-types';
-import { config } from '../config/env.js';
+import { config, isProd } from '../config/env.js';
 import { errors } from '../lib/errors.js';
 import { logger } from '../lib/logger.js';
 import { paymentReference, randomSuffix } from '../lib/ids.js';
@@ -375,16 +375,29 @@ export async function initiatePayment(
 /**
  * Development-only helper that plays the role of the gateway: it signs a webhook
  * event and feeds it through the real webhook pipeline.
+ *
+ * Guardrails: it only exists for the SANDBOX provider, it is disabled outright
+ * in production, and it only accepts payments owned by the caller — without the
+ * ownership check any authenticated user could flip someone else's booking to
+ * CONFIRMED and get an invoice issued for free.
  */
 export async function simulateGatewayResult(
+  userId: string,
   paymentId: string,
   outcome: 'SUCCESS' | 'FAILURE',
 ): Promise<{ eventId: string; processed: boolean }> {
+  if (isProd) {
+    throw errors.forbidden('Sandbox payment simulation is disabled in production');
+  }
   if (paymentProvider.name !== 'SANDBOX') {
     throw errors.forbidden('Sandbox simulation is only available with the SANDBOX provider');
   }
   const payment = await Payment.findById(paymentId).lean();
   if (!payment) throw errors.notFound('Payment not found');
+  const owner = await Booking.findById(payment.booking).select('customer').lean();
+  if (!owner || String(owner.customer) !== userId) {
+    throw errors.forbidden('Not your payment');
+  }
 
   const event: PaymentWebhookEvent = {
     id: `evt_sbx_${randomSuffix()}`,

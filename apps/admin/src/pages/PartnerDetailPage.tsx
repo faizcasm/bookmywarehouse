@@ -80,7 +80,7 @@ export function PartnerDetailPage() {
               <dt>Website</dt>
               <dd>
                 {p.website ? (
-                  <a href={p.website} target="_blank" rel="noreferrer">
+                  <a href={p.website} target="_blank" rel="noopener noreferrer">
                     {p.website}
                   </a>
                 ) : (
@@ -198,7 +198,7 @@ export function PartnerDetailPage() {
               {kyc.documents.map((doc) => (
                 <div key={doc.id} className="doc-item">
                   <div className="doc-item__main">
-                    <a href={doc.url} target="_blank" rel="noreferrer" className="doc-item__label">
+                    <a href={doc.url} target="_blank" rel="noopener noreferrer" className="doc-item__label">
                       {doc.label}
                     </a>
                     <span className="muted">uploaded {formatDate(doc.uploadedAt)}</span>

@@ -93,6 +93,113 @@ What is intentionally still scrollable, and is not a defect: tab strips, data ta
 (`.table-wrap`) and the hero's type tabs use horizontal scroll containers, so their
 off-screen children are reachable rather than lost.
 
+## Fourth pass — production readiness
+
+Triggered by "the menu bar and theme icon should be at the right end" plus a request to
+treat this as a real product. Two independent audits ran first — an API security/
+operations review and a frontend hygiene review — and only verified findings were fixed.
+
+### Header control order (the reported issue)
+
+`ThemeToggle` was the **first** child of every actions cluster, so it rendered in the
+middle of the header (immediately after the nav) while the menu button sat at the right
+edge. It is now the **last** child in all three apps, so both controls end the row:
+
+| App | Order before | Order after |
+| --- | --- | --- |
+| customer | theme, bell, account, menu | bell, account, menu, **theme** |
+| partner | theme, bell, account | bell, account, **theme** |
+| admin | bell, theme, sep, account | bell, sep, account, **theme** |
+
+Verified in Chromium with the action cluster measured element-by-element: at 1280 / 768 /
+420 / 375 / 320 the customer row reads `bell → account → menu → theme`, the theme button
+is the right-most element (`right` = viewport gutter at every width), and nothing exceeds
+the viewport.
+
+### Security fixes (API)
+
+1. **Payment forgery — critical.** `POST /payments/simulate` accepted any authenticated
+   user's `paymentId` and, through the real webhook pipeline, flipped that payment to
+   `SUCCEEDED`, moved the booking to `CONFIRMED` and issued an invoice — for free, on
+   someone else's booking. It now verifies `booking.customer === caller` (the same check
+   `verifyCheckoutPayment` already had) and refuses outright when `isProd`. Audit entry
+   recorded. Regression test: a stranger gets 403, the payment stays `PENDING`, the owner
+   still succeeds.
+2. **Spoofable rate limiting.** `app.set('trust proxy', true)` was hardcoded, so the
+   client-controlled `X-Forwarded-For` header fed both `express-rate-limit` and audit
+   IPs — rotating that header bypassed the 20-per-15-min auth lockout. Now driven by the
+   already-defined `TRUST_PROXY` env var (default off).
+3. **Revoked sessions stayed valid.** `authenticate` read `payload.sid` but never checked
+   it, so an access token kept working for up to 15 minutes after Sign out *and* after
+   rotation-reuse detection revoked the whole session family. `sid` is the `RefreshToken`
+   `_id`, so this is one primary-key lookup: revoked or missing → 401.
+4. **Dev secrets reaching production.** The env loader silently substituted the published
+   `dev-insecure-…` placeholders whenever `NODE_ENV` wasn't exactly `production`. It now
+   refuses to boot on a deployment platform (Vercel/Render/Railway/Heroku/AWS env
+   markers, which can't be "forgotten" the way `NODE_ENV` can) and rejects any
+   placeholder value that survives into production. Anyone knowing the pattern could
+   otherwise have minted admin tokens.
+5. **Dead rate limiter wired up.** `sensitiveLimiter` (20/min) was exported and never
+   attached to a route; sensitive operations fell back to the 300/min global. Now on
+   `change-password`, user moderation, refunds, dispute resolution, settings updates and
+   CSV exports.
+6. **CSV formula injection.** `csvField` now prefixes `=`, `+`, `-`, `@`, tab and CR with
+   an apostrophe. Exports contain partner-authored listing titles and user e-mails, so a
+   title like `=cmd|'/C calc'!A0` executed on open in Excel. Four assertions added.
+7. **Refresh cookie outliving its session.** Cookie `maxAge` was hardcoded to 30 days
+   while the DB honoured `REFRESH_TOKEN_TTL_DAYS`; both now read the same config.
+8. **`/health` disclosed integration config** (email provider + whether an API key was
+   set) to unauthenticated probes — removed.
+
+### Production operations (API)
+
+9. **Indexes were never built in production.** `autoIndex: false` in prod and no deploy
+   step runs `pnpm db:indexes`, so a fresh database served every search and list
+   unindexed. `connectDatabase` now runs one non-blocking `syncIndexes()` pass per
+   process in production — failures are logged, never fatal.
+10. **No access logging.** Only failures were logged, so ops could see *that* something
+    broke but not what was called or how slow it was. Added a completion logger
+    (`method`, `path`, `status`, `durationMs`, `requestId`, `userId`) that records on
+    `res.finish`, levelled by status and skipping health/docs probes.
+11. **Missing partner booking index.** Partner lists filter on `{partner}` (+status) and
+    sort `createdAt`, which no declared index covered → in-memory sort. Added
+    `{partner, status, createdAt}`.
+12. **Upload size cap applied to the wrong path.** The 400 KB inline-storage cap ran
+    *before* the Cloudinary branch, so even with Cloudinary configured larger uploads
+    were rejected — while the error message told you to configure Cloudinary. The cap
+    now applies only to inline dev storage.
+
+### Frontend
+
+13. **No error boundary in any app — critical.** A render exception or a failed lazy
+    chunk white-screened all three SPAs with an empty `#root`. Each app now has an
+    `ErrorBoundary` with a reload affordance, and the customer's lazy 3D hero goes
+    through a `lazyWithRetry` helper so one transient network blip doesn't permanently
+    break the home page.
+14. **partner/admin had no favicon or icons at all** (`public/` didn't exist → 404 on
+    every tab, bookmark and history entry), plus no `description` and no OG tags.
+    Icon sets copied, relative icon paths added (they must work both at `/` in dev and
+    `/partner/`, `/admin/` on Vercel), `robots.txt` added for the two private consoles
+    (`Disallow: /`), and OG/twitter descriptions added to both.
+15. **customer declared `twitter:card=summary_large_image` with no image anywhere** —
+    now `summary` with a real `og:image`/`twitter:image`.
+16. **admin preconnected to Google Fonts it never loads** (fonts are self-hosted via
+    `@fontsource-variable/inter`) — two dead connections per page load, removed.
+17. **partner had no 404**: the `*` route redirected to the dashboard, so broken links
+    silently landed on unrelated content. It now renders a NotFound page inside the
+    authenticated shell, matching customer and admin.
+18. **Duplicate DOM id** `city-suggestions` — the desktop sidebar and mobile filter
+    drawer both render one, and they coexist when the drawer is open, so `list=`
+    resolved to the wrong element. Split into `-desktop`/`-mobile`.
+19. **partner/admin never updated `document.title`** — the tab kept the static
+    `index.html` title while the `<h1>` changed. Both shells now set it.
+20. **`target="_blank"` with `rel="noreferrer"` only** (5 sites) → `noopener noreferrer`
+    for older-browser parity; **content images with `alt=""`** (listing covers) now use
+    the listing title; **React Router v7 future flags** opted in, removing two
+    deprecation warnings from every page load; **2 of 8 `exhaustive-deps` suppressions
+    removed** where provably safe — the other 6 kept with a written reason, since each
+    would either loop or change behaviour.
+
 ## Verification status
 
 All checks were executed in this workspace (dependencies installed, lockfile unchanged):
@@ -101,8 +208,8 @@ All checks were executed in this workspace (dependencies installed, lockfile unc
 pnpm install --frozen-lockfile   # lockfile up to date
 pnpm lint                        # 0 errors (2 pre-existing no-console warnings in build scripts)
 pnpm typecheck                   # 8/8 workspace projects pass
-pnpm test                        # 177/177 (customer 26, partner 30, admin 22, API 99 —
-                                 # including the MongoDB-backed integration tests)
+pnpm test                        # 180/180 (customer 26, partner 30, admin 22, API 102 —
+                                 # including 3 new security regression tests)
 pnpm build                       # API bundle + 3 Vite SPAs build clean
 ```
 

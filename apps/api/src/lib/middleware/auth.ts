@@ -1,6 +1,7 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
+import { Types } from 'mongoose';
 import type { Role } from '@bmw/shared-types';
-import { User } from '../../models/user.model.js';
+import { User, RefreshToken } from '../../models/user.model.js';
 import { errors } from '../errors.js';
 import { verifyAccessToken } from '../jwt.js';
 import { asyncHandler } from '../http.js';
@@ -24,6 +25,15 @@ export const authenticate: RequestHandler = asyncHandler(
     if (!user) throw errors.unauthenticated('Account no longer exists');
     if (user.status === 'SUSPENDED') throw errors.accountSuspended();
     if (user.status === 'DEACTIVATED') throw errors.forbidden('This account is deactivated');
+
+    // Access tokens outlive a logout by up to their TTL unless the session they
+    // name is checked. `sid` is the RefreshToken _id, so this is a primary-key
+    // lookup; without it a stolen token keeps working after "Sign out" and after
+    // rotation-reuse detection revokes the whole session family.
+    if (payload.sid && !(await isSessionActive(payload.sid))) {
+      throw errors.unauthenticated('Your session has ended. Please sign in again.');
+    }
+
     req.auth = {
       userId: String(user._id),
       role: user.role,
@@ -33,6 +43,13 @@ export const authenticate: RequestHandler = asyncHandler(
     next();
   },
 );
+
+/** True while the named refresh-token session exists and has not been revoked. */
+async function isSessionActive(sessionId: string): Promise<boolean> {
+  if (!Types.ObjectId.isValid(sessionId)) return false;
+  const session = await RefreshToken.findById(sessionId).select('_id revokedAt').lean();
+  return Boolean(session && !session.revokedAt);
+}
 
 /** Attaches auth context when a valid token is present but never rejects. */
 export const optionalAuth: RequestHandler = asyncHandler(

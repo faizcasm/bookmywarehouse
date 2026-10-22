@@ -171,6 +171,8 @@ const bookingSchema = new Schema<BookingFields>(
 
 bookingSchema.index({ customer: 1, createdAt: -1 });
 bookingSchema.index({ partner: 1, status: 1, startDate: 1 });
+/** Partner booking lists filter on partner (+optional status) and sort by createdAt. */
+bookingSchema.index({ partner: 1, status: 1, createdAt: -1 });
 bookingSchema.index({ listing: 1, startDate: 1, endDate: 1, status: 1 });
 bookingSchema.index({ status: 1, paymentDeadline: 1 });
 bookingSchema.index({ createdAt: -1 });

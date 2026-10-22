@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { asyncHandler } from '../middleware/async-handler.js';
+import { sensitiveLimiter } from '../middleware/rate-limit.js';
 import { paginationSchema } from '@bmw/validation';
 import {
   adminCustomerCreateSchema,
@@ -66,7 +67,7 @@ export function adminRoutes(): Router {
   // Users & KYC
   router.get('/users', validate({ query: pageQuerySchema }), asyncHandler(usersHandler));
   router.post('/users', validate({ body: adminCustomerCreateSchema }), asyncHandler(createUserHandler));
-  router.patch('/users/:id', validate({ params: idParams, body: userModerationSchema }), asyncHandler(moderateUserHandler));
+  router.patch('/users/:id', sensitiveLimiter, validate({ params: idParams, body: userModerationSchema }), asyncHandler(moderateUserHandler));
   router.get('/partners', validate({ query: pageQuerySchema }), asyncHandler(partnersHandler));
   router.get('/partners/:id', validate({ params: idParams }), asyncHandler(partnerDetailHandler));
   router.post(
@@ -87,13 +88,19 @@ export function adminRoutes(): Router {
   // Payments & refunds
   router.get('/payments', validate({ query: pageQuerySchema }), asyncHandler(paymentsHandler));
   router.get('/refunds', validate({ query: pageQuerySchema }), asyncHandler(refundsHandler));
-  router.post('/refunds/:id/process', validate({ params: idParams }), asyncHandler(processRefundHandler));
+  router.post(
+    '/refunds/:id/process',
+    sensitiveLimiter,
+    validate({ params: idParams }),
+    asyncHandler(processRefundHandler),
+  );
   router.get('/invoices', validate({ query: paginationSchema }), asyncHandler(adminInvoicesHandler));
 
   // Disputes
   router.get('/disputes', validate({ query: pageQuerySchema }), asyncHandler(disputesHandler));
   router.post(
     '/disputes/:id/resolve',
+    sensitiveLimiter,
     validate({ params: idParams, body: disputeResolutionSchema }),
     asyncHandler(resolveDisputeHandler),
   );
@@ -117,12 +124,12 @@ export function adminRoutes(): Router {
 
   // Platform settings & audit trail
   router.get('/settings', asyncHandler(settingsHandler));
-  router.patch('/settings', validate({ body: platformSettingsSchema }), asyncHandler(updateSettingsHandler));
+  router.patch('/settings', sensitiveLimiter, validate({ body: platformSettingsSchema }), asyncHandler(updateSettingsHandler));
   router.get('/audit-logs', validate({ query: auditQuery }), asyncHandler(auditLogsHandler));
 
   // Accounting exports (CSV attachments)
-  router.get('/exports/bookings.csv', asyncHandler(exportBookingsCsvHandler));
-  router.get('/exports/payouts.csv', asyncHandler(exportPayoutsCsvHandler));
+  router.get('/exports/bookings.csv', sensitiveLimiter, asyncHandler(exportBookingsCsvHandler));
+  router.get('/exports/payouts.csv', sensitiveLimiter, asyncHandler(exportPayoutsCsvHandler));
 
   return router;
 }

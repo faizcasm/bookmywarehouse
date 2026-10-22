@@ -143,6 +143,13 @@ export function AppShell() {
     navigate('/login');
   }, [logout, navigate]);
 
+  const currentTitle = pageTitle(location.pathname);
+
+  // Keep the tab title in sync with the visible page heading.
+  useEffect(() => {
+    document.title = `${currentTitle} · BookMyWarehouse`;
+  }, [currentTitle]);
+
   return (
     <div className={`shell ${drawerOpen ? 'shell--drawer-open' : ''}`}>
       <div className="shell__sidebar" id="app-sidebar">
@@ -182,7 +189,7 @@ export function AppShell() {
           <a
             href={CUSTOMER_APP_URL}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className="shell__customer-link"
           >
             Customer marketplace
@@ -206,9 +213,8 @@ export function AppShell() {
           >
             {drawerOpen ? <X size={20} strokeWidth={2} /> : <Menu size={20} strokeWidth={2} />}
           </button>
-          <h1 className="shell__title">{pageTitle(location.pathname)}</h1>
+          <h1 className="shell__title">{currentTitle}</h1>
           <div className="shell__topbar-actions">
-            <ThemeToggle className="shell__theme-toggle" />
             <div className="bell" ref={bellRef}>
               <button
                 type="button"
@@ -291,6 +297,8 @@ export function AppShell() {
                 )}
               </AnimatePresence>
             </div>
+
+            <ThemeToggle className="shell__theme-toggle" />
           </div>
         </header>
         <main className="shell__content">

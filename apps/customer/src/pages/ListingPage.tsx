@@ -186,7 +186,9 @@ export function ListingPage() {
 
   useEffect(() => {
     if (listing) setSubject(`Question about ${listing.title}`);
-  }, [listing?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Seeded once per listing id on purpose: depending on `listing` would re-seed
+    // (and clobber) a subject the user is already editing whenever the listing refetches.
+  }, [listing?.id]); // eslint-disable-line react-hooks/exhaustive-deps -- `listing` is refetched data; adding it would clobber in-progress edits (see note above)
 
   const onSendMessage = async (event: FormEvent) => {
     event.preventDefault();

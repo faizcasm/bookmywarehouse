@@ -26,7 +26,10 @@ export function App() {
   // Match the router to the Vite base (/admin/ on Vercel, / locally).
   const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '');
   return (
-    <BrowserRouter basename={routerBasename || undefined}>
+    <BrowserRouter
+      basename={routerBasename || undefined}
+      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+    >
       <ToastProvider>
         <AuthProvider>
           <Routes>

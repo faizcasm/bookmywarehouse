@@ -156,7 +156,7 @@ export function ListingsPage() {
             {items.map((l) => (
               <motion.article key={l.id} className="card listing-card" variants={fadeSoft}>
                 {l.coverImage ? (
-                  <img src={l.coverImage} alt="" className="listing-card__img" loading="lazy" />
+                  <img src={l.coverImage} alt={l.title} className="listing-card__img" loading="lazy" />
                 ) : (
                   <div className="listing-card__img listing-card__img--placeholder" aria-hidden="true">
                     <Package strokeWidth={1.25} />

@@ -53,7 +53,7 @@ export function useAsyncData<T>(fetcher: () => Promise<T>, deps: DependencyList)
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `deps` is a caller-provided DependencyList spread into the array; it cannot be listed as a single static dependency.
   }, [...deps, version]);
 
   const reload = useCallback(() => setVersion((v) => v + 1), []);

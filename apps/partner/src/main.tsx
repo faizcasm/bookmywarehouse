@@ -5,6 +5,7 @@ import { MotionConfig } from 'motion/react';
 import { ThemeProvider } from '@bmw/ui';
 import { App } from './App';
 import { AuthProvider } from './auth/AuthContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastProvider } from './components/Toast';
 import '@fontsource-variable/inter';
 import './styles.css';
@@ -19,10 +20,15 @@ createRoot(container).render(
   <StrictMode>
     <ThemeProvider>
       <MotionConfig reducedMotion="user">
-        <BrowserRouter basename={routerBasename || undefined}>
+        <BrowserRouter
+          basename={routerBasename || undefined}
+          future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+        >
           <ToastProvider>
             <AuthProvider>
-              <App />
+              <ErrorBoundary>
+                <App />
+              </ErrorBoundary>
             </AuthProvider>
           </ToastProvider>
         </BrowserRouter>

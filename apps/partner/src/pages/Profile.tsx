@@ -183,7 +183,7 @@ export function ProfilePage() {
             <dt>Website</dt>
             <dd>
               {profile.website ? (
-                <a href={profile.website} target="_blank" rel="noreferrer">
+                <a href={profile.website} target="_blank" rel="noopener noreferrer">
                   {profile.website}
                 </a>
               ) : (
