@@ -1,8 +1,7 @@
 /* =============================================================================
-   BookMyWarehouse design tokens — single source of truth for all three apps.
-   Light on :root, dark on [data-theme="dark"] (set by the theme bootstrap
-   script + ThemeProvider). Semantic vars flip wholesale, so components use
-   one vocabulary (bg-surface, text-muted, ...) in both themes.
+   BookMyWarehouse design tokens — BookMyStudio-inspired design language.
+   Slate-based surfaces, emerald green accent, production-focused aesthetic.
+   Light on :root, dark on [data-theme="dark"] (class-based on html element).
    Tailwind v4: @theme inline maps tokens -> utilities that read the live CSS
    var, so switching data-theme recolors the entire UI with no rebuild.
    ============================================================================= */
@@ -10,149 +9,159 @@
 :root {
   color-scheme: light;
 
-  /* Surfaces — crisp neutrals with a faint blue tint */
-  --bg: #f3f6fc;
-  --bg-grid: radial-gradient(circle at 1px 1px, rgb(15 23 42 / 0.05) 1px, transparent 0);
-  --surface: #ffffff;
-  --surface-2: #f7f9fd;
-  --surface-3: #eef2f9;
-  --glass: rgb(255 255 255 / 0.72);
-  --glass-border: rgb(255 255 255 / 0.55);
-  --blur-glass: 18px;
-  --glass-sheen: inset 0 1px 0 rgb(255 255 255 / 0.75);
+  /* Surfaces — Slate-based, production-grade */
+  --bg: #ffffff;
+  --bg-page: #f8fafc;           /* slate-50 */
+  --surface: #ffffff;           /* white */
+  --surface-2: #f8fafc;         /* slate-50 */
+  --surface-3: #f1f5f9;         /* slate-100 */
+  --surface-elevated: #ffffff;
+  --glass: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(148, 163, 184, 0.15);  /* slate-400/15 */
+  --blur-glass: 16px;
+  --glass-sheen: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 
-  /* Atmospheric backdrops — two soft brand glows for hero/section canvases */
-  --atmosphere: radial-gradient(880px 440px at 84% -10%, rgb(37 99 235 / 0.1), transparent 62%),
-    radial-gradient(720px 420px at 2% 106%, rgb(13 148 136 / 0.09), transparent 58%);
+  /* Atmospheric backdrops — subtle emerald/blue glows */
+  --atmosphere: radial-gradient(800px 400px at 85% -10%, rgba(16, 185, 129, 0.08), transparent 60%),
+    radial-gradient(600px 300px at 5% 110%, rgba(59, 130, 246, 0.06), transparent 55%);
 
-  /* Ink — deep navy text scale */
-  --fg: #0b1220;
-  --fg-strong: #030712;
-  --muted: #56627a;
-  --faint: #8a94ab;
+  /* Ink — Slate-based text scale */
+  --fg: #0f172a;                /* slate-900 */
+  --fg-strong: #020617;         /* slate-950 */
+  --muted: #64748b;             /* slate-500 */
+  --faint: #94a3b8;             /* slate-400 */
 
   /* Lines */
-  --line: #e2e8f4;
-  --line-strong: #cdd7e8;
+  --line: #e2e8f0;              /* slate-200 */
+  --line-strong: #cbd5e1;       /* slate-300 */
+  --line-subtle: #f1f5f9;       /* slate-100 */
 
-  /* Brand — electric blue (primary actions) */
-  --brand: #2563eb;
-  --brand-hover: #1d4ed8;
-  --brand-active: #1e40af;
+  /* Brand — Emerald green (primary actions) */
+  --brand: #10b981;             /* emerald-500 */
+  --brand-hover: #059669;       /* emerald-600 */
+  --brand-active: #047857;      /* emerald-700 */
   --brand-fg: #ffffff;
-  --brand-soft: #e8efff;
-  --brand-soft-fg: #1d4ed8;
-  --grad-brand: linear-gradient(135deg, #2563eb 0%, #4f46e5 55%, #4338ca 100%);
-  --grad-hero: radial-gradient(1200px 600px at 70% -10%, #dbe6ff 0%, transparent 60%),
-    radial-gradient(900px 500px at 100% 30%, #e7e5ff 0%, transparent 55%), var(--bg);
-  --shadow-brand: 0 10px 24px -10px rgb(37 99 235 / 0.55);
-  --shadow-brand-lg: 0 18px 40px -14px rgb(37 99 235 / 0.5);
+  --brand-soft: #ecfdf5;        /* emerald-50 */
+  --brand-soft-fg: #065f46;     /* emerald-800 */
+  --grad-brand: linear-gradient(135deg, #10b981 0%, #059669 55%, #047857 100%);
+  --grad-hero: radial-gradient(1000px 500px at 75% -10%, rgba(16, 185, 129, 0.12) 0%, transparent 60%),
+    radial-gradient(800px 400px at 100% 30%, rgba(59, 130, 246, 0.08) 0%, transparent 55%), var(--bg-page);
+  --shadow-brand: 0 10px 24px -10px rgba(16, 185, 129, 0.4);
+  --shadow-brand-lg: 0 18px 40px -14px rgba(16, 185, 129, 0.35);
 
-  /* Accent — teal (brand heritage: highlights, links, verified) */
-  --accent: #0d9488;
-  --accent-soft: #d9f5f1;
-  --accent-soft-fg: #0f766e;
+  /* Accent — Blue for secondary actions */
+  --accent: #3b82f6;            /* blue-500 */
+  --accent-soft: #eff6ff;       /* blue-50 */
+  --accent-soft-fg: #1e40af;    /* blue-800 */
 
   /* Status */
-  --success: #16a34a;
-  --success-soft: #dcfce7;
-  --success-soft-fg: #15803d;
-  --warning: #d97706;
-  --warning-soft: #fef3c7;
-  --warning-soft-fg: #b45309;
-  --danger: #dc2626;
-  --danger-soft: #fee2e2;
-  --danger-soft-fg: #b91c1c;
-  --info: #0284c7;
-  --info-soft: #e0f2fe;
-  --info-soft-fg: #0369a1;
-  --neutral-soft: #eef2f8;
-  --neutral-soft-fg: #475569;
+  --success: #10b981;           /* emerald-500 */
+  --success-soft: #ecfdf5;
+  --success-soft-fg: #065f46;
+  --warning: #f59e0b;
+  --warning-soft: #fffbeb;
+  --warning-soft-fg: #92400e;
+  --danger: #ef4444;
+  --danger-soft: #fef2f2;
+  --danger-soft-fg: #991b1b;
+  --info: #3b82f6;
+  --info-soft: #eff6ff;
+  --info-soft-fg: #1e40af;
+  --neutral-soft: #f1f5f9;
+  --neutral-soft-fg: #64748b;
 
   /* Elevation */
-  --shadow-sm: 0 1px 2px rgb(11 18 32 / 0.06);
-  --shadow-md: 0 2px 4px rgb(11 18 32 / 0.04), 0 12px 28px -14px rgb(11 18 32 / 0.18);
-  --shadow-lg: 0 4px 8px rgb(11 18 32 / 0.04), 0 28px 60px -22px rgb(11 18 32 / 0.28);
-  --shadow-float: 0 32px 70px -28px rgb(30 41 59 / 0.35);
-  --ring: 0 0 0 3px rgb(37 99 235 / 0.35);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 12px -4px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 12px 28px -8px rgba(15, 23, 42, 0.12), 0 4px 8px -4px rgba(15, 23, 42, 0.06);
+  --shadow-float: 0 24px 48px -16px rgba(15, 23, 42, 0.18);
+  --shadow-inner: inset 0 2px 4px rgba(15, 23, 42, 0.04);
+  --ring: 0 0 0 3px rgba(16, 185, 129, 0.3);
 
-  /* Radii */
-  --radius-sm: 10px;
-  --radius-md: 14px;
-  --radius-lg: 18px;
-  --radius-xl: 24px;
+  /* Radii — slightly tighter for production feel */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
 
-  /* Motion */
-  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Motion — snappy production feel */
+  --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --duration-fast: 150ms;
-  --duration-base: 240ms;
-  --duration-slow: 420ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 350ms;
+  --duration-anim: 650ms;
 
-  /* Type */
+  /* Type — Inter Variable with production font features */
   --font: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'Fira Code', ui-monospace, monospace;
 }
 
 [data-theme='dark'] {
   color-scheme: dark;
 
-  --bg: #070b16;
-  --bg-grid: radial-gradient(circle at 1px 1px, rgb(148 163 184 / 0.07) 1px, transparent 0);
-  --surface: #0d1424;
-  --surface-2: #121b30;
-  --surface-3: #18233d;
-  --glass: rgb(13 20 36 / 0.72);
-  --glass-border: rgb(148 163 184 / 0.16);
-  --blur-glass: 20px;
-  --glass-sheen: inset 0 1px 0 rgb(148 163 184 / 0.14);
+  --bg: #101010;                /* near-black */
+  --bg-page: #0a0a0a;           /* near-black page bg */
+  --surface: #181818;           /* dark surface */
+  --surface-2: #1c1c1c;
+  --surface-3: #262626;
+  --surface-elevated: #202020;
+  --glass: rgba(24, 24, 27, 0.85);  /* zinc-900/85 */
+  --glass-border: rgba(71, 85, 105, 0.2);  /* slate-600/20 */
+  --blur-glass: 16px;
+  --glass-sheen: inset 0 1px 0 rgba(71, 85, 105, 0.1);
 
-  --atmosphere: radial-gradient(880px 440px at 84% -10%, rgb(37 99 235 / 0.2), transparent 62%),
-    radial-gradient(720px 420px at 2% 106%, rgb(13 148 136 / 0.14), transparent 58%);
+  --atmosphere: radial-gradient(800px 400px at 85% -10%, rgba(16, 185, 129, 0.15), transparent 60%),
+    radial-gradient(600px 300px at 5% 110%, rgba(59, 130, 246, 0.1), transparent 55%);
 
-  --fg: #e9eefb;
-  --fg-strong: #f8fafc;
-  --muted: #9aa7c0;
-  --faint: #67738d;
+  --fg: #f5f5f5;                /* neutral-100 */
+  --fg-strong: #fafafa;         /* neutral-50 */
+  --muted: #a1a1aa;             /* neutral-400 */
+  --faint: #71717a;             /* neutral-500 */
 
-  --line: rgb(148 163 184 / 0.16);
-  --line-strong: rgb(148 163 184 / 0.3);
+  --line: #27272a;              /* neutral-700 */
+  --line-strong: #3f3f46;       /* neutral-600 */
+  --line-subtle: #181818;       /* neutral-800 */
 
-  --brand: #3b82f6;
-  --brand-hover: #60a5fa;
-  --brand-active: #93c5fd;
-  --brand-fg: #041024;
-  --brand-soft: rgb(59 130 246 / 0.16);
-  --brand-soft-fg: #93c5fd;
-  --grad-brand: linear-gradient(135deg, #3b82f6 0%, #6366f1 55%, #4f46e5 100%);
-  --grad-hero: radial-gradient(1200px 600px at 70% -10%, rgb(37 99 235 / 0.18) 0%, transparent 60%),
-    radial-gradient(900px 500px at 100% 30%, rgb(99 102 241 / 0.14) 0%, transparent 55%), var(--bg);
-  --shadow-brand: 0 10px 26px -10px rgb(59 130 246 / 0.6);
-  --shadow-brand-lg: 0 18px 44px -14px rgb(59 130 246 / 0.55);
+  --brand: #10b981;             /* emerald-500 */
+  --brand-hover: #34d399;       /* emerald-400 */
+  --brand-active: #6ee7b7;      /* emerald-300 */
+  --brand-fg: #052e16;
+  --brand-soft: rgba(16, 185, 129, 0.12);
+  --brand-soft-fg: #a7f3d0;     /* emerald-200 */
+  --grad-brand: linear-gradient(135deg, #10b981 0%, #34d399 55%, #6ee7b7 100%);
+  --grad-hero: radial-gradient(1000px 500px at 75% -10%, rgba(16, 185, 129, 0.18) 0%, transparent 60%),
+    radial-gradient(800px 400px at 100% 30%, rgba(59, 130, 246, 0.12) 0%, transparent 55%), var(--bg-page);
+  --shadow-brand: 0 10px 24px -10px rgba(16, 185, 129, 0.5);
+  --shadow-brand-lg: 0 18px 40px -14px rgba(16, 185, 129, 0.45);
 
-  --accent: #2dd4bf;
-  --accent-soft: rgb(45 212 191 / 0.14);
-  --accent-soft-fg: #5eead4;
+  --accent: #60a5fa;            /* blue-400 */
+  --accent-soft: rgba(59, 130, 246, 0.12);
+  --accent-soft-fg: #93c5fd;
 
-  --success: #4ade80;
-  --success-soft: rgb(74 222 128 / 0.14);
-  --success-soft-fg: #86efac;
+  --success: #10b981;
+  --success-soft: rgba(16, 185, 129, 0.12);
+  --success-soft-fg: #a7f3d0;
   --warning: #fbbf24;
-  --warning-soft: rgb(251 191 36 / 0.14);
-  --warning-soft-fg: #fcd34d;
+  --warning-soft: rgba(251, 191, 36, 0.12);
+  --warning-soft-fg: #fde047;
   --danger: #f87171;
-  --danger-soft: rgb(248 113 113 / 0.14);
+  --danger-soft: rgba(248, 113, 113, 0.12);
   --danger-soft-fg: #fca5a5;
-  --info: #38bdf8;
-  --info-soft: rgb(56 189 248 / 0.14);
-  --info-soft-fg: #7dd3fc;
-  --neutral-soft: rgb(148 163 184 / 0.14);
-  --neutral-soft-fg: #b6c2d8;
+  --info: #60a5fa;
+  --info-soft: rgba(96, 165, 250, 0.12);
+  --info-soft-fg: #93c5fd;
+  --neutral-soft: #27272a;
+  --neutral-soft-fg: #a1a1aa;
 
-  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
-  --shadow-md: 0 2px 4px rgb(0 0 0 / 0.3), 0 12px 28px -14px rgb(0 0 0 / 0.5);
-  --shadow-lg: 0 4px 8px rgb(0 0 0 / 0.3), 0 28px 60px -22px rgb(0 0 0 / 0.6);
-  --shadow-float: 0 32px 70px -28px rgb(0 0 0 / 0.7);
-  --ring: 0 0 0 3px rgb(96 165 250 / 0.45);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px -4px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 12px 28px -8px rgba(0, 0, 0, 0.5), 0 4px 8px -4px rgba(0, 0, 0, 0.3);
+  --shadow-float: 0 24px 48px -16px rgba(0, 0, 0, 0.6);
+  --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+  --ring: 0 0 0 3px rgba(16, 185, 129, 0.4);
 }
 
 /* -----------------------------------------------------------------------------
@@ -161,18 +170,22 @@
    ----------------------------------------------------------------------------- */
 @theme inline {
   --color-bg: var(--bg);
+  --color-bg-page: var(--bg-page);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
   --color-surface-3: var(--surface-3);
+  --color-surface-elevated: var(--surface-elevated);
   --color-fg: var(--fg);
   --color-fg-strong: var(--fg-strong);
   --color-muted: var(--muted);
   --color-faint: var(--faint);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
+  --color-line-subtle: var(--line-subtle);
   --color-brand: var(--brand);
   --color-brand-hover: var(--brand-hover);
   --color-brand-active: var(--brand-active);
+  --color-brand-fg: var(--brand-fg);
   --color-brand-soft: var(--brand-soft);
   --color-brand-soft-fg: var(--brand-soft-fg);
   --color-accent: var(--accent);
@@ -194,36 +207,38 @@
   --color-neutral-soft-fg: var(--neutral-soft-fg);
 
   --font-sans: var(--font);
+  --font-mono: var(--font-mono);
 
   --shadow-sm: var(--shadow-sm);
   --shadow-md: var(--shadow-md);
   --shadow-lg: var(--shadow-lg);
   --shadow-float: var(--shadow-float);
+  --shadow-inner: var(--shadow-inner);
 
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
   --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
 
   --ease-smooth: var(--ease-smooth);
   --ease-spring: var(--ease-spring);
+  --ease-out: var(--ease-out);
   --duration-fast: var(--duration-fast);
   --duration-base: var(--duration-base);
   --duration-slow: var(--duration-slow);
+  --duration-anim: var(--duration-anim);
 
   --blur-glass: var(--blur-glass);
 }
 
-/* Opt-in dark: variant for the rare utility that must differ beyond tokens. */
-@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+/* Class-based dark mode (BookMyStudio style) */
+@custom-variant dark (&:where(.dark, .dark *));
 
 /* -----------------------------------------------------------------------------
-   Glass system — refined, strategic glassmorphism shared by all three apps.
-   Use for navigation, search/filter chrome, dropdowns, modals and contextual
-   panels. Dense data (tables, forms, pricing) stays on opaque surfaces so
-   readability never loses to the effect.
+   Glass system — production-grade glassmorphism
    ----------------------------------------------------------------------------- */
-@layer components {
+@layer utilities {
   .glass {
     background: var(--glass);
     backdrop-filter: blur(var(--blur-glass)) saturate(150%);
@@ -233,29 +248,114 @@
   }
 
   .glass-strong {
-    background: color-mix(in oklab, var(--surface) 88%, transparent);
-    backdrop-filter: blur(calc(var(--blur-glass) * 1.5)) saturate(170%);
-    -webkit-backdrop-filter: blur(calc(var(--blur-glass) * 1.5)) saturate(170%);
-    border: 1px solid color-mix(in oklab, var(--glass-border) 85%, var(--line));
+    background: color-mix(in oklab, var(--surface) 92%, transparent);
+    backdrop-filter: blur(calc(var(--blur-glass) * 1.4)) saturate(160%);
+    -webkit-backdrop-filter: blur(calc(var(--blur-glass) * 1.4)) saturate(160%);
+    border: 1px solid color-mix(in oklab, var(--glass-border) 80%, var(--line));
     box-shadow: var(--glass-sheen), var(--shadow-lg);
   }
 
   .glass-inset {
-    background: color-mix(in oklab, var(--surface) 62%, transparent);
-    backdrop-filter: blur(10px) saturate(130%);
-    -webkit-backdrop-filter: blur(10px) saturate(130%);
+    background: color-mix(in oklab, var(--surface) 70%, transparent);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
     border: 1px solid var(--glass-border);
-    box-shadow: inset 0 1px 2px rgb(11 18 32 / 0.06);
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
   }
 
-  /* Soft atmospheric canvas behind heroes and feature sections. */
-  .atmosphere {
-    background-image: var(--atmosphere);
+  /* Bento card — production-grade interactive card */
+  .bento-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sm);
+    transition: all var(--duration-base) var(--ease-out);
   }
+
+  .bento-card:hover {
+    border-color: var(--line-strong);
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+  }
+
+  .bento-card-interactive {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sm);
+    transition: all var(--duration-base) var(--ease-out);
+    cursor: pointer;
+  }
+
+  .bento-card-interactive:active {
+    transform: translateY(0) scale(0.99);
+  }
+
+  /* Step indicator badge */
+  .step-badge {
+    @apply inline-flex items-center justify-center w-8 h-8 rounded-xl font-mono text-[10px] font-bold;
+    background: var(--brand-soft);
+    color: var(--brand-soft-fg);
+  }
+
+  .dark .step-badge {
+    background: rgba(16, 185, 129, 0.18);
+    color: var(--brand-soft-fg);
+  }
+
+  /* Pill nav tab */
+  .nav-pill {
+    @apply relative z-10 px-3.5 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap transition-colors duration-150;
+    color: var(--muted);
+  }
+  .nav-pill:hover {
+    color: var(--fg-strong);
+  }
+  .nav-pill-active {
+    background: var(--surface);
+    color: var(--fg-strong);
+    box-shadow: var(--shadow-xs);
+  }
+
+  /* Blob animation for hero backgrounds */
+  @keyframes blob {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(30px, -50px) scale(1.1); }
+    66% { transform: translate(-20px, 20px) scale(0.9); }
+  }
+  .animate-blob {
+    animation: blob 7s infinite;
+  }
+  .animation-delay-2000 { animation-delay: 2s; }
+  .animation-delay-4000 { animation-delay: 4s; }
 }
 
 /* -----------------------------------------------------------------------------
-   Base layer — global element defaults shared by all three apps.
+   Scroll animations — BookMyStudio style
+   ----------------------------------------------------------------------------- */
+@layer utilities {
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity var(--duration-anim) var(--ease-out),
+                transform var(--duration-anim) var(--ease-out);
+  }
+  .reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Stagger delays */
+  .stagger-0 { transition-delay: 0ms; }
+  .stagger-1 { transition-delay: 100ms; }
+  .stagger-2 { transition-delay: 200ms; }
+  .stagger-3 { transition-delay: 300ms; }
+  .stagger-4 { transition-delay: 400ms; }
+  .stagger-5 { transition-delay: 500ms; }
+}
+
+/* -----------------------------------------------------------------------------
+   Base layer — global element defaults
    ----------------------------------------------------------------------------- */
 @layer base {
   * {
@@ -265,10 +365,11 @@
   html {
     -webkit-text-size-adjust: 100%;
     text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
   }
 
   body {
-    background-color: var(--bg);
+    background-color: var(--bg-page);
     color: var(--fg);
     font-family: var(--font);
     font-feature-settings: 'cv11', 'ss01';
@@ -276,32 +377,9 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Typography defaults — tightened display headings, balanced wrapping.
-     Apps may override these with their own unlayered rules. */
-  h1,
-  h2,
-  h3 {
-    letter-spacing: -0.02em;
-    text-wrap: balance;
-  }
-
-  h4,
-  h5,
-  h6 {
-    letter-spacing: -0.01em;
-  }
-
-  b,
-  strong {
-    font-weight: 650;
-  }
-
-  p {
-    text-wrap: pretty;
-  }
-
   ::selection {
-    background: color-mix(in oklab, var(--brand) 26%, transparent);
+    background: var(--brand);
+    color: var(--brand-fg);
   }
 
   :focus-visible {
@@ -316,17 +394,17 @@
   }
 
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
   }
   ::-webkit-scrollbar-thumb {
-    background: color-mix(in oklab, var(--muted) 34%, transparent);
+    background: color-mix(in oklab, var(--muted) 30%, transparent);
     border-radius: 999px;
     border: 2px solid transparent;
     background-clip: padding-box;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: color-mix(in oklab, var(--muted) 55%, transparent);
+    background: color-mix(in oklab, var(--muted) 50%, transparent);
     background-clip: padding-box;
   }
   ::-webkit-scrollbar-track {
@@ -341,6 +419,10 @@
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
+    }
+    .reveal {
+      opacity: 1;
+      transform: none;
     }
   }
 }
