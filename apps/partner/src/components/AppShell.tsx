@@ -203,16 +203,14 @@ export function AppShell() {
 
       <div className="shell__main">
         <header className="shell__topbar">
-          <button
-            type="button"
-            className="shell__hamburger"
-            aria-label={drawerOpen ? 'Close menu' : 'Open menu'}
-            aria-controls="app-sidebar"
-            aria-expanded={drawerOpen}
-            onClick={() => setDrawerOpen((open) => !open)}
-          >
-            {drawerOpen ? <X size={20} strokeWidth={2} /> : <Menu size={20} strokeWidth={2} />}
-          </button>
+          {/* Brand sits at the navbar's left end. The sidebar carries it on
+              desktop, so it only renders here once the drawer replaces it. */}
+          <span className="shell__topbar-brand">
+            <span className="shell__topbar-brand-mark" aria-hidden="true">
+              BMW
+            </span>
+            <span className="shell__topbar-brand-text">BookMyWarehouse</span>
+          </span>
           <h1 className="shell__title">{currentTitle}</h1>
           <div className="shell__topbar-actions">
             <div className="bell" ref={bellRef}>
@@ -297,6 +295,19 @@ export function AppShell() {
                 )}
               </AnimatePresence>
             </div>
+
+            {/* Menu control sits at the navbar's right end, with the theme
+                toggle outermost — same order as the customer header. */}
+            <button
+              type="button"
+              className="shell__hamburger"
+              aria-label={drawerOpen ? 'Close menu' : 'Open menu'}
+              aria-controls="app-sidebar"
+              aria-expanded={drawerOpen}
+              onClick={() => setDrawerOpen((open) => !open)}
+            >
+              {drawerOpen ? <X size={20} strokeWidth={2} /> : <Menu size={20} strokeWidth={2} />}
+            </button>
 
             <ThemeToggle className="shell__theme-toggle" />
           </div>

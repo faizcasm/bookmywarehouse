@@ -661,6 +661,11 @@ fieldset.field {
   display: flex;
   align-items: center;
   gap: 0.45rem;
+  /* The nav's own auto margin is what pins the bar to the right edge — but the
+     nav collapses to a dropdown below 900px, so without an auto margin of its
+     own the controls packed left and left a dead gap on the right. */
+  margin-left: auto;
+  flex-shrink: 0;
 }
 .mobile-menu-btn {
   display: none;
@@ -3567,9 +3572,13 @@ fieldset.field {
    Mobile Navigation (from Header component)
    ============================================================================= */
 
-@media (max-width: 900px) {
-  .header-search {
-    display: none; }
+/* The header row collapses earlier than the rest of the layout. Tailwind's
+   `container` utility caps `.container` at 768px between 768px and 1024px of
+   viewport, and brand + inline nav + account controls measured 844px of
+   content inside that column at 970px — so the controls spilled ~93px past the
+   content's right edge while the brand stayed on its left. Moving the nav
+   links into the menu button keeps both ends on the content column. */
+@media (max-width: 1023px) {
   .mobile-menu-btn {
     display: inline-flex; }
   .header-nav {
@@ -3585,9 +3594,17 @@ fieldset.field {
     box-shadow: var(--shadow-lg);
     padding: 0.7rem;
     min-width: 210px;
+    max-width: calc(100vw - 1.5rem);
+    max-height: calc(100dvh - var(--header-h) - 1rem);
+    overflow-y: auto;
     z-index: 90; }
   .header-nav.is-open {
     display: flex; }
+}
+
+@media (max-width: 900px) {
+  .header-search {
+    display: none; }
   .hero-fields {
     grid-template-columns: 1fr; }
   .hero-submit {
@@ -4344,7 +4361,6 @@ img, video, canvas, svg { max-width: 100%; }
 @media (max-width: 900px) {
   .container { width: min(100% - 2rem, 760px); }
   .header-inner { gap: .55rem; }
-  .header-nav { max-width: calc(100vw - 1.5rem); max-height: calc(100dvh - var(--header-h) - 1rem); overflow-y: auto; }
   .hero-section { padding-block: 2.5rem 2rem; }
   .hero-title { max-width: 15ch; }
   .hero-search { border-radius: 18px; }

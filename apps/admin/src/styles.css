@@ -667,6 +667,39 @@ legend.field__label {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* The brand owns the navbar's left end. On desktop the sidebar carries it, so
+   the topbar copy stays hidden until the rail hides — then the topbar is the
+   only place the product name still shows. */
+.topbar__brand {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.topbar__brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background: var(--grad-brand);
+  color: #fff;
+  font-weight: 800;
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+}
+.topbar__brand-text {
+  min-width: 0;
+  font-weight: 750;
+  font-size: 14.5px;
+  letter-spacing: -0.01em;
+  color: var(--fg-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .topbar__actions {
   display: flex;
   align-items: center;
@@ -2283,13 +2316,30 @@ legend.field__label {
     z-index: 50;
     animation: fade-in var(--duration-fast) var(--ease-smooth) both;
   }
+  /* The backdrop (50) would otherwise sit over the topbar and swallow the
+     close click: keep the bar above the backdrop but below the rail (60). */
+  .sidebar--open ~ .shell__main .topbar {
+    z-index: 56;
+  }
   .topbar__burger {
+    display: inline-flex;
+  }
+  .topbar__brand {
     display: inline-flex;
   }
   .content {
     padding: 18px 16px 48px;
   }
   .topbar__user-name {
+    display: none;
+  }
+}
+
+/* Below ~560px the wordmark plus the right-hand controls (bell, account,
+   menu, theme) would leave the page title no room: keep the mark only. The
+   customer header keeps its wordmark because it has no page title to fit. */
+@media (max-width: 560px) {
+  .topbar__brand-text {
     display: none;
   }
 }
@@ -2819,6 +2869,24 @@ legend.field__label {
   .topbar__burger svg {
     width: 16px;
     height: 16px;
+  }
+  /* The topbar now has to hold brand + title + four controls at 320px. Trim
+     the account pill's caret and the brand mark so the page title keeps enough
+     room to show a whole word instead of "Dashb…". */
+  .topbar__chevron {
+    display: none;
+  }
+  .topbar__user-btn {
+    gap: 6px;
+    padding-inline: 6px;
+  }
+  .topbar__brand {
+    gap: 6px;
+  }
+  .topbar__brand-mark {
+    width: 24px;
+    height: 24px;
+    font-size: 9px;
   }
   .stat-card__value {
     font-size: 1.25rem;

@@ -279,6 +279,65 @@ partner dashboard (revenue = brand green, volume = accent blue).
   Replaced it with a labelled button; the native input stays in the DOM, visually hidden
   but focusable, with a focus ring on the visible label.
 
+## Sixth pass — navbar alignment: menu + theme at the right end
+
+Reported: *"menu bar and theme changer on navbar should be on right side end like the
+BookMyWarehouse [brand] is on left end of navbar."* Measured every header in Chromium
+(logged in, 1440/1023/970/768/560/390/320) before touching anything — two of the three
+apps were wrong, and the third was wrong in a way only a measurement could show.
+
+### 1. Customer: the controls were not at the right end (below 1024px)
+
+`.header-nav` owned the `margin-left: auto` that pins the row to the right edge. The nav
+collapses into a dropdown at ≤900px, and a hidden element has no auto margin — so
+`.header-actions` packed left and left dead space: **33px at 390px, 271px at 768px**
+(theme toggle ending at x=347 inside a container that ends at x=380). `.header-actions`
+now owns `margin-left: auto; flex-shrink: 0`, so the theme toggle ends exactly on the
+content column's right edge at every width, nav or no nav.
+
+### 2. Customer: the header row spilled out of its content column at 901–1023px
+
+Tailwind's `container` utility caps `.container` at 768px across that band (the app's own
+`.container` rules set width only, no max-width — the cap comes from the layered utility).
+The header still laid out brand + search + inline nav + controls, measuring **844px of
+content inside the 768px column at 970px**: the brand sat on the column's left edge while
+the controls ran ~93px past its right edge. The nav now collapses at ≤1023px (the search
+field survives until ≤900px), so the row always fits the column. Across 24 measured
+widths from 1440px to 320px: brand left == container left, actions right == container
+right, `scrollWidth == innerWidth` everywhere.
+
+### 3. Partner + admin: the menu button sat on the wrong end
+
+Both consoles put the hamburger at the topbar's *left* end, ahead of the page title, with
+only the theme toggle on the right. The menu control moved into the actions group,
+immediately before the theme toggle, so all three apps read the same way:
+brand (left) … bell, account, **menu, theme** (right end, theme outermost — the control
+order established in the fourth pass). The admin burger also gained `aria-controls`,
+`aria-expanded` and a state-dependent label.
+
+### 4. Consoles lost their brand as soon as the sidebar collapsed
+
+The brand lived only in the sidebar, so on a phone the topbar started with a bare page
+title. Added a `BMW` mark (+ `BookMyWarehouse` wordmark above 560px) at the topbar's left
+end, shown **only while the sidebar is hidden** (≤900px partner, ≤960px admin) — desktop
+never shows it twice. Below 560px the wordmark drops: mark + wordmark + four controls
+would leave the page title no room.
+
+### 5. 320px squeeze on the consoles
+
+Brand + bell + account + menu + theme left the title 61px of room for 66px of text —
+admin rendered "Dashb…" and partner broke "Dashboard" mid-word ("Dashboar / d"). The
+account pill's caret/chevron and the mark trim at ≤360px; titles now measure 92px (admin)
+and 84px (partner, at 0.9rem) of room and stay on one line, while multi-word titles keep
+the intended two-line wrap.
+
+### 6. The drawer's close button was unclickable (found while verifying)
+
+The partner scrim (z 55) and admin backdrop (z 50) both sit over the topbar (z 30), so
+once the rail opened, the X it was showing was behind the overlay — the only way out was
+tapping the scrim. The topbar now rises to z 56 *only while the rail is open*: above the
+overlay, below the sidebar (60), so the sidebar brand is never covered.
+
 ## Verification status
 
 All checks were executed in this workspace (dependencies installed, lockfile unchanged):
@@ -308,6 +367,11 @@ pass (Playwright + Chromium against the Vite dev servers) was run as well:
   3D scene keeps its horizontal framing at the stretched aspect; admin users table shows
   three distinct role hues; admin dashboard revenue line renders brand green and bookings
   bars accent blue; admin login renders its new heading.
+- Sixth pass: the three headers measured at 24 widths (1440 → 320px) — brand at the content
+  column's left edge, menu + theme toggle at its right end, `scrollWidth == innerWidth`
+  everywhere; the customer nav collapses into the menu button at ≤1023px with the search
+  field still inline at 970px; drawer/rail open-and-close clicked through at 390px in all
+  three apps; partner and admin page titles stay on one line at 320px.
 
 ## Deployment notes
 

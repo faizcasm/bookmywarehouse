@@ -202,7 +202,7 @@ export function AppShell() {
   return (
     <div className="shell">
       <ScrollToTop />
-      <aside className={`sidebar ${sidebarOpen ? 'sidebar--open' : ''}`}>
+      <aside id="admin-sidebar" className={`sidebar ${sidebarOpen ? 'sidebar--open' : ''}`}>
         <div className="sidebar__brand">
           <span className="sidebar__logo" aria-hidden="true">
             BMW
@@ -247,14 +247,14 @@ export function AppShell() {
 
       <div className="shell__main">
         <header className="topbar">
-          <button
-            type="button"
-            className="topbar__burger"
-            aria-label="Toggle navigation"
-            onClick={() => setSidebarOpen((v) => !v)}
-          >
-            {sidebarOpen ? <X size={18} aria-hidden="true" /> : <Menu size={18} aria-hidden="true" />}
-          </button>
+          {/* Brand sits at the navbar's left end. The sidebar carries it on
+              desktop, so it only renders here once the rail hides. */}
+          <span className="topbar__brand">
+            <span className="topbar__brand-mark" aria-hidden="true">
+              BMW
+            </span>
+            <span className="topbar__brand-text">BookMyWarehouse</span>
+          </span>
           <h1 className="topbar__title">{pageTitle}</h1>
           <div className="topbar__actions">
             <div className="dropdown-anchor">
@@ -357,6 +357,19 @@ export function AppShell() {
                 </div>
               ) : null}
             </div>
+
+            {/* Menu control sits at the navbar's right end, with the theme
+                toggle outermost — same order as the customer header. */}
+            <button
+              type="button"
+              className="topbar__burger"
+              aria-label={sidebarOpen ? 'Close navigation' : 'Open navigation'}
+              aria-controls="admin-sidebar"
+              aria-expanded={sidebarOpen}
+              onClick={() => setSidebarOpen((v) => !v)}
+            >
+              {sidebarOpen ? <X size={18} aria-hidden="true" /> : <Menu size={18} aria-hidden="true" />}
+            </button>
 
             <ThemeToggle />
           </div>

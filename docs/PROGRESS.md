@@ -632,3 +632,55 @@ finding below was reproduced in the browser and re-measured after the fix.
 
 - `docs/REDESIGN_NOTES.md` — new "Fifth pass — design consistency + a blank-results bug"
   section; verification block updated to 181/181.
+
+## Phase — navbar alignment pass (2026-10-23)
+
+Reported: the menu button and theme toggle belong at the *right* end of the navbar, the
+way the BookMyWarehouse brand sits at its left end. Every header was measured in Chromium
+while logged in (1440 / 1023 / 970 / 768 / 560 / 390 / 320) before changing anything.
+
+### How it was verified
+
+Playwright logged into all three SPAs with the dev accounts, screenshotted the top 110px
+of each header at seven widths, and dumped bounding boxes for the container, brand, title,
+menu button and theme toggle — plus an open/close click cycle for each drawer.
+
+### What was found and fixed
+
+1. **Customer controls were not at the right end below 1024px.** `.header-nav` held the
+   `margin-left: auto` that pins the row right; the nav collapses at ≤900px and a hidden
+   element contributes no auto margin, so `.header-actions` packed left — dead space of
+   **33px at 390px and 271px at 768px**. `.header-actions` now owns
+   `margin-left: auto; flex-shrink: 0`.
+2. **Customer header overflowed its content column at 901–1023px.** Tailwind's `container`
+   utility caps `.container` at 768px in that band while brand + inline nav + controls
+   measured 844px at 970px — controls ran ~93px past the content edge, brand did not. The
+   nav now collapses into the menu button at ≤1023px (search stays until ≤900px).
+3. **Partner and admin put the menu button on the left end**, ahead of the page title. It
+   moved into the actions group before the theme toggle, so all three apps now read
+   brand (left) … bell, account, menu, **theme** (right end). Admin's burger gained
+   `aria-controls` / `aria-expanded` and a state-dependent label.
+4. **Consoles showed no brand once the sidebar collapsed.** A `BMW` mark (wordmark above
+   560px) now sits at the topbar's left end, rendered only while the sidebar is hidden
+   (≤900px partner, ≤960px admin) so desktop never duplicates it.
+5. **Titles broke at 320px** once the mark was added: admin "Dashb…" (61px of room for
+   66px of text), partner "Dashboar / d". Caret/chevron and mark trim at ≤360px — titles
+   now measure 92px (admin) / 84px (partner) and stay on one line.
+6. **The drawer's close button was unclickable.** The scrim (z 55) / backdrop (z 50) cover
+   the topbar (z 30), so the X was behind the overlay. The topbar now rises to z 56 only
+   while the rail is open — above the overlay, below the sidebar (60).
+
+### Verification by execution
+
+- `pnpm lint` → 0 errors (2 known `no-console` warnings) · `pnpm typecheck` → 8/8.
+- `pnpm test` → **181/181** (customer 26, partner 30, admin 23, API 102).
+- `pnpm build` → 4/4 services.
+- Chromium: header measured at 24 width/app combinations — brand on the column's left edge,
+  menu + theme on its right end, `scrollWidth == innerWidth` at every width; menu button
+  opened and closed the nav at 390px in all three apps; screenshots at 1440/1023/970/768/
+  560/390/320 reviewed for all three apps.
+
+### Docs
+
+- `docs/REDESIGN_NOTES.md` — new "Sixth pass — navbar alignment: menu + theme at the right
+  end" section with the measured numbers.
