@@ -1,4 +1,4 @@
-import { Component, lazy, type ComponentType, type ErrorInfo, type LazyExoticComponent, type ReactNode } from 'react';
+import { Component, type ErrorInfo, type ReactNode } from 'react';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -50,23 +50,4 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     }
     return this.props.children;
   }
-}
-
-/**
- * `React.lazy` with one automatic retry: a transient network blip while
- * fetching a chunk must not permanently break the page.
- */
-export function lazyWithRetry<T extends ComponentType>(
-  loader: () => Promise<{ default: T }>,
-): LazyExoticComponent<T> {
-  let attempts = 0;
-  return lazy(() =>
-    loader().catch((error: unknown) => {
-      attempts += 1;
-      if (attempts > 1) throw error;
-      return new Promise((resolve) => {
-        window.setTimeout(resolve, 300);
-      }).then(loader);
-    }),
-  );
 }

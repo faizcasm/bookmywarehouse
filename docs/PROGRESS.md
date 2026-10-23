@@ -684,3 +684,47 @@ menu button and theme toggle — plus an open/close click cycle for each drawer.
 
 - `docs/REDESIGN_NOTES.md` — new "Sixth pass — navbar alignment: menu + theme at the right
   end" section with the measured numbers.
+
+## Phase — hero: 3D scene out, static showcase card in (2026-10-23)
+
+Requested: *"remove the 3d object from homepage instead add a beautiful static object or
+card type."*
+
+### What changed
+
+1. **`HeroScene.tsx` (React Three Fiber) deleted**, not bypassed. It was the customer app's
+   only code-split chunk, so it also carried the machinery built for it: `lazyWithRetry`
+   (chunk-fetch retry, no other caller in any app), `useHeroSceneMode` (reduced-motion,
+   `deviceMemory`, `saveData` and `webgl2` probes), a Suspense fallback and a second static
+   fallback path. `pnpm install` dropped **13 packages** (`three`, `@react-three/fiber`,
+   `@types/three` and their tree); the customer bundle is now one 521.73 kB chunk — the
+   831 kB three.js chunk is gone.
+2. **New `HeroShowcase.tsx`** — a zero-dependency presentational card: an inline-SVG night
+   logistics hub (gable roof, "COLD STORAGE HUB" sign, three shutters with the middle one
+   open and lit, dock levelers, branded truck, pallets, moon and skyline), overlay pills for
+   rating and verified partner, a listing summary with spec chips, price and gradient CTA,
+   and a "Booking confirmed" card straddling the art/summary seam. `aria-hidden` like the
+   scene it replaced; illustration palette is theme-independent, chrome follows tokens.
+3. **Height now comes from the column, not an aspect ratio** (`.hero-visual` min-height
+   420px, 460px + stretch at ≥1024px) since a static card has no natural ratio.
+
+### Defects found by measuring at real widths
+
+- **320px orphaned "month"** onto its own line: price 110px + CTA 117px in a 239px row, so
+  flex shrank the price by 0.3px — enough to wrap. Fixed with `flex-shrink: 0` plus a ≤360px
+  tighten; the footer row is 34.2px (one line) at 320/360/390px, was 55px.
+
+### Verification by execution
+
+- `pnpm lint` → 0 errors (2 known `no-console` warnings) · `pnpm typecheck` → 8/8.
+- `pnpm test` → **181/181** (customer 26, partner 30, admin 23, API 102). One partner
+  ListingForm test that runs >4s under parallel load got an explicit 20s timeout (it passed
+  in isolation; it was one tick from the 5s default).
+- `pnpm build` → 4/4 services.
+- Chromium: card screenshotted and measured at 1440/1024/768/390/320px in light and dark —
+  no pill collision, booking card inside its frame, one-line price row, no document
+  horizontal overflow at any width.
+
+### Docs
+
+- `docs/REDESIGN_NOTES.md` — new "Seventh pass — the hero's 3D scene is gone" section.

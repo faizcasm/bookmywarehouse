@@ -338,18 +338,75 @@ once the rail opened, the X it was showing was behind the overlay — the only w
 tapping the scrim. The topbar now rises to z 56 *only while the rail is open*: above the
 overlay, below the sidebar (60), so the sidebar brand is never covered.
 
+## Seventh pass — the hero's 3D scene is gone, replaced by a static showcase card
+
+Requested: *"remove the 3d object from homepage instead add a beautiful static object or
+card type."* The React Three Fiber scene is deleted outright, not merely bypassed, because
+a decorative hero is exactly the wrong place to spend a WebGL runtime.
+
+### What it cost before
+
+The scene was the customer app's only code-split chunk, so it also justified machinery
+that existed solely for it: `lazyWithRetry` (retry a failed chunk fetch), `useHeroSceneMode`
+(probe `prefers-reduced-motion`, `deviceMemory ≤ 4`, `saveData`, and `getContext('webgl2')`
+to decide between '3d' and 'fallback'), a Suspense fallback, and a second static fallback
+path. Removing it took **13 packages out of the lockfile** (`three`, `@react-three/fiber`,
+`@types/three` and their tree) and dropped the customer bundle to a single 521.73 kB chunk —
+the 831 kB three.js chunk no longer exists. `lazyWithRetry` went with it: it had no other
+caller in any app.
+
+### What replaced it
+
+`apps/customer/src/components/HeroShowcase.tsx` — a presentational, zero-dependency card:
+
+- **Art panel**: an inline SVG night scene of a logistics hub (gable roof with the teal
+  ridge highlight, a "COLD STORAGE HUB" sign, three shutter doors — the middle one open and
+  lit — dock bumpers and levelers, a branded outbound truck, stacked pallets, a distant
+  skyline and a moon). It is `aria-hidden` like the scene it replaced; the copy beside it
+  already says everything the mock shows, so there is nothing to announce.
+- **Overlay pills**: "★ 4.9 · 128 reviews" and "✓ Verified partner" over the art. Below
+  420px the review tail is dropped so the two pills never collide (measured: they don't at
+  any width down to 320px).
+- **Summary body**: kicker, title, three spec chips, price and a gradient CTA.
+- **A "Booking confirmed" card straddling the seam** between the art and the body — it hangs
+  out of the art box, and the frame's `overflow: hidden` keeps it inside the card.
+
+The illustration keeps its own deep-navy/emerald palette in both themes (a night scene has
+one correct appearance), while the pills, body, float and CTA are theme tokens, so the card
+follows light/dark like the rest of the page.
+
+### Layout, measured not assumed
+
+The column used to size itself from an aspect ratio (`aspect-[4/3]` → `lg:aspect-[5/4]`,
+then `aspect-ratio: auto; height: 100%` to stretch). A static card has no natural ratio, so
+`.hero-visual` now owns its height (`min-height: 420px`, `460px` and `align-self: stretch`
+at ≥1024px) and the card fills whatever the grid hands it. Two defects found and fixed only
+by measuring at real widths:
+
+1. **320px orphaned "month" onto its own line.** The price needed 110px and the CTA 117px
+   inside a 239px row; flex shrank the price by 0.3px, which is enough to wrap it. The price
+   now has `flex-shrink: 0` and the row tightens at ≤360px — the footer measures 34.2px tall
+   (one line) at 320/360/390px instead of 55px.
+2. The art gradient matches the illustration's sky, so the letterboxing that
+   `preserveAspectRatio="xMidYMid meet"` leaves on tall frames is invisible.
+
+Chromium verified at 1440/1024/768/390/320px in light and dark: no pill collision, the
+booking card stays inside its frame, and `scrollWidth == innerWidth` everywhere.
+
 ## Verification status
 
-All checks were executed in this workspace (dependencies installed, lockfile unchanged):
+All checks were executed in this workspace (seventh pass: `pnpm install` re-ran after the
+3D deps were removed, taking 13 packages out of the lockfile):
 
 ```bash
-pnpm install --frozen-lockfile   # lockfile up to date
+pnpm install                        # lockfile synced: -13 packages (three, fiber, types)
 pnpm lint                        # 0 errors (2 pre-existing no-console warnings in build scripts)
 pnpm typecheck                   # 8/8 workspace projects pass
 pnpm test                        # 181/181 (customer 26, partner 30, admin 23, API 102 —
                                  # including 3 security regression tests and the new
                                  # cross-console tone + role-hue contracts)
-pnpm build                       # API bundle + 3 Vite SPAs build clean
+pnpm build                       # API bundle + 3 Vite SPAs build clean; customer is now a
+                                 # single 521.73 kB chunk (the 831 kB three.js chunk is gone)
 ```
 
 Because a passing build says nothing about whether a class has styles, a headless-browser
@@ -372,6 +429,12 @@ pass (Playwright + Chromium against the Vite dev servers) was run as well:
   everywhere; the customer nav collapses into the menu button at ≤1023px with the search
   field still inline at 970px; drawer/rail open-and-close clicked through at 390px in all
   three apps; partner and admin page titles stay on one line at 320px.
+- Seventh pass: the hero showcase card screenshotted and measured at 1440/1024/768/390/320px
+  in light and dark — the art panel and summary never overlap the booking card, the two
+  overlay pills don't collide (the review tail drops below 420px), the price row is one line
+  at every width (34.2px, was 55px with "month" orphaned at 320px), the card stays inside
+  its frame, and `scrollWidth == innerWidth` everywhere. The customer bundle is a single
+  521.73 kB chunk; the three.js chunk and its lazy/fallback machinery are gone.
 
 ## Deployment notes
 

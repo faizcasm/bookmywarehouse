@@ -145,5 +145,7 @@ describe('ListingForm — renders per type and blocks invalid submit', () => {
     expect(payload.type).toBe('WAREHOUSE');
     expect(payload.price.amount).toBe(25);
     expect(payload.warehouse.totalCapacity).toBe(5000);
-  });
+    // userEvent types character by character; on a loaded CI box this single
+    // test legitimately needs >5s, which is the suite default.
+  }, 20_000);
 });

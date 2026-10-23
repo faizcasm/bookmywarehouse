@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Search, FileText, CreditCard, ArrowRight, Warehouse, Forklift, HardHat, ShieldCheck, Zap, Lock, LifeBuoy, ArrowUpRight, ArrowRight as ArrowRightIcon } from 'lucide-react';
@@ -12,9 +12,7 @@ import { PARTNER_APP_URL } from '../auth/AuthContext';
 import type { CategoryDTO, ListingSummaryDTO, PlatformSettingsDTO } from '../lib/types';
 import { ListingCard } from '../components/ListingCard';
 import { EmptyState, ErrorState, SkeletonGrid } from '../components/Skeleton';
-import { lazyWithRetry } from '../components/ErrorBoundary';
-
-const HeroScene = lazyWithRetry(() => import('../components/HeroScene'));
+import { HeroShowcase } from '../components/HeroShowcase';
 
 const TYPE_TABS = ['', 'WAREHOUSE', 'EQUIPMENT', 'SERVICE'] as const;
 
@@ -75,31 +73,11 @@ const wordVariant = {
   show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] as const } },
 };
 
-function useHeroSceneMode(): 'check' | '3d' | 'fallback' {
-  const [mode, setMode] = useState<'check' | '3d' | 'fallback'>('check');
-  useEffect(() => {
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const mobile = window.innerWidth < 768;
-    const nav = navigator as Navigator & { deviceMemory?: number; connection?: { saveData?: boolean } };
-    const lowPower = typeof nav.deviceMemory === 'number' && nav.deviceMemory <= 4;
-    const saveData = nav.connection?.saveData === true;
-    let webgl: boolean;
-    try {
-      webgl = Boolean(document.createElement('canvas').getContext('webgl2'));
-    } catch {
-      webgl = false;
-    }
-    setMode(!reduced && !mobile && !lowPower && !saveData && webgl ? '3d' : 'fallback');
-  }, []);
-  return mode;
-}
-
 export function HomePage() {
   const navigate = useNavigate();
   const [keyword, setKeyword] = useState('');
   const [city, setCity] = useState('');
   const [type, setType] = useState<(typeof TYPE_TABS)[number]>('');
-  const sceneMode = useHeroSceneMode();
 
   useDocumentMeta({
     title: 'BookMyWarehouse — Warehouses, Equipment & Logistics Services in India',
@@ -226,24 +204,11 @@ export function HomePage() {
               ) : null}
             </div>
 
-            {/* Right: Hero Scene / 3D Fallback */}
+            {/* Right: showcase card (static — the 3D scene it replaced shipped
+                its own WebGL bundle, capability probe and fallback path) */}
             <div className="hero-visual lg:col-span-5 reveal stagger-0">
-              <div className="hero-visual-frame relative aspect-[4/3] sm:aspect-[4/3] lg:aspect-[5/4] rounded-2xl overflow-hidden bg-gradient-to-br from-slate-900/95 to-slate-800 dark:from-slate-950 dark:to-slate-900 border border-slate-200/80 dark:border-slate-700/80">
-                {sceneMode === '3d' ? (
-                  <Suspense
-                    fallback={
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-500/10 to-blue-500/10" aria-hidden="true">
-                        <Warehouse size={64} className="text-emerald-500/50" />
-                      </div>
-                    }
-                  >
-                    <HeroScene />
-                  </Suspense>
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-500/10 to-blue-500/10" aria-hidden="true">
-                    <Warehouse size={80} className="text-emerald-500/30" />
-                  </div>
-                )}
+              <div className="hero-visual-frame rounded-2xl overflow-hidden bg-gradient-to-br from-slate-900/95 to-slate-800 dark:from-slate-950 dark:to-slate-900 border border-slate-200/80 dark:border-slate-700/80">
+                <HeroShowcase />
               </div>
             </div>
           </div>
