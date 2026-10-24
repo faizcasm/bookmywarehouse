@@ -17,8 +17,22 @@ const DEV_BASE: Record<string, string> = {
 const envApiUrl = process.env.EXPO_PUBLIC_API_URL;
 const isDev = process.env.NODE_ENV !== 'production';
 
+/**
+ * Normalise an API base URL to always end in `/api/v1` exactly once.
+ *
+ * Accepts either an origin (`https://api.example.com`) or a full base
+ * (`https://api.example.com/api/v1`), so config can't silently produce 404s
+ * by omitting the version prefix. Idempotent and strips any trailing slash.
+ */
+function withVersionPrefix(raw: string): string {
+  const trimmed = raw.replace(/\/+$/, '');
+  return /\/api\/v1$/.test(trimmed) ? trimmed : `${trimmed}/api/v1`;
+}
+
 /** Base URL for every API call, without a trailing slash. */
-export const API_BASE: string = (envApiUrl ?? (isDev ? DEV_BASE[Platform.OS] ?? DEV_BASE.default! : 'https://bookmywarehouse.vercel.app/api/v1')).replace(/\/$/, '');
+export const API_BASE: string = withVersionPrefix(
+  envApiUrl ?? (isDev ? DEV_BASE[Platform.OS] ?? DEV_BASE.default! : 'https://bookmywarehouse.vercel.app/api/v1'),
+);
 
 /** Origin (no /api/v1) used for the /health probe. */
 export const API_ORIGIN: string = API_BASE.replace(/\/api\/v1$/, '');
