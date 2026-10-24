@@ -1,0 +1,70 @@
+{
+  "expo": {
+    "name": "BookMyWarehouse",
+    "slug": "bookmywarehouse",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "bookmywarehouse",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "backgroundColor": "#f8fafc",
+    "splash": {
+      "backgroundColor": "#0a0a0a",
+      "resizeMode": "contain",
+      "image": "./assets/images/splash-icon.png"
+    },
+    "ios": {
+      "bundleIdentifier": "com.bookmywarehouse.app",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "BookMyWarehouse needs access to your photos so you can add listing and verification images.",
+        "NSCameraUsageDescription": "BookMyWarehouse needs camera access so you can capture listing and verification documents.",
+        "CFBundleAllowMixedLocalizations": true
+      }
+    },
+    "android": {
+      "package": "com.bookmywarehouse.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png",
+        "backgroundColor": "#10b981"
+      },
+      "permissions": ["READ_EXTERNAL_STORAGE", "WRITE_EXTERNAL_STORAGE", "CAMERA"],
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0a0a0a",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "BookMyWarehouse needs access to your photos so you can add listing and verification images.",
+          "cameraPermission": "BookMyWarehouse needs camera access so you can capture listing and verification documents."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      }
+    }
+  }
+}

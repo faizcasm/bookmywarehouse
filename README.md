@@ -15,6 +15,7 @@ space from **partners**, and **admins** moderate the platform.
 | `apps/customer` (`@bmw/customer`) | 5173 | Customer storefront: search, listings, bookings, payments, reviews, messages |
 | `apps/partner` (`@bmw/partner`) | 5174 | Partner workspace: onboarding, listings, availability, requests, earnings, payouts |
 | `apps/admin` (`@bmw/admin`) | 5175 | Admin console: dashboard, users, partner verification, listing moderation, disputes, payments |
+| `apps/mobile` (`@bmw/mobile`) | — | Expo (React Native) Android/iOS app for all three roles — shares the same API |
 
 Shared packages:
 
@@ -80,18 +81,29 @@ pnpm --filter @bmw/api dev
 pnpm --filter @bmw/customer dev
 pnpm --filter @bmw/partner dev
 pnpm --filter @bmw/admin dev
+pnpm --filter @bmw/mobile start   # Expo dev server (scan QR / press a|i for emulator)
 ```
 
-Open http://localhost:5173 (customer), :5174 (partner), :5175 (admin).
+Open http://localhost:5173 (customer), :5174 (partner), :5175 (admin). The mobile app
+runs on a device/emulator via Expo — see [Mobile app](#mobile-app-react-nativeexpo) below.
 
 ## Test, lint, build
 
 ```bash
 pnpm typecheck    # tsc --noEmit in every package
-pnpm lint         # eslint in every package
+pnpm lint         # eslint across the web apps + API (mobile is linted via its own config)
 pnpm test         # unit + integration tests (vitest + supertest; API tests use the MONGODB_URI test DB)
 pnpm test:e2e     # Playwright end-to-end suite (starts API + frontends)
-pnpm build        # production builds for every package
+pnpm build        # production builds for every package (incl. the mobile JS bundle via expo export)
+```
+
+The mobile app adds its own gates (it uses Expo's ESLint config, which the repo-wide
+`pnpm lint` does not cover):
+
+```bash
+pnpm --filter @bmw/mobile typecheck
+pnpm --filter @bmw/mobile lint
+pnpm --filter @bmw/mobile test
 ```
 
 API integration tests run against the database in `MONGODB_URI` with the test suffix
@@ -124,6 +136,7 @@ apps/
   customer/    Vite + React 18 + TS storefront
   partner/     Vite + React 18 + TS partner workspace
   admin/       Vite + React 18 + TS admin console
+  mobile/      Expo (React Native) Android/iOS app — TypeScript, Expo Router, TanStack Query
 packages/
   shared-types/  DTO types, enums, booking state machine
   validation/    Zod schemas shared by API and frontends
@@ -131,7 +144,59 @@ docs/
   API_REFERENCE.md   Full endpoint contract
   PROGRESS.md        Build progress log
   DEPLOYMENT.md      Vercel free-tier deployment design
+MOBILE_MIGRATION_PLAN.md    How the web product maps onto the mobile app
+MOBILE_FEATURE_AUDIT.md     Feature-by-feature parity checklist (web → mobile)
+MOBILE_API_INTEGRATION.md   How the app talks to the existing API (auth, CSRF, envelopes)
 ```
+
+## Mobile app (React Native/Expo)
+
+`apps/mobile` is an Expo (React Native) app that talks to the **same** `/api/v1` API —
+no second backend, no mock data. It covers all three roles behind a single install, routed
+by the role returned from `/auth/me`:
+
+- **Customer** — home feed, search with filters, listing detail + gallery, booking flow,
+  bookings, booking detail, invoices, favorites, reviews, messages, notifications, disputes,
+  profile / edit / change password, terms & privacy.
+- **Partner** — dashboard, listings (create + availability calendar), bookings + detail,
+  verification status, earnings, messages, profile.
+- **Admin** — dashboard, listing moderation, booking moderation, partner verification queue,
+  users, disputes, payments, categories, reviews, settings, audit log, CSV export (share sheet).
+
+Stack: TypeScript (strict), Expo Router, TanStack Query, React Hook Form + Zod (schemas
+shared with the API via `@bmw/validation`), expo-secure-store for tokens.
+
+Auth mirrors the web contract: the access token is held in memory, the rotating httpOnly
+refresh cookie (`bmw_rt`) + readable `bmw_csrf` are captured at login/refresh and stored in
+SecureStore. Ordinary requests send a pure `Bearer` token; cookies + `X-CSRF-Token` are
+replayed only on `/auth/refresh` and `/auth/logout`. See
+[`MOBILE_API_INTEGRATION.md`](MOBILE_API_INTEGRATION.md).
+
+### Run / build the mobile app
+
+```bash
+pnpm --filter @bmw/mobile start        # Expo dev server (Metro)
+pnpm --filter @bmw/mobile android      # launch on a connected Android device/emulator
+pnpm --filter @bmw/mobile ios          # launch on an iOS simulator (macOS only)
+pnpm --filter @bmw/mobile build        # expo export → JS/Hermes bundles for both platforms
+```
+
+Native release binaries are produced with a dev client or EAS:
+
+```bash
+cd apps/mobile
+npx expo prebuild --platform android   # generate android/ (gitignored) from app.json
+# then `./gradlew assembleRelease`, or use EAS Build for both platforms
+```
+
+> **Environment note.** The Android/iOS JS bundles build and export cleanly (verified
+> locally via `expo export` — Hermes bytecode produced for both platforms). Building the
+> native **release APK** requires the Android SDK + NDK (~3 GB of toolchain), and **iOS**
+> requires macOS + Xcode — neither is available in this Linux development environment, so
+> native device binaries were not produced here. Use `eas build` (Expo Application Services)
+> or a macOS/CI runner to produce signed store binaries. See [`MOBILE_FEATURE_AUDIT.md`](MOBILE_FEATURE_AUDIT.md) for the full
+> feature-by-feature audit and [`MOBILE_MIGRATION_PLAN.md`](MOBILE_MIGRATION_PLAN.md) for
+> the migration design and platform notes.
 
 ## Deployment (Vercel free tier)
 

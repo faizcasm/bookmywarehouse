@@ -15,6 +15,11 @@ export default tseslint.config(
       '**/test-results/**',
       '**/playwright-report/**',
       '**/*.d.ts',
+      // The Expo mobile app ships its own flat config (apps/mobile/eslint.config.js,
+      // eslint-config-expo) that understands its React Native / Expo module resolution
+      // and path aliases; it is linted separately via `expo lint`. The repo-wide pass
+      // below targets the web apps + API and cannot resolve the mobile `@/*` alias.
+      'apps/mobile/**',
     ],
   },
   js.configs.recommended,
