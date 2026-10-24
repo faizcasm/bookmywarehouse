@@ -8,7 +8,7 @@ import { Button, Card, ErrorState, Screen, Skeleton, TextField } from '@/compone
 import { useTheme } from '@/store/ThemeContext';
 import { getAdminSettings, updateAdminSettings } from '@/services/api/admin';
 
-function toEntries(data: Record<string, unknown>): Array<{ key: string; value: string }> {
+function toEntries(data: Record<string, unknown>): { key: string; value: string }[] {
   return Object.entries(data).map(([key, value]) => ({
     key,
     value: value == null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value),
@@ -16,7 +16,7 @@ function toEntries(data: Record<string, unknown>): Array<{ key: string; value: s
 }
 
 /** Keyed by the loaded settings so state initializes directly (no sync effect). */
-function SettingsForm({ initial }: { initial: Array<{ key: string; value: string }> }) {
+function SettingsForm({ initial }: { initial: { key: string; value: string }[] }) {
   const t = useTheme();
   const qc = useQueryClient();
   const [entries, setEntries] = useState(initial);

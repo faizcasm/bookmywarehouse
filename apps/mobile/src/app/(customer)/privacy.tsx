@@ -6,7 +6,7 @@ import { StyleSheet, Text } from 'react-native';
 import { Screen } from '@/components/ui';
 import { useTheme } from '@/store/ThemeContext';
 
-const SECTIONS: Array<{ heading: string; body: string }> = [
+const SECTIONS: { heading: string; body: string }[] = [
   {
     heading: '1. What we collect',
     body: 'We collect the information you provide when you create an account (name, email, phone), the details of bookings you make, and messages you send through the platform.',

@@ -12,3 +12,4 @@ export { ErrorState } from './ErrorState';
 export { Skeleton } from './Skeleton';
 export { Screen } from './Screen';
 export { LoadingOverlay } from './LoadingOverlay';
+export { SectionHeader } from './SectionHeader';

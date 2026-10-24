@@ -3,9 +3,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
-import { BadgeCheck, Star, MapPin } from 'lucide-react-native';
+import { BadgeCheck, Star, MapPin, ChevronLeft } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Badge, Button, Card, ErrorState, LoadingOverlay } from '@/components/ui';
@@ -16,6 +16,7 @@ import { formatMoney, formatDayLabel, humanize } from '@/utils/format';
 export default function ListingDetailScreen() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const { slug } = useLocalSearchParams<{ slug: string }>();
 
   const listing = useQuery({
@@ -58,7 +59,13 @@ export default function ListingDetailScreen() {
               }
             >
               {gallery.map((uri, i) => (
-                <Image key={i} source={{ uri }} style={styles.galleryImg} contentFit="cover" transition={200} />
+                <Image
+                  key={i}
+                  source={{ uri }}
+                  style={{ width, height: 300 }}
+                  contentFit="cover"
+                  transition={220}
+                />
               ))}
             </ScrollView>
             {gallery.length > 1 ? (
@@ -76,10 +83,21 @@ export default function ListingDetailScreen() {
             ) : null}
           </>
         ) : (
-          <View style={[styles.galleryImg, styles.galleryFallback, { backgroundColor: t.surface3 }]}>
+          <View style={{ width, height: 300, ...styles.galleryFallback, backgroundColor: t.surface3 }}>
             <Text style={{ color: t.faint }}>No images</Text>
           </View>
         )}
+
+        {/* Floating back button */}
+        <Pressable
+          onPress={() => router.back()}
+          style={[styles.backBtn, { backgroundColor: t.surface, top: insets.top + 8 }]}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <ChevronLeft size={22} color={t.fg} />
+        </Pressable>
 
         <View style={styles.body}>
           <View style={styles.titleRow}>
@@ -177,8 +195,16 @@ export default function ListingDetailScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  galleryImg: { width: 400, height: 280 },
   galleryFallback: { alignItems: 'center', justifyContent: 'center' },
+  backBtn: {
+    position: 'absolute',
+    left: 16,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: 6, paddingVertical: 10 },
   dot: { width: 8, height: 8, borderRadius: 4 },
   body: { padding: 16, gap: 10 },

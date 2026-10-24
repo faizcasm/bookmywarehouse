@@ -39,7 +39,7 @@ export default function AdminListingsScreen() {
     );
   }
 
-  const items = (listings.data?.items ?? []) as Array<Record<string, unknown>>;
+  const items = (listings.data?.items ?? []) as Record<string, unknown>[];
 
   return (
     <Screen scroll>

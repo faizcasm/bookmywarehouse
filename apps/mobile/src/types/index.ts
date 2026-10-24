@@ -8,6 +8,16 @@
  * serializer output) — see MOBILE_API_INTEGRATION.md.
  */
 
+import type {
+  Role,
+  ListingType,
+  ListingStatus,
+  BookingStatus,
+  PaymentStatus,
+  VerificationStatus,
+  Currency,
+} from '@bmw/shared-types';
+
 export {
   ROLES,
   LISTING_TYPES,
@@ -20,16 +30,6 @@ export {
   DEFAULT_CURRENCY,
   toMinorUnits,
   toMajorUnits,
-} from '@bmw/shared-types';
-
-import type {
-  Role,
-  ListingType,
-  ListingStatus,
-  BookingStatus,
-  PaymentStatus,
-  VerificationStatus,
-  Currency,
 } from '@bmw/shared-types';
 
 export type {

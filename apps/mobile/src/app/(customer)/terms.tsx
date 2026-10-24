@@ -6,7 +6,7 @@ import { StyleSheet, Text } from 'react-native';
 import { Screen } from '@/components/ui';
 import { useTheme } from '@/store/ThemeContext';
 
-const SECTIONS: Array<{ heading: string; body: string }> = [
+const SECTIONS: { heading: string; body: string }[] = [
   {
     heading: '1. Acceptance of terms',
     body: 'By creating an account or booking space through BookMyWarehouse, you agree to these terms. If you are using the platform on behalf of a business, you confirm you are authorised to bind that business.',

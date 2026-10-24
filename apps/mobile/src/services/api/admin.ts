@@ -88,8 +88,8 @@ export function resolveDispute(id: string, resolution: string): Promise<void> {
   return api.post(`/admin/disputes/${encodeURIComponent(id)}/resolve`, { resolution });
 }
 
-export function listAdminCategories(): Promise<Array<{ id: string; name: string; slug: string; parentId?: string }>> {
-  return api.get<{ items: Array<{ id: string; name: string; slug: string; parentId?: string }> }>('/admin/categories').then((d) => d.items);
+export function listAdminCategories(): Promise<{ id: string; name: string; slug: string; parentId?: string }[]> {
+  return api.get<{ items: { id: string; name: string; slug: string; parentId?: string }[] }>('/admin/categories').then((d) => d.items);
 }
 
 export function createCategory(input: { name: string; slug: string; parentId?: string }): Promise<Record<string, unknown>> {
