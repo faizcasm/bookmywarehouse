@@ -2,7 +2,6 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Search, FileText, CreditCard, ArrowRight, Warehouse, Forklift, HardHat, ShieldCheck, Zap, Lock, LifeBuoy, ArrowUpRight, ArrowRight as ArrowRightIcon } from 'lucide-react';
-import { fadeUp, stagger, fadeSoft } from '@bmw/ui';
 import { api } from '../lib/api';
 import { useAsyncData } from '../lib/useAsyncData';
 import { useDocumentMeta } from '../lib/useDocumentMeta';
@@ -232,29 +231,27 @@ export function HomePage() {
             {STEPS.map((step, index) => (
               <motion.div
                 key={step.title}
-                className="bento-card-interactive p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-lg dark:hover:shadow-[0_12px_36px_rgba(0,0,0,0.45)] space-y-4 relative h-full flex flex-col justify-between"
+                className="bento-card-interactive p-6 h-full"
                 initial={{ opacity: 0, y: 24 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 650, delay: index * 100, ease: [0.16, 1, 0.3, 1] }}
               >
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
-                      <step.icon size={18} className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
-                    </div>
-                    <span className="font-mono text-xs font-bold text-slate-400 dark:text-slate-500">
-                      STEP <span className="text-emerald-600 dark:text-emerald-400">{step.step}</span>
-                    </span>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center">
+                    <step.icon size={18} className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
                   </div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">{step.title}</h3>
-                  <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{step.body}</p>
+                  <span className="font-mono text-xs font-bold text-slate-400 dark:text-slate-500">
+                    STEP <span className="text-emerald-600 dark:text-emerald-400">{step.step}</span>
+                  </span>
                 </div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">{step.title}</h3>
+                <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{step.body}</p>
               </motion.div>
             ))}
           </div>
 
           <div className="mt-8 reveal">
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 text-sm text-slate-500 dark:text-slate-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bento-card-interactive">
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 text-sm text-slate-500 dark:text-slate-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <span className="flex items-center gap-2">
                 <strong className="text-slate-800 dark:text-white">Booking Transparency:</strong>
                 <span>Submitting a request initiates facility coordination. Final confirmation and access details issued upon partner schedule approval and COI verification.</span>
@@ -297,17 +294,17 @@ export function HomePage() {
                     <Link
                       key={category.id}
                       to={`/search?categoryId=${category.id}&type=${category.type}`}
-                      className="bento-card-interactive p-5 space-y-3"
+                      className="bento-card-interactive p-5 flex flex-col gap-3 h-full"
                     >
                       <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center">
                         <CategoryIcon size={20} className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
                       </div>
-                      <div>
+                      <div className="flex flex-col gap-1.5 flex-1">
                         <h3 className="font-semibold text-slate-900 dark:text-white">{category.name}</h3>
                         {category.description ? (
                           <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">{category.description}</p>
                         ) : null}
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-auto pt-1">
                           <span className="font-mono">→</span>
                           {listingTypeLabel(category.type)}
                           {typeof category.listingCount === 'number'
@@ -356,8 +353,14 @@ export function HomePage() {
               />
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {(featured.data?.items ?? []).map((listing) => (
-                  <motion.div key={listing.id} variants={fadeSoft} className="reveal stagger-1">
+                {(featured.data?.items ?? []).map((listing, index) => (
+                  <motion.div
+                    key={listing.id}
+                    className="h-full"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.06, ease: [0.16, 1, 0.3, 1] }}
+                  >
                     <ListingCard listing={listing} />
                   </motion.div>
                 ))}
@@ -381,7 +384,7 @@ export function HomePage() {
             {VALUE_PROPS.map((prop) => (
               <motion.div
                 key={prop.title}
-                className="bento-card-interactive p-6 space-y-3"
+                className="bento-card-interactive p-6 flex flex-col gap-3 h-full"
                 initial={{ opacity: 0, y: 24 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 650, delay: 100, ease: [0.16, 1, 0.3, 1] }}

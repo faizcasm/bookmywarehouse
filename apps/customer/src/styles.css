@@ -547,8 +547,24 @@ fieldset.field {
   transform: translateY(-2px);
 }
 
+/* Interactive card — same visual treatment as .bento-card plus pointer affordance.
+   Used standalone (categories, value props, partner benefits) so it must carry the
+   full card look itself, not just the cursor. */
 .bento-card-interactive {
   cursor: pointer;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform var(--duration-base) var(--ease-out),
+    box-shadow var(--duration-base) var(--ease-out),
+    border-color var(--duration-base) var(--ease-out);
+}
+.bento-card-interactive:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
 }
 .bento-card-interactive:active {
   transform: translateY(0) scale(0.99);
@@ -1503,26 +1519,6 @@ fieldset.field {
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
 }
 
-/* Bento card - BookMyStudio style */
-.bento-card {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
-  transition: all var(--duration-base) var(--ease-out);
-}
-
-.bento-card:hover {
-  border-color: var(--line-strong);
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-2px);
-}
-
-.bento-card-interactive {
-  cursor: pointer; }
-.bento-card-interactive:active {
-  transform: translateY(0) scale(0.99); }
-
 /* Step badge */
 .step-badge {
   display: inline-flex;
@@ -1702,6 +1698,7 @@ fieldset.field {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  height: 100%;
   transition:
     transform var(--duration-base) var(--ease-smooth),
     box-shadow var(--duration-base) var(--ease-smooth),
