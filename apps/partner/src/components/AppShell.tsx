@@ -154,9 +154,7 @@ export function AppShell() {
     <div className={`shell ${drawerOpen ? 'shell--drawer-open' : ''}`}>
       <div className="shell__sidebar" id="app-sidebar">
         <div className="shell__brand">
-          <span className="shell__brand-mark" aria-hidden="true">
-            BMW
-          </span>
+          <img className="shell__brand-mark" src="/icons/icon-192.png" alt="" aria-hidden="true" />
           <div className="shell__brand-text">
             <strong>BookMyWarehouse</strong>
             <span>Partner console</span>
@@ -206,9 +204,7 @@ export function AppShell() {
           {/* Brand sits at the navbar's left end. The sidebar carries it on
               desktop, so it only renders here once the drawer replaces it. */}
           <span className="shell__topbar-brand">
-            <span className="shell__topbar-brand-mark" aria-hidden="true">
-              BMW
-            </span>
+            <img className="shell__topbar-brand-mark" src="/icons/icon-192.png" alt="" aria-hidden="true" />
             <span className="shell__topbar-brand-text">BookMyWarehouse</span>
           </span>
           <h1 className="shell__title">{currentTitle}</h1>

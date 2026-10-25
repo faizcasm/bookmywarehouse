@@ -199,6 +199,12 @@ export interface Invoice {
 
 /* ------------------------------ communication ----------------------------- */
 
+export interface Favorite {
+  id: string;
+  listing: ListingSummary;
+  createdAt: string;
+}
+
 export interface Conversation {
   id: string;
   counterpartyName: string;

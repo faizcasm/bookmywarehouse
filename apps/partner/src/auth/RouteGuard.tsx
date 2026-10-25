@@ -12,6 +12,7 @@ function loginUrlWithNext(pathname: string, search = ''): string {
 export function FullPageLoader({ label = 'Loading…' }: { label?: string }) {
   return (
     <div className="fullpage-loader" role="status" aria-live="polite">
+      <img className="fullpage-loader__logo" src="/icons/icon-192.png" alt="" aria-hidden="true" />
       <div className="spinner" aria-hidden="true" />
       <p>{label}</p>
     </div>

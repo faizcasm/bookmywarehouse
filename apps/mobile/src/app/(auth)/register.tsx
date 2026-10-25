@@ -5,6 +5,7 @@ import { Link, router } from 'expo-router';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, TextField } from '@/components/ui';
@@ -38,7 +39,7 @@ export default function RegisterScreen() {
     setFormError(null);
     try {
       const user = await register(values);
-      if (user.role === 'PARTNER') router.replace('/(partner)/dashboard');
+      if (user.role === 'PARTNER') router.replace('/(partner)/(tabs)');
       else router.replace('/(customer)/(tabs)');
     } catch (err) {
       if (err instanceof ApiError) {
@@ -50,7 +51,7 @@ export default function RegisterScreen() {
           setFormError(err.message);
         }
       } else {
-        setFormError('Something went wrong. Please try again.');
+        setFormError(err instanceof Error ? err.message : 'Unable to reach the API. Check that the API is running and try again.');
       }
     }
   });
@@ -62,6 +63,7 @@ export default function RegisterScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
+          <Image source={require('../../../assets/images/icon.png')} style={styles.logo} contentFit="cover" />
           <Text style={[styles.brand, { color: t.brand }]}>BookMyWarehouse</Text>
           <Text style={[styles.title, { color: t.fgStrong }]}>Create your account</Text>
         </View>
@@ -150,6 +152,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { padding: 24, gap: 16 },
   header: { gap: 4, marginBottom: 8 },
+  logo: { width: 72, height: 72, borderRadius: 18, marginBottom: 8 },
   brand: { fontSize: 14, fontWeight: '700', letterSpacing: 0.5 },
   title: { fontSize: 26, fontWeight: '700' },
   errorBox: { padding: 12, borderRadius: 12 },

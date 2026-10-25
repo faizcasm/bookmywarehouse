@@ -77,7 +77,7 @@ export default function AdminDashboardScreen() {
         <Stat label="GMV" value={gmoney('gmvMinor')} />
       </View>
 
-      <Card onPress={() => router.push('/(admin)/verifications')} style={styles.shortcut}>
+      <Card onPress={() => router.push('/(admin)/(tabs)/verifications')} style={styles.shortcut}>
         <Text style={{ color: t.fgStrong, fontWeight: '700' }}>
           {pendingVerifications} verification{pendingVerifications === 1 ? '' : 's'} pending review
         </Text>

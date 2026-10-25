@@ -626,13 +626,12 @@ fieldset.field {
   letter-spacing: -0.02em;
 }
 .brand-mark {
+  width: 2.35rem;
+  height: 2.35rem;
+  object-fit: cover;
   background: var(--grad-brand);
-  color: var(--brand-fg);
-  font-size: 0.7rem;
-  font-weight: 800;
   border-radius: var(--radius-sm);
-  padding: 0.38rem 0.5rem;
-  letter-spacing: 0.06em;
+  padding: 0;
   box-shadow: var(--shadow-brand);
 }
 .brand-accent {
@@ -1982,6 +1981,13 @@ fieldset.field {
   gap: 0.7rem;
   padding: 4rem 1rem;
   color: var(--muted);
+}
+.page-loader__logo {
+  width: 76px;
+  height: 76px;
+  object-fit: cover;
+  border-radius: 18px;
+  box-shadow: var(--shadow-md);
 }
 .spinner {
   width: 34px;

@@ -82,6 +82,7 @@ export function ErrorState({
 export function PageLoader({ label = 'Loading…' }: { label?: string }) {
   return (
     <div className="page-loader" role="status" aria-live="polite">
+      <img className="page-loader__logo" src="/icons/icon-192.png" alt="" aria-hidden="true" />
       <div className="spinner" aria-hidden="true" />
       <span>{label}</span>
     </div>

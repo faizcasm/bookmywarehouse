@@ -13,6 +13,7 @@ export function RequireAdmin() {
   if (loading) {
     return (
       <div className="route-splash" role="status" aria-live="polite">
+        <img className="route-splash__logo" src="/icons/icon-192.png" alt="" aria-hidden="true" />
         <div className="route-splash__spinner" aria-hidden="true" />
         <p>Checking session…</p>
       </div>
@@ -35,6 +36,7 @@ export function RequireGuest() {
   if (loading) {
     return (
       <div className="route-splash" role="status" aria-live="polite">
+        <img className="route-splash__logo" src="/icons/icon-192.png" alt="" aria-hidden="true" />
         <div className="route-splash__spinner" aria-hidden="true" />
         <p>Checking session…</p>
       </div>

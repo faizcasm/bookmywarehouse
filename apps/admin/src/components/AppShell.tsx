@@ -204,9 +204,7 @@ export function AppShell() {
       <ScrollToTop />
       <aside id="admin-sidebar" className={`sidebar ${sidebarOpen ? 'sidebar--open' : ''}`}>
         <div className="sidebar__brand">
-          <span className="sidebar__logo" aria-hidden="true">
-            BMW
-          </span>
+          <img className="sidebar__logo" src="/icons/icon-192.png" alt="" aria-hidden="true" />
           <div>
             <div className="sidebar__name">BookMyWarehouse</div>
             <div className="sidebar__tag">Admin console</div>
@@ -250,9 +248,7 @@ export function AppShell() {
           {/* Brand sits at the navbar's left end. The sidebar carries it on
               desktop, so it only renders here once the rail hides. */}
           <span className="topbar__brand">
-            <span className="topbar__brand-mark" aria-hidden="true">
-              BMW
-            </span>
+            <img className="topbar__brand-mark" src="/icons/icon-192.png" alt="" aria-hidden="true" />
             <span className="topbar__brand-text">BookMyWarehouse</span>
           </span>
           <h1 className="topbar__title">{pageTitle}</h1>

@@ -54,7 +54,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
 
         <div className="auth-brand-copy">
           <div className="brand brand-footer auth-brand-mark">
-            <span className="brand-mark">BMW</span>
+            <img className="brand-mark" src="/icons/icon-192.png" alt="" />
             <span className="brand-text">
               BookMy<span className="brand-accent">Warehouse</span>
             </span>

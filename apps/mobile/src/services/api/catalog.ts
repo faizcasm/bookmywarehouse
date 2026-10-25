@@ -1,28 +1,38 @@
 /** Public catalog (discovery) endpoints. */
 
+import type { AvailabilityExceptionDTO, AvailabilityRuleDTO, ListingDetailDTO, ListingSummaryDTO } from '@bmw/shared-types';
+
 import { api } from './client';
+import { buildAvailabilitySlots, toListingDetail, toListingSummary } from './normalize';
 import type { ListingSummary, ListingDetail, Category, AvailabilitySlot, Paginated } from '@/types';
 import type { QueryParams } from './client';
 
 export function searchListings(query: QueryParams): Promise<Paginated<ListingSummary>> {
-  return api.get<Paginated<ListingSummary>>('/catalog/search', query);
+  return api.getPaged<ListingSummaryDTO>('/catalog/search', query).then((dto) => ({
+    items: dto.items.map(toListingSummary),
+    meta: dto.meta,
+  }));
 }
 
 export function getListing(slug: string): Promise<ListingDetail> {
-  return api.get<ListingDetail>(`/catalog/listings/${encodeURIComponent(slug)}`);
+  return api.get<ListingDetailDTO>(`/catalog/listings/${encodeURIComponent(slug)}`).then(toListingDetail);
 }
 
 export function getListingAvailability(
   slug: string,
   query?: QueryParams,
 ): Promise<AvailabilitySlot[]> {
+  const days = Number(query?.days) > 0 ? Number(query?.days) : 14;
   return api
-    .get<{ items: AvailabilitySlot[] }>(`/catalog/listings/${encodeURIComponent(slug)}/availability`, query)
-    .then((d) => d.items);
+    .get<{ rules?: AvailabilityRuleDTO[]; blockedDates?: AvailabilityExceptionDTO[] }>(
+      `/catalog/listings/${encodeURIComponent(slug)}/availability`,
+      query,
+    )
+    .then((d) => buildAvailabilitySlots(d.rules ?? [], d.blockedDates ?? [], days));
 }
 
 export function getCategories(): Promise<Category[]> {
-  return api.get<{ items: Category[] }>('/catalog/categories').then((d) => d.items);
+  return api.getPaged<Category>('/catalog/categories').then((d) => d.items);
 }
 
 export function getCities(): Promise<string[]> {

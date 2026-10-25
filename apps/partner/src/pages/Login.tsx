@@ -52,9 +52,7 @@ export function LoginPage() {
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       >
         <div className="auth-card__brand">
-          <span className="shell__brand-mark" aria-hidden="true">
-            BMW
-          </span>
+          <img className="shell__brand-mark" src="/icons/icon-192.png" alt="" aria-hidden="true" />
           <div>
             <strong>BookMyWarehouse</strong>
             <span>Partner console</span>

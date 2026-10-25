@@ -131,9 +131,7 @@ export function Header() {
     >
       <div className="container header-inner">
         <Link to="/" className="brand" aria-label="BookMyWarehouse home">
-          <span className="brand-mark" aria-hidden="true">
-            BMW
-          </span>
+          <img className="brand-mark" src="/icons/icon-192.png" alt="" aria-hidden="true" />
           <span className="brand-text">
             BookMy<span className="brand-accent">Warehouse</span>
           </span>

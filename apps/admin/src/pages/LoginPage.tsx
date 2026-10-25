@@ -64,9 +64,7 @@ export function LoginPage() {
         transition={transition(0.5)}
       >
         <div className="login-card__brand">
-          <span className="sidebar__logo" aria-hidden="true">
-            BMW
-          </span>
+          <img className="sidebar__logo" src="/icons/icon-192.png" alt="" aria-hidden="true" />
           <div>
             <p className="login-card__sub">BookMyWarehouse operations</p>
           </div>

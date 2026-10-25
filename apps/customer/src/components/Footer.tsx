@@ -7,9 +7,7 @@ export function Footer() {
       <div className="container footer-grid">
         <div>
           <div className="brand brand-footer">
-            <span className="brand-mark" aria-hidden="true">
-              BMW
-            </span>
+            <img className="brand-mark" src="/icons/icon-192.png" alt="" aria-hidden="true" />
             <span className="brand-text">
               BookMy<span className="brand-accent">Warehouse</span>
             </span>
