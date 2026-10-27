@@ -352,7 +352,14 @@ export default function SearchScreen() {
                   <History size={15} color={t.muted} />
                   <Text style={[styles.discoveryHeading, { color: t.fgStrong }]}>Recent searches</Text>
                 </View>
-                <Pressable onPress={clearRecentSearches} accessibilityRole="button" hitSlop={8}>
+                <Pressable
+                  onPress={clearRecentSearches}
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear recent searches"
+                  hitSlop={8}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                >
+                  <Trash2 size={12} color={t.brand} />
                   <Text style={{ color: t.brand, fontSize: 12, fontWeight: '700' }}>Clear</Text>
                 </Pressable>
               </View>
