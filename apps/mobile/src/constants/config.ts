@@ -53,4 +53,6 @@ export const APP_NAME = 'BookMyWarehouse';
 export const STORAGE_KEYS = {
   theme: 'bmw-theme',
   lastCity: 'bmw-last-city',
+  recentSearches: 'bmw-recent-searches-v1',
+  savedSearches: 'bmw-saved-searches-v1',
 } as const;
