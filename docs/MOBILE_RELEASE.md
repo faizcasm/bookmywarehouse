@@ -33,7 +33,7 @@ Run from the repository root:
 ```bash
 pnpm --filter @bmw/mobile typecheck
 pnpm --filter @bmw/mobile lint
-pnpm --filter @bmw/mobile test -- --runInBand
+pnpm --filter @bmw/mobile exec jest --runInBand
 pnpm --filter @bmw/mobile build
 ```
 
