@@ -38,6 +38,17 @@ export function Card({ children, onPress, style, padded = true, elevated }: Card
           style,
         ]}
       >
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 14,
+            right: 14,
+            height: 1,
+            backgroundColor: t.name === 'dark' ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.95)',
+          }}
+        />
         {children}
       </Pressable>
     );
