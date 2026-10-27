@@ -7,7 +7,7 @@
 
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { Search, ArrowRight, Store } from 'lucide-react-native';
+import { Search, ArrowRight, Store, MapPin, Sparkles } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -23,7 +23,7 @@ import {
   Skeleton,
 } from '@/components/ui';
 import { useTheme } from '@/store/ThemeContext';
-import { getCategories, getPlatformSettings, searchListings } from '@/services/api/catalog';
+import { getCategories, getPlatformSettings, searchListings, POPULAR_CITIES } from '@/services/api/catalog';
 import { formatNumber } from '@/utils/format';
 
 export default function HomeScreen() {
@@ -61,7 +61,28 @@ export default function HomeScreen() {
       {announcement ? <Banner tone="info" message={announcement} /> : null}
 
       {/* Hero */}
-      <View style={styles.hero}>
+      <View
+        style={[
+          styles.hero,
+          {
+            backgroundColor: t.name === 'dark' ? 'rgba(24,24,24,0.70)' : 'rgba(255,255,255,0.68)',
+            borderColor: t.name === 'dark' ? 'rgba(255,255,255,0.11)' : 'rgba(255,255,255,0.92)',
+          },
+        ]}
+      >
+        <View
+          pointerEvents="none"
+          style={[
+            styles.heroOrb,
+            { backgroundColor: t.name === 'dark' ? 'rgba(16,185,129,0.10)' : 'rgba(16,185,129,0.08)' },
+          ]}
+        />
+        <View style={[styles.heroEyebrow, { backgroundColor: t.brandSoft, borderColor: t.line }]}>
+          <Sparkles size={13} color={t.brandSoftFg} />
+          <Text style={{ color: t.brandSoftFg, fontSize: 11, fontWeight: '800', letterSpacing: 0.8 }}>
+            BOOKMYWAREHOUSE
+          </Text>
+        </View>
         <Text style={[styles.heroTitle, { color: t.fgStrong }]}>
           Find space for{'\n'}anything
         </Text>
@@ -72,8 +93,11 @@ export default function HomeScreen() {
           onPress={() => router.push('/(customer)/(tabs)/search')}
           style={({ pressed }) => [
             styles.searchBar,
-            { backgroundColor: t.surface, borderColor: pressed ? t.lineStrong : t.line },
-            pressed && { opacity: 0.9 },
+            {
+              backgroundColor: t.name === 'dark' ? 'rgba(255,255,255,0.055)' : 'rgba(255,255,255,0.76)',
+              borderColor: pressed ? t.lineStrong : t.name === 'dark' ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.96)',
+            },
+            pressed && { opacity: 0.9, transform: [{ scale: 0.995 }] },
           ]}
           accessibilityRole="button"
           accessibilityLabel="Search listings"
@@ -118,7 +142,10 @@ export default function HomeScreen() {
                 }
                 style={({ pressed }) => [
                   styles.catChip,
-                  { backgroundColor: t.surface, borderColor: pressed ? t.lineStrong : t.line },
+                  {
+                  backgroundColor: t.name === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.76)',
+                  borderColor: pressed ? t.lineStrong : t.name === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.92)',
+                },
                   pressed && { opacity: 0.9 },
                 ]}
                 accessibilityRole="button"
@@ -140,7 +167,42 @@ export default function HomeScreen() {
         </View>
       ) : null}
 
-      {/* Featured — 2-up grid */}
+      {/* Quick city entry points make logistics-market discovery one tap. */}
+      <View>
+        <SectionHeader title="Explore by city" />
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.cityRow}
+        >
+          {POPULAR_CITIES.slice(0, 8).map((city) => (
+            <Pressable
+              key={city}
+              onPress={() =>
+                router.push({
+                  pathname: '/(customer)/(tabs)/search',
+                  params: { city },
+                })
+              }
+              style={({ pressed }) => [
+                styles.cityChip,
+                {
+                  backgroundColor: t.name === 'dark' ? 'rgba(255,255,255,0.055)' : 'rgba(255,255,255,0.72)',
+                  borderColor: pressed ? t.brand : t.line,
+                },
+                pressed && { opacity: 0.85, transform: [{ scale: 0.99 }] },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={`Explore warehouse and equipment listings in ${city}`}
+            >
+              <MapPin size={14} color={t.brand} />
+              <Text style={{ color: t.fg, fontSize: 13, fontWeight: '700' }}>{city}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Featured — 2-up grid */ }
       <View>
         <SectionHeader
           title="Featured spaces"
@@ -198,27 +260,72 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  hero: { gap: 6, paddingTop: 8, paddingBottom: 4 },
-  heroTitle: { fontSize: 30, fontWeight: '800', lineHeight: 36, letterSpacing: -0.6 },
-  heroSub: { fontSize: 15, lineHeight: 21 },
+  hero: {
+    position: 'relative',
+    overflow: 'hidden',
+    gap: 8,
+    padding: 18,
+    borderWidth: 1,
+    borderRadius: 26,
+    marginTop: 2,
+    marginBottom: 4,
+    shadowColor: '#047857',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
+    elevation: 2,
+  },
+  heroOrb: {
+    position: 'absolute',
+    top: -46,
+    right: -42,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+  },
+  heroEyebrow: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: 2,
+  },
+  heroTitle: { fontSize: 32, fontWeight: '900', lineHeight: 38, letterSpacing: -0.9 },
+  heroSub: { fontSize: 15, lineHeight: 22, maxWidth: 340 },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     borderWidth: 1,
-    borderRadius: 16,
+    borderRadius: 18,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    marginTop: 12,
+    minHeight: 58,
+    marginTop: 10,
   },
   searchIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
+    width: 38,
+    height: 38,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
   },
   catRow: { gap: 10, paddingRight: 8 },
+  cityRow: { gap: 8, paddingRight: 8 },
+  cityChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 13,
+    paddingVertical: 10,
+    minHeight: 42,
+  },
   catChip: {
     borderWidth: 1,
     borderRadius: 14,
