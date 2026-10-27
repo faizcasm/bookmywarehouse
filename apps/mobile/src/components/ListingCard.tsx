@@ -11,7 +11,7 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Star, BadgeCheck, MapPin, Heart } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
 import { Card } from '@/components/ui';
 import { useTheme } from '@/store/ThemeContext';
@@ -32,11 +32,9 @@ function ListingFavorite({ listing }: { listing: ListingSummary }) {
   const t = useTheme();
   const { user } = useSession();
   const queryClient = useQueryClient();
+  // Keep the card responsive to the user's tap; a refetched listing remounts
+  // from the server's canonical isFavorite value when the query cache changes.
   const [isFavorite, setIsFavorite] = useState(Boolean(listing.isFavorite));
-
-  useEffect(() => {
-    setIsFavorite(Boolean(listing.isFavorite));
-  }, [listing.id, listing.isFavorite]);
 
   const mutation = useMutation({
     mutationFn: () => toggleFavorite(listing.id),
