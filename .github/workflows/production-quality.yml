@@ -84,6 +84,14 @@ jobs:
           pnpm --filter @bmw/partner build
           pnpm --filter @bmw/admin build
 
+      - name: Verify Vercel deployment artifacts
+        run: |
+          test -s apps/api/dist/app.js
+          test -s apps/api/dist/server.js
+          test -s apps/customer/dist/index.html
+          test -s apps/partner/dist/partner/index.html
+          test -s apps/admin/dist/admin/index.html
+
       - name: Export mobile bundles
         working-directory: apps/mobile
         env:
