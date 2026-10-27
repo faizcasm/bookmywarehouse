@@ -62,26 +62,26 @@ describe('status → tone maps', () => {
     expect(BOOKING_STATUS_META.CONFIRMED).toEqual({ label: 'Confirmed', tone: 'success' });
     expect(BOOKING_STATUS_META.IN_PROGRESS).toEqual({ label: 'In progress', tone: 'info' });
     expect(BOOKING_STATUS_META.COMPLETED).toEqual({ label: 'Completed', tone: 'success' });
-    expect(BOOKING_STATUS_META.CANCELLED.tone).toBe('neutral');
-    expect(BOOKING_STATUS_META.REJECTED.tone).toBe('danger');
-    expect(BOOKING_STATUS_META.DISPUTED.tone).toBe('danger');
+    expect(BOOKING_STATUS_META.CANCELLED!.tone).toBe('neutral');
+    expect(BOOKING_STATUS_META.REJECTED!.tone).toBe('danger');
+    expect(BOOKING_STATUS_META.DISPUTED!.tone).toBe('danger');
   });
 
   it('locks payment tones', () => {
-    expect(PAYMENT_STATUS_META.SUCCEEDED.tone).toBe('success');
-    expect(PAYMENT_STATUS_META.FAILED.tone).toBe('danger');
-    expect(PAYMENT_STATUS_META.REFUNDED.tone).toBe('neutral');
+    expect(PAYMENT_STATUS_META.SUCCEEDED!.tone).toBe('success');
+    expect(PAYMENT_STATUS_META.FAILED!.tone).toBe('danger');
+    expect(PAYMENT_STATUS_META.REFUNDED!.tone).toBe('neutral');
   });
 
   it('locks listing tones', () => {
-    expect(LISTING_STATUS_META.PUBLISHED.tone).toBe('success');
-    expect(LISTING_STATUS_META.REJECTED.tone).toBe('danger');
-    expect(LISTING_STATUS_META.DRAFT.tone).toBe('neutral');
+    expect(LISTING_STATUS_META.PUBLISHED!.tone).toBe('success');
+    expect(LISTING_STATUS_META.REJECTED!.tone).toBe('danger');
+    expect(LISTING_STATUS_META.DRAFT!.tone).toBe('neutral');
   });
 
   it('locks verification tones', () => {
-    expect(VERIFICATION_STATUS_META.VERIFIED.tone).toBe('success');
-    expect(VERIFICATION_STATUS_META.UNDER_REVIEW.tone).toBe('info');
-    expect(VERIFICATION_STATUS_META.REJECTED.tone).toBe('danger');
+    expect(VERIFICATION_STATUS_META.VERIFIED!.tone).toBe('success');
+    expect(VERIFICATION_STATUS_META.UNDER_REVIEW!.tone).toBe('info');
+    expect(VERIFICATION_STATUS_META.REJECTED!.tone).toBe('danger');
   });
 });
