@@ -1,0 +1,78 @@
+name: Production quality gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Full-stack validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared packages
+        run: |
+          pnpm --filter @bmw/shared-types build
+          pnpm --filter @bmw/validation build
+
+      - name: Typecheck API and web apps
+        run: |
+          pnpm --filter @bmw/api typecheck
+          pnpm --filter @bmw/customer typecheck
+          pnpm --filter @bmw/partner typecheck
+          pnpm --filter @bmw/admin typecheck
+          pnpm --filter @bmw/mobile typecheck
+
+      - name: Test API and web apps
+        run: |
+          pnpm --filter @bmw/api test
+          pnpm --filter @bmw/customer test
+          pnpm --filter @bmw/partner test
+          pnpm --filter @bmw/admin test
+
+      - name: Lint web apps and mobile
+        run: |
+          pnpm --filter @bmw/customer lint
+          pnpm --filter @bmw/partner lint
+          pnpm --filter @bmw/admin lint
+          pnpm --filter @bmw/mobile lint
+
+      - name: Build production API and web bundles
+        run: |
+          pnpm --filter @bmw/api build
+          pnpm --filter @bmw/customer build
+          pnpm --filter @bmw/partner build
+          pnpm --filter @bmw/admin build
+
+      - name: Export mobile bundles
+        working-directory: apps/mobile
+        env:
+          EXPO_PUBLIC_API_URL: https://api.bookmywarehouse.com
+        run: pnpm exec expo export --platform android --platform ios
