@@ -7,8 +7,13 @@
       "buildCommand": "pnpm --filter @bmw/customer build",
       "outputDirectory": "dist",
       "routes": [
-        { "handle": "filesystem" },
-        { "src": "/(.*)", "destination": "/index.html" }
+        {
+          "handle": "filesystem"
+        },
+        {
+          "src": "/(.*)",
+          "destination": "/index.html"
+        }
       ]
     },
     "partner": {
@@ -17,9 +22,17 @@
       "buildCommand": "pnpm --filter @bmw/partner build",
       "outputDirectory": "dist",
       "routes": [
-        { "handle": "filesystem" },
-        { "src": "/partner", "destination": "/partner/index.html" },
-        { "src": "/partner/(.*)", "destination": "/partner/index.html" }
+        {
+          "handle": "filesystem"
+        },
+        {
+          "src": "/partner",
+          "destination": "/partner/index.html"
+        },
+        {
+          "src": "/partner/(.*)",
+          "destination": "/partner/index.html"
+        }
       ]
     },
     "admin": {
@@ -28,9 +41,17 @@
       "buildCommand": "pnpm --filter @bmw/admin build",
       "outputDirectory": "dist",
       "routes": [
-        { "handle": "filesystem" },
-        { "src": "/admin", "destination": "/admin/index.html" },
-        { "src": "/admin/(.*)", "destination": "/admin/index.html" }
+        {
+          "handle": "filesystem"
+        },
+        {
+          "src": "/admin",
+          "destination": "/admin/index.html"
+        },
+        {
+          "src": "/admin/(.*)",
+          "destination": "/admin/index.html"
+        }
       ]
     },
     "api": {
@@ -40,12 +61,74 @@
     }
   },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": { "service": "api" } },
-    { "source": "/health", "destination": { "service": "api" } },
-    { "source": "/partner", "destination": { "service": "partner" } },
-    { "source": "/partner/(.*)", "destination": { "service": "partner" } },
-    { "source": "/admin", "destination": { "service": "admin" } },
-    { "source": "/admin/(.*)", "destination": { "service": "admin" } },
-    { "source": "/(.*)", "destination": { "service": "customer" } }
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "api"
+      }
+    },
+    {
+      "source": "/health",
+      "destination": {
+        "service": "api"
+      }
+    },
+    {
+      "source": "/partner",
+      "destination": {
+        "service": "partner"
+      }
+    },
+    {
+      "source": "/partner/(.*)",
+      "destination": {
+        "service": "partner"
+      }
+    },
+    {
+      "source": "/admin",
+      "destination": {
+        "service": "admin"
+      }
+    },
+    {
+      "source": "/admin/(.*)",
+      "destination": {
+        "service": "admin"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "customer"
+      }
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=()"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=31536000"
+        }
+      ]
+    }
   ]
 }
