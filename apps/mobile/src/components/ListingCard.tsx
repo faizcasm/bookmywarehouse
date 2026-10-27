@@ -6,13 +6,17 @@
  *    aspect-ratio cover and tighter type keep the grid scannable.
  */
 
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
-import { Star, BadgeCheck, MapPin } from 'lucide-react-native';
-import { StyleSheet, Text, View } from 'react-native';
-import React from 'react';
+import { router } from 'expo-router';
+import { Star, BadgeCheck, MapPin, Heart } from 'lucide-react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
 
 import { Card } from '@/components/ui';
 import { useTheme } from '@/store/ThemeContext';
+import { useSession } from '@/store/SessionContext';
+import { toggleFavorite } from '@/services/api/account';
 import { formatMoney } from '@/utils/format';
 import type { ListingSummary } from '@/types';
 
@@ -20,15 +24,90 @@ export interface ListingCardProps {
   listing: ListingSummary;
   onPress?: () => void;
   variant?: 'wide' | 'compact';
+  /** Hide quick-save in the saved-list screen, which has its own remove action. */
+  showFavorite?: boolean;
 }
 
-export function ListingCard({ listing, onPress, variant = 'wide' }: ListingCardProps) {
+function ListingFavorite({ listing }: { listing: ListingSummary }) {
+  const t = useTheme();
+  const { user } = useSession();
+  const queryClient = useQueryClient();
+  const [isFavorite, setIsFavorite] = useState(Boolean(listing.isFavorite));
+
+  useEffect(() => {
+    setIsFavorite(Boolean(listing.isFavorite));
+  }, [listing.id, listing.isFavorite]);
+
+  const mutation = useMutation({
+    mutationFn: () => toggleFavorite(listing.id),
+    onMutate: () => {
+      const previous = isFavorite;
+      setIsFavorite(!previous);
+      return { previous };
+    },
+    onError: (_error, _variables, context) => {
+      if (context) setIsFavorite(context.previous);
+    },
+    onSuccess: (result) => {
+      if (typeof result.favorited === 'boolean') setIsFavorite(result.favorited);
+    },
+    onSettled: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['favorites'] }),
+        queryClient.invalidateQueries({ queryKey: ['search'] }),
+      ]);
+    },
+  });
+
+  if (user && user.role !== 'CUSTOMER') return null;
+
+  const onPress = () => {
+    if (!user) {
+      router.push({
+        pathname: '/(auth)/login',
+        params: { next: `/(customer)/listing/${listing.slug}` },
+      });
+      return;
+    }
+    if (!mutation.isPending) mutation.mutate();
+  };
+
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={mutation.isPending}
+      accessibilityRole="button"
+      accessibilityLabel={isFavorite ? `Remove ${listing.title} from favorites` : `Save ${listing.title} to favorites`}
+      accessibilityState={{ selected: isFavorite, disabled: mutation.isPending }}
+      hitSlop={6}
+      style={({ pressed }) => [
+        styles.favoriteButton,
+        pressed && { transform: [{ scale: 0.92 }], opacity: 0.9 },
+        mutation.isPending && { opacity: 0.6 },
+      ]}
+    >
+      <Heart
+        size={19}
+        color={isFavorite ? t.danger : '#475569'}
+        fill={isFavorite ? t.danger : 'transparent'}
+        strokeWidth={2.2}
+      />
+    </Pressable>
+  );
+}
+
+export function ListingCard({
+  listing,
+  onPress,
+  variant = 'wide',
+  showFavorite = true,
+}: ListingCardProps) {
   const t = useTheme();
   const compact = variant === 'compact';
 
   return (
     <Card onPress={onPress} padded={false} style={styles.card}>
-      <View>
+      <View style={styles.media}>
         {listing.coverUrl ? (
           <Image
             source={{ uri: listing.coverUrl }}
@@ -51,6 +130,7 @@ export function ListingCard({ listing, onPress, variant = 'wide' }: ListingCardP
             <Text style={[styles.verifiedText, { color: t.brandFg }]}>Verified</Text>
           </View>
         ) : null}
+        {showFavorite ? <ListingFavorite listing={listing} /> : null}
       </View>
 
       <View style={[styles.body, compact && styles.bodyCompact]}>
@@ -86,6 +166,25 @@ export function ListingCard({ listing, onPress, variant = 'wide' }: ListingCardP
 
 const styles = StyleSheet.create({
   card: { overflow: 'hidden' },
+  media: { position: 'relative' },
+  favoriteButton: {
+    position: 'absolute',
+    top: 9,
+    right: 9,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.94)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.9)',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
+  },
   cover: { width: '100%', height: 160 },
   coverCompact: { height: 110 },
   coverFallback: { alignItems: 'center', justifyContent: 'center' },
