@@ -14,9 +14,10 @@ import type { Booking } from '@/types';
 
 const FILTERS = [
   { key: 'all', label: 'All' },
-  { key: 'PENDING', label: 'Pending' },
+  { key: 'PENDING_APPROVAL', label: 'Pending' },
+  { key: 'AWAITING_PAYMENT', label: 'Unpaid' },
   { key: 'CONFIRMED', label: 'Confirmed' },
-  { key: 'ACTIVE', label: 'Active' },
+  { key: 'IN_PROGRESS', label: 'Active' },
   { key: 'COMPLETED', label: 'Completed' },
 ];
 

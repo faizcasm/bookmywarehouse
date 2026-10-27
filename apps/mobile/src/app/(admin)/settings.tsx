@@ -1,4 +1,4 @@
-/** Admin settings — editable platform settings (key/value). */
+/** Admin settings — editable platform settings (typed key/value, echo of server schema). */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useState } from 'react';
@@ -6,29 +6,49 @@ import { Alert, StyleSheet, Text } from 'react-native';
 
 import { Button, Card, ErrorState, Screen, Skeleton, TextField } from '@/components/ui';
 import { useTheme } from '@/store/ThemeContext';
-import { getAdminSettings, updateAdminSettings } from '@/services/api/admin';
+import { getAdminSettings, updateAdminSettings, type PlatformSettings } from '@/services/api/admin';
 
-function toEntries(data: Record<string, unknown>): { key: string; value: string }[] {
-  return Object.entries(data).map(([key, value]) => ({
-    key,
-    value: value == null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value),
-  }));
+type Scalar = string | number | boolean | null;
+interface Entry {
+  key: string;
+  value: string;
+  type: 'string' | 'number' | 'boolean';
+}
+
+/** Build editable entries, remembering each value's original type for save. */
+function toEntries(data: PlatformSettings): Entry[] {
+  return Object.entries(data as Record<string, Scalar>)
+    .filter(([, v]) => v === null || typeof v !== 'object')
+    .map(([key, value]) => ({
+      key,
+      value: value == null ? '' : String(value),
+      type: typeof value === 'number' ? 'number' : typeof value === 'boolean' ? 'boolean' : 'string',
+    }));
+}
+
+function toPayload(entries: Entry[]): PlatformSettings {
+  const payload: Record<string, Scalar> = {};
+  for (const e of entries) {
+    if (e.type === 'number') {
+      const n = Number(e.value);
+      if (Number.isFinite(n)) payload[e.key] = n;
+    } else if (e.type === 'boolean') {
+      payload[e.key] = e.value === 'true';
+    } else if (e.value !== '') {
+      payload[e.key] = e.value;
+    }
+  }
+  return payload as PlatformSettings;
 }
 
 /** Keyed by the loaded settings so state initializes directly (no sync effect). */
-function SettingsForm({ initial }: { initial: { key: string; value: string }[] }) {
+function SettingsForm({ initial }: { initial: Entry[] }) {
   const t = useTheme();
   const qc = useQueryClient();
   const [entries, setEntries] = useState(initial);
 
   const save = useMutation({
-    mutationFn: () => {
-      const payload: Record<string, unknown> = {};
-      for (const e of entries) {
-        payload[e.key] = e.value;
-      }
-      return updateAdminSettings(payload);
-    },
+    mutationFn: () => updateAdminSettings(toPayload(entries)),
     onSuccess: () => {
       Alert.alert('Settings saved');
       qc.invalidateQueries({ queryKey: ['admin-settings'] });
@@ -43,11 +63,13 @@ function SettingsForm({ initial }: { initial: { key: string; value: string }[] }
           entries.map((e, i) => (
             <TextField
               key={e.key}
-              label={e.key}
+              label={humanizeKey(e.key)}
               value={e.value}
               onChangeText={(v) =>
                 setEntries((prev) => prev.map((p, idx) => (idx === i ? { ...p, value: v } : p)))
               }
+              keyboardType={e.type === 'number' ? 'decimal-pad' : 'default'}
+              placeholder={e.type === 'boolean' ? 'true / false' : undefined}
             />
           ))
         ) : (
@@ -59,6 +81,13 @@ function SettingsForm({ initial }: { initial: { key: string; value: string }[] }
       ) : null}
     </>
   );
+}
+
+function humanizeKey(key: string): string {
+  return key
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, (c) => c.toUpperCase())
+    .trim();
 }
 
 export default function AdminSettingsScreen() {

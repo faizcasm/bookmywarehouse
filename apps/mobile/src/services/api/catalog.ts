@@ -14,6 +14,7 @@ export function searchListings(query: QueryParams): Promise<Paginated<ListingSum
   }));
 }
 
+/** `slug` — the public detail route is keyed by slug, not id. */
 export function getListing(slug: string): Promise<ListingDetail> {
   return api.get<ListingDetailDTO>(`/catalog/listings/${encodeURIComponent(slug)}`).then(toListingDetail);
 }
@@ -35,20 +36,22 @@ export function getCategories(): Promise<Category[]> {
   return api.getPaged<Category>('/catalog/categories').then((d) => d.items);
 }
 
-export function getCities(): Promise<string[]> {
-  return api.get<{ items: string[] }>('/catalog/cities').then((d) => d.items);
-}
-
-export interface InquiryInput {
-  listingId: string;
-  name: string;
-  email: string;
-  phone?: string;
-  message: string;
-  startDate?: string;
-  endDate?: string;
-}
-
-export function createInquiry(input: InquiryInput): Promise<{ id: string }> {
-  return api.post<{ id: string }>('/inquiries', input);
-}
+/**
+ * The API has no dedicated cities feed, so search's city chips use this curated
+ * list of major Indian logistics hubs. Kept here (not inline in the screen) so
+ * it stays a single, easy-to-swap source.
+ */
+export const POPULAR_CITIES: string[] = [
+  'Mumbai',
+  'Delhi',
+  'Bengaluru',
+  'Hyderabad',
+  'Chennai',
+  'Pune',
+  'Ahmedabad',
+  'Kolkata',
+  'Jaipur',
+  'Surat',
+  'Lucknow',
+  'Indore',
+];

@@ -13,7 +13,7 @@ import { useSession } from '@/store/SessionContext';
 import { updateProfile } from '@/services/api/account';
 
 const schema = z.object({
-  fullName: z.string().trim().min(2, 'Name must be at least 2 characters').max(80),
+  name: z.string().trim().min(2, 'Name must be at least 2 characters').max(80),
   phone: z
     .string()
     .trim()
@@ -36,7 +36,7 @@ export default function EditProfileScreen() {
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      fullName: user?.fullName ?? '',
+      name: user?.name ?? '',
       phone: user?.phone ?? '',
     },
   });
@@ -44,7 +44,7 @@ export default function EditProfileScreen() {
   const onSubmit = handleSubmit(async (values) => {
     setError(null);
     try {
-      await updateProfile({ fullName: values.fullName, phone: values.phone || null });
+      await updateProfile({ name: values.name, phone: values.phone || null });
       await refreshUser();
       Alert.alert('Saved', 'Your profile has been updated.', [
         { text: 'OK', onPress: () => router.back() },
@@ -60,14 +60,14 @@ export default function EditProfileScreen() {
       {error ? <Text style={{ color: t.danger }}>{error}</Text> : null}
       <Controller
         control={control}
-        name="fullName"
+        name="name"
         render={({ field: { onChange, onBlur, value } }) => (
           <TextField
             label="Full name"
             value={value}
             onChangeText={onChange}
             onBlur={onBlur}
-            error={errors.fullName?.message}
+            error={errors.name?.message}
           />
         )}
       />

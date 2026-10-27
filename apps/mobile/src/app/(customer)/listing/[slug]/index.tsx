@@ -88,17 +88,6 @@ export default function ListingDetailScreen() {
           </View>
         )}
 
-        {/* Floating back button */}
-        <Pressable
-          onPress={() => router.back()}
-          style={[styles.backBtn, { backgroundColor: t.surface, top: insets.top + 8 }]}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <ChevronLeft size={22} color={t.fg} />
-        </Pressable>
-
         <View style={styles.body}>
           <View style={styles.titleRow}>
             <Text style={[styles.title, { color: t.fgStrong }]}>{l.title}</Text>
@@ -177,6 +166,17 @@ export default function ListingDetailScreen() {
         </View>
       </ScrollView>
 
+      {/* Floating back button — outside the ScrollView so it stays pinned */}
+      <Pressable
+        onPress={() => router.back()}
+        style={[styles.backBtn, { backgroundColor: t.surface, top: insets.top + 8, shadowColor: '#000' }]}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+      >
+        <ChevronLeft size={22} color={t.fg} />
+      </Pressable>
+
       <View style={[styles.footer, { backgroundColor: t.surface, borderColor: t.line, paddingBottom: Math.max(insets.bottom, 12) }]}>
         <View style={{ flex: 1 }}>
           <Text style={[styles.price, { color: t.fgStrong }]}>
@@ -204,6 +204,11 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 10,
+    elevation: 6,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
   },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: 6, paddingVertical: 10 },
   dot: { width: 8, height: 8, borderRadius: 4 },

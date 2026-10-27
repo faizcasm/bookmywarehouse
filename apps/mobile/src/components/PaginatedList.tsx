@@ -32,8 +32,18 @@ export function PaginatedList<T>({
   itemHeight = 96,
 }: PaginatedListProps<T>) {
   const t = useTheme();
-  const [pages, setPages] = useState<T[]>([]);
-  const [page, setPage] = useState(1);
+
+  // Accumulated extra pages are tagged with the queryKey they were fetched
+  // under *and* the page-1 payload they were appended to. Switching filters,
+  // searching, or a page-1 refetch therefore never bleeds stale results into
+  // the list — the extra pages are simply ignored until reloaded.
+  const key = JSON.stringify(queryKey);
+  const [cursor, setCursor] = useState<{
+    key: string;
+    base: Paginated<T> | undefined;
+    page: number;
+    items: T[];
+  }>({ key: '', base: undefined, page: 1, items: [] });
   const [loadingMore, setLoadingMore] = useState(false);
 
   const query = useQuery({
@@ -41,21 +51,32 @@ export function PaginatedList<T>({
     queryFn: () => fetchPage(1),
   });
 
+  const fresh = cursor.key === key && cursor.base === query.data;
+  const page = fresh ? cursor.page : 1;
+  const extraItems = fresh ? cursor.items : [];
+
   const loadMore = useCallback(async () => {
-    const meta = query.data?.meta?.pagination;
-    if (!meta || page >= meta.totalPages || loadingMore) return;
+    const first = query.data;
+    const meta = first?.meta?.pagination;
+    if (!first || !meta || page >= meta.totalPages || loadingMore) return;
     setLoadingMore(true);
     try {
       const next = page + 1;
       const res = await fetchPage(next);
-      setPages((prev) => [...prev, ...res.items]);
-      setPage(next);
+      setCursor((prev) => ({
+        key,
+        base: first,
+        page: next,
+        items: prev.key === key && prev.base === first && prev.page === page
+          ? [...prev.items, ...res.items]
+          : res.items,
+      }));
     } finally {
       setLoadingMore(false);
     }
-  }, [query.data, page, loadingMore, fetchPage]);
+  }, [query.data, page, loadingMore, fetchPage, key]);
 
-  const data = query.data ? [...query.data.items, ...pages] : [];
+  const data = query.data ? [...query.data.items, ...extraItems] : [];
   const meta = query.data?.meta?.pagination;
 
   if (query.isLoading) {

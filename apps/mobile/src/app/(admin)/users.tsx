@@ -6,17 +6,9 @@ import { Alert, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Badge, Card, EmptyState, ErrorState, Screen, Skeleton } from '@/components/ui';
 import { useTheme } from '@/store/ThemeContext';
-import { listAdminUsers, updateUserStatus } from '@/services/api/admin';
+import { listAdminUsers, moderateUser, type UserModerationAction } from '@/services/api/admin';
 import { humanize, formatDate } from '@/utils/format';
-
-interface UserRow {
-  id: string;
-  fullName: string;
-  email: string;
-  role: string;
-  accountStatus: string;
-  createdAt: string;
-}
+import type { User } from '@/types';
 
 export default function AdminUsersScreen() {
   const t = useTheme();
@@ -26,8 +18,7 @@ export default function AdminUsersScreen() {
   const users = useQuery({ queryKey: ['admin-users', q], queryFn: () => listAdminUsers({ q, limit: 50 }) });
 
   const setStatus = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: 'ACTIVE' | 'SUSPENDED' | 'DEACTIVATED' }) =>
-      updateUserStatus(id, status),
+    mutationFn: ({ id, action }: { id: string; action: UserModerationAction }) => moderateUser(id, action),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users'] }),
     onError: (e) => Alert.alert('Action failed', e instanceof Error ? e.message : 'Try again.'),
   });
@@ -53,24 +44,23 @@ export default function AdminUsersScreen() {
       ) : (users.data?.items?.length ?? 0) === 0 ? (
         <EmptyState title="No users found" subtitle="Try a different search." />
       ) : (
-        (users.data?.items ?? []).map((u) => {
-          const row = u as unknown as UserRow;
-          const suspended = row.accountStatus === 'SUSPENDED';
+        (users.data?.items ?? []).map((row: User) => {
+          const suspended = row.status === 'SUSPENDED';
           return (
             <Card key={row.id} style={{ gap: 6 }}>
               <View style={styles.row}>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.name, { color: t.fgStrong }]}>{row.fullName}</Text>
+                  <Text style={[styles.name, { color: t.fgStrong }]}>{row.name}</Text>
                   <Text style={{ color: t.muted, fontSize: 13 }}>{row.email}</Text>
                   <Text style={{ color: t.faint, fontSize: 12 }}>
                     {humanize(row.role)} · joined {formatDate(row.createdAt)}
                   </Text>
                 </View>
-                <Badge label={row.accountStatus} tone={suspended ? 'danger' : 'success'} />
+                <Badge label={row.status ?? 'ACTIVE'} tone={suspended ? 'danger' : 'success'} />
               </View>
               {suspended ? (
                 <Text
-                  onPress={() => setStatus.mutate({ id: row.id, status: 'ACTIVE' })}
+                  onPress={() => setStatus.mutate({ id: row.id, action: 'REACTIVATE' })}
                   style={{ color: t.brand, fontWeight: '600' }}
                 >
                   Reactivate →
@@ -80,7 +70,7 @@ export default function AdminUsersScreen() {
                   onPress={() =>
                     Alert.alert('Suspend user', 'They will no longer be able to sign in.', [
                       { text: 'Cancel', style: 'cancel' },
-                      { text: 'Suspend', style: 'destructive', onPress: () => setStatus.mutate({ id: row.id, status: 'SUSPENDED' }) },
+                      { text: 'Suspend', style: 'destructive', onPress: () => setStatus.mutate({ id: row.id, action: 'SUSPEND' }) },
                     ])
                   }
                   style={{ color: t.danger, fontWeight: '600' }}

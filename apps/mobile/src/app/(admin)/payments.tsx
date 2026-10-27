@@ -1,43 +1,23 @@
-/** Admin payments — payment list with webhook retry. */
+/** Admin payments — payment list. */
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { PaginatedList } from '@/components/PaginatedList';
-import { Badge, Button, Card, Screen } from '@/components/ui';
+import { Badge, Card, Screen } from '@/components/ui';
 import { useTheme } from '@/store/ThemeContext';
-import { listAdminPayments, retryPaymentWebhook } from '@/services/api/admin';
+import { listAdminPayments, type AdminPaymentRow } from '@/services/api/admin';
 import { formatMoney, formatDate, PAYMENT_STATUS_META } from '@/utils/format';
-
-interface PaymentRow {
-  id: string;
-  status: string;
-  amountMinor: number;
-  currency?: string;
-  provider?: string;
-  createdAt: string;
-}
 
 export default function AdminPaymentsScreen() {
   const t = useTheme();
-  const qc = useQueryClient();
-
-  const retry = useMutation({
-    mutationFn: retryPaymentWebhook,
-    onSuccess: () => {
-      Alert.alert('Webhook requeued');
-      qc.invalidateQueries({ queryKey: ['admin-payments'] });
-    },
-    onError: (e) => Alert.alert('Could not retry', e instanceof Error ? e.message : 'Try again.'),
-  });
 
   return (
     <Screen padTop={false} style={styles.screen}>
       <Text style={[styles.heading, { color: t.fgStrong }]}>Payments</Text>
-      <PaginatedList<PaymentRow>
+      <PaginatedList<AdminPaymentRow>
         queryKey={['admin-payments']}
-        fetchPage={(page) => listAdminPayments<PaymentRow>({ page, limit: 20 })}
+        fetchPage={(page) => listAdminPayments({ page, limit: 20 })}
         keyExtractor={(p) => p.id}
         emptyTitle="No payments"
         emptySubtitle="Processed payments will appear here."
@@ -49,7 +29,7 @@ export default function AdminPaymentsScreen() {
               <View style={styles.row}>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.amount, { color: t.fgStrong }]}>
-                    {formatMoney(p.amountMinor, p.currency ?? 'INR')}
+                    {formatMoney(p.amount ?? 0, p.currency ?? 'INR')}
                   </Text>
                   <Text style={{ color: t.muted, fontSize: 13 }}>
                     {p.provider ?? 'provider'} · {formatDate(p.createdAt)}
@@ -57,9 +37,6 @@ export default function AdminPaymentsScreen() {
                 </View>
                 <Badge label={meta?.label ?? p.status} tone={meta?.tone ?? 'neutral'} />
               </View>
-              {p.status === 'FAILED' ? (
-                <Button label="Retry webhook" variant="secondary" onPress={() => retry.mutate(p.id)} />
-              ) : null}
             </Card>
           );
         }}

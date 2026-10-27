@@ -13,7 +13,8 @@ import { Button, Card, Screen, TextField } from '@/components/ui';
 import { useTheme } from '@/store/ThemeContext';
 import { createListing } from '@/services/api/partner';
 import { getCategories } from '@/services/api/catalog';
-import { uploadFile } from '@/services/api/uploads';
+import { uploadFile, uriToDataUri } from '@/services/api/uploads';
+import { toCreateListingPayload } from '@/services/api/normalize';
 import { ApiError } from '@/services/api/client';
 
 const schema = z.object({
@@ -38,7 +39,7 @@ const UNITS = ['SQFT', 'PALLET', 'UNIT', 'TON'];
 
 export default function NewListingScreen() {
   const t = useTheme();
-  const [cover, setCover] = useState<{ uri: string; publicId?: string } | null>(null);
+  const [cover, setCover] = useState<{ uri: string; url?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const categories = useQuery({ queryKey: ['categories'], queryFn: getCategories });
@@ -64,8 +65,8 @@ export default function NewListingScreen() {
     if (res.canceled || !res.assets[0]) return;
     const asset = res.assets[0];
     try {
-      const publicId = await uploadViaUri(asset.uri, asset.mimeType ?? 'image/jpeg');
-      setCover({ uri: asset.uri, publicId });
+      const url = await uploadViaUri(asset.uri);
+      setCover({ uri: asset.uri, url });
     } catch (err) {
       Alert.alert('Upload failed', err instanceof Error ? err.message : 'Could not upload the image.');
     }
@@ -73,21 +74,23 @@ export default function NewListingScreen() {
 
   const create = useMutation({
     mutationFn: (values: FormValues) =>
-      createListing({
-        title: values.title,
-        type: values.type,
-        categoryId: values.categoryId,
-        addressLine: values.addressLine,
-        city: values.city,
-        state: values.state,
-        pincode: values.pincode,
-        description: values.description,
-        capacityValue: values.capacityValue,
-        capacityUnit: values.capacityUnit,
-        pricingPeriod: values.pricingPeriod,
-        basePriceMinor: Math.round(values.basePrice * 100),
-        coverImageId: cover?.publicId,
-      }),
+      createListing(
+        toCreateListingPayload({
+          title: values.title,
+          type: values.type,
+          categoryId: values.categoryId,
+          addressLine: values.addressLine,
+          city: values.city,
+          state: values.state,
+          pincode: values.pincode,
+          description: values.description,
+          capacityValue: values.capacityValue,
+          capacityUnit: values.capacityUnit,
+          pricingPeriod: values.pricingPeriod,
+          basePriceMinor: Math.round(values.basePrice * 100),
+          coverImageUrl: cover?.url,
+        }),
+      ),
     onSuccess: () => {
       Alert.alert('Listing created', 'Your listing was saved as a draft. Publish it from the listings tab.', [
         { text: 'OK', onPress: () => router.back() },
@@ -273,24 +276,11 @@ export default function NewListingScreen() {
   );
 }
 
-/** Upload a local image by reading it as base64 and POSTing to /uploads. */
-async function uploadViaUri(uri: string, mimetype: string): Promise<string> {
-  const res = await fetch(uri);
-  const blob = await res.blob();
-  const dataUri: string = await new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error('Could not read the image'));
-    reader.readAsDataURL(blob);
-  });
-  const base64 = dataUri.split(',')[1] ?? '';
-  const ext = mimetype.includes('png') ? 'png' : 'jpg';
-  const uploaded = await uploadFile({
-    buffer: base64,
-    mimetype: mimetype as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif',
-    originalname: `listing-${Date.now()}.${ext}`,
-  });
-  return uploaded.publicId;
+/** Upload a local image (as a data URI) to /uploads and return its hosted URL. */
+async function uploadViaUri(uri: string): Promise<string> {
+  const dataUri = await uriToDataUri(uri);
+  const uploaded = await uploadFile({ file: dataUri, folder: 'listings' });
+  return uploaded.url;
 }
 
 const styles = StyleSheet.create({

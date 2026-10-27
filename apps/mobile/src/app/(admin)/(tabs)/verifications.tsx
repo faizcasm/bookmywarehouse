@@ -1,4 +1,4 @@
-/** Admin verifications — review queue with approve/reject. */
+/** Admin verifications — review queue with approve/reject (partner decisions). */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
@@ -7,16 +7,10 @@ import { Alert, StyleSheet, Text, View } from 'react-native';
 import { PaginatedList } from '@/components/PaginatedList';
 import { Badge, Button, Card, Screen } from '@/components/ui';
 import { useTheme } from '@/store/ThemeContext';
-import { listVerifications, approveVerification, rejectVerification } from '@/services/api/admin';
-import { VERIFICATION_STATUS_META, formatDate } from '@/utils/format';
+import { listVerifications, decidePartner, type AdminPartnerRow } from '@/services/api/admin';
+import { VERIFICATION_STATUS_META, humanize, formatDate } from '@/utils/format';
 
-interface VerificationRow {
-  id: string;
-  partnerId: string;
-  partnerName: string;
-  status: string;
-  submittedAt: string;
-}
+const ACTIONABLE = new Set(['SUBMITTED', 'UNDER_REVIEW']);
 
 export default function AdminVerificationsScreen() {
   const t = useTheme();
@@ -24,12 +18,11 @@ export default function AdminVerificationsScreen() {
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['admin-verifications'] });
-    qc.invalidateQueries({ queryKey: ['admin-pending-verifications'] });
     qc.invalidateQueries({ queryKey: ['admin-dashboard'] });
   };
 
   const approve = useMutation({
-    mutationFn: approveVerification,
+    mutationFn: (partnerId: string) => decidePartner(partnerId, 'APPROVE'),
     onSuccess: () => {
       Alert.alert('Approved', 'The partner is now verified.');
       invalidate();
@@ -38,11 +31,12 @@ export default function AdminVerificationsScreen() {
   });
 
   const reject = useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) => rejectVerification(id, reason),
+    mutationFn: ({ partnerId, reason }: { partnerId: string; reason: string }) =>
+      decidePartner(partnerId, 'REJECT', reason),
     onSuccess: invalidate,
   });
 
-  const confirmReject = (id: string) => {
+  const confirmReject = (partnerId: string) => {
     // Alert.prompt is iOS-only; use it where available, otherwise fall back to
     // a confirmation with a standard reason so the flow works on Android too.
     if (typeof Alert.prompt === 'function') {
@@ -51,14 +45,14 @@ export default function AdminVerificationsScreen() {
         'Reason for rejection',
         (text) => {
           const reason = (text ?? '').trim();
-          if (reason) reject.mutate({ id, reason });
+          if (reason) reject.mutate({ partnerId, reason });
         },
         'plain-text',
       );
     } else {
       Alert.alert('Reject verification', 'Rejection will be recorded with a standard reason.', [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Reject', style: 'destructive', onPress: () => reject.mutate({ id, reason: 'Documents rejected' }) },
+        { text: 'Reject', style: 'destructive', onPress: () => reject.mutate({ partnerId, reason: 'Documents rejected' }) },
       ]);
     }
   };
@@ -66,28 +60,32 @@ export default function AdminVerificationsScreen() {
   return (
     <Screen padTop={false} style={styles.screen}>
       <Text style={[styles.heading, { color: t.fgStrong }]}>Verifications</Text>
-      <PaginatedList<VerificationRow>
+      <PaginatedList<AdminPartnerRow>
         queryKey={['admin-verifications']}
-        fetchPage={(page) => listVerifications<VerificationRow>({ page, limit: 20 })}
-        keyExtractor={(v) => v.id}
+        fetchPage={(page) => listVerifications({ page, limit: 20 })}
+        keyExtractor={(v) => v.partnerId}
         emptyTitle="No verifications"
         emptySubtitle="Partner verification submissions will appear here."
         itemHeight={140}
         renderItem={(v) => {
-          const meta = VERIFICATION_STATUS_META[v.status as keyof typeof VERIFICATION_STATUS_META];
+          const meta = VERIFICATION_STATUS_META[v.verificationStatus as keyof typeof VERIFICATION_STATUS_META];
+          const name = v.businessName || v.user?.name || 'Partner';
+          const actionable = ACTIONABLE.has(v.verificationStatus);
           return (
             <Card style={{ gap: 8 }}>
               <View style={styles.row}>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.name, { color: t.fgStrong }]}>{v.partnerName}</Text>
-                  <Text style={{ color: t.muted, fontSize: 13 }}>Submitted {formatDate(v.submittedAt)}</Text>
+                  <Text style={[styles.name, { color: t.fgStrong }]}>{name}</Text>
+                  <Text style={{ color: t.muted, fontSize: 13 }}>
+                    {humanize(v.verificationStatus)} · {formatDate(v.createdAt)}
+                  </Text>
                 </View>
-                <Badge label={meta?.label ?? v.status} tone={meta?.tone ?? 'neutral'} />
+                <Badge label={meta?.label ?? v.verificationStatus} tone={meta?.tone ?? 'neutral'} />
               </View>
-              {v.status === 'PENDING' ? (
+              {actionable ? (
                 <View style={styles.actions}>
-                  <Button label="Approve" onPress={() => approve.mutate(v.id)} loading={approve.isPending} />
-                  <Button label="Reject" variant="danger" onPress={() => confirmReject(v.id)} />
+                  <Button label="Approve" onPress={() => approve.mutate(v.partnerId)} loading={approve.isPending} />
+                  <Button label="Reject" variant="danger" onPress={() => confirmReject(v.partnerId)} />
                 </View>
               ) : null}
             </Card>

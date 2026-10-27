@@ -8,7 +8,7 @@ import { FlatList, ScrollView, StyleSheet, Text, TextInput, View } from 'react-n
 import { ListingCard } from '@/components/ListingCard';
 import { Button, EmptyState, ErrorState, Screen, Skeleton } from '@/components/ui';
 import { useTheme } from '@/store/ThemeContext';
-import { searchListings, getCities } from '@/services/api/catalog';
+import { searchListings, POPULAR_CITIES } from '@/services/api/catalog';
 import {
   EMPTY_FILTERS,
   filtersToApiQuery,
@@ -30,14 +30,28 @@ export default function SearchScreen() {
     categoryId: params.categoryId ?? '',
   });
 
+  // Re-sync when inbound params change (e.g. tapping a category on Home).
+  // Done during render (React's "adjusting state when props change" pattern)
+  // rather than in an effect, so the first frame never shows stale results.
+  const paramKey = `${params.q ?? ''}|${params.city ?? ''}|${params.categoryId ?? ''}`;
+  const [lastParamKey, setLastParamKey] = useState(paramKey);
+  if (lastParamKey !== paramKey) {
+    setLastParamKey(paramKey);
+    setFilters((f) => ({
+      ...f,
+      q: params.q ?? f.q,
+      city: params.city ?? f.city,
+      categoryId: params.categoryId ?? f.categoryId,
+      page: 1,
+    }));
+  }
+
   const query = useMemo(() => filtersToApiQuery(filters), [filters]);
 
   const results = useQuery({
     queryKey: ['search', query],
     queryFn: () => searchListings({ ...query, limit: 20 }),
   });
-
-  const cities = useQuery({ queryKey: ['cities'], queryFn: getCities });
 
   const activeCount = countActiveFilters(filters);
   const patch = (p: Partial<SearchFilters>) => setFilters((f) => ({ ...f, ...p, page: 1 }));
@@ -70,10 +84,10 @@ export default function SearchScreen() {
         ))}
       </ScrollView>
 
-      {cities.data && cities.data.length ? (
+      {POPULAR_CITIES.length ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
           <Chip label="Any city" active={!filters.city} onPress={() => patch({ city: '' })} />
-          {cities.data.map((city) => (
+          {POPULAR_CITIES.map((city) => (
             <Chip key={city} label={city} active={filters.city === city} onPress={() => patch({ city })} />
           ))}
         </ScrollView>

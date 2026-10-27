@@ -6,7 +6,7 @@ import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { Badge, Button, Card, ErrorState, Screen, Skeleton } from '@/components/ui';
 import { useTheme } from '@/store/ThemeContext';
-import { listAdminListings, moderateListing } from '@/services/api/admin';
+import { listAdminListings, moderateListing, type AdminListingRow, type ListingModerationDecision } from '@/services/api/admin';
 import { formatMoney, humanize, LISTING_STATUS_META } from '@/utils/format';
 
 export default function AdminListingsScreen() {
@@ -16,8 +16,8 @@ export default function AdminListingsScreen() {
   const listings = useQuery({ queryKey: ['admin-listings'], queryFn: () => listAdminListings({ limit: 50 }) });
 
   const moderate = useMutation({
-    mutationFn: ({ id, action }: { id: string; action: 'approve' | 'reject' | 'suspend' | 'restore' }) =>
-      moderateListing(id, action),
+    mutationFn: ({ id, decision }: { id: string; decision: ListingModerationDecision }) =>
+      moderateListing(id, decision),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-listings'] }),
     onError: (e) => Alert.alert('Action failed', e instanceof Error ? e.message : 'Try again.'),
   });
@@ -39,43 +39,49 @@ export default function AdminListingsScreen() {
     );
   }
 
-  const items = (listings.data?.items ?? []) as Record<string, unknown>[];
+  const items = (listings.data?.items ?? []) as AdminListingRow[];
 
   return (
     <Screen scroll>
       <Text style={[styles.heading, { color: t.fgStrong }]}>Listings</Text>
       {items.length ? (
         items.map((l) => {
-          const id = String(l.id);
-          const status = String(l.status ?? 'DRAFT');
+          const id = l.id;
+          const status = l.status ?? 'DRAFT';
           const meta = LISTING_STATUS_META[status as keyof typeof LISTING_STATUS_META];
+          const needsReview = status === 'PENDING_REVIEW';
+          const isPublished = status === 'PUBLISHED';
           return (
             <Card key={id} style={{ gap: 6 }}>
               <View style={styles.row}>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.title, { color: t.fgStrong }]} numberOfLines={1}>
-                    {String(l.title ?? 'Untitled')}
+                    {l.title ?? 'Untitled'}
                   </Text>
                   <Text style={{ color: t.muted, fontSize: 13 }}>
-                    {humanize(String(l.type ?? ''))} · {String(l.city ?? '')}
+                    {humanize(l.type ?? '')} · {l.city ?? ''}
                   </Text>
-                  {l.basePriceMinor != null ? (
+                  {l.price?.amount != null ? (
                     <Text style={{ color: t.fgStrong, fontWeight: '700' }}>
-                      {formatMoney(Number(l.basePriceMinor))}
+                      {formatMoney(Math.round(l.price.amount * 100), l.price.currency ?? 'INR')}
                     </Text>
                   ) : null}
                 </View>
                 <Badge label={meta?.label ?? status} tone={meta?.tone ?? 'neutral'} />
               </View>
               <View style={styles.actions}>
-                {status !== 'ACTIVE' ? (
-                  <Button label="Approve" onPress={() => moderate.mutate({ id, action: 'approve' })} />
+                {needsReview || status === 'REJECTED' || status === 'SUSPENDED' || status === 'DRAFT' ? (
+                  <Button label="Approve" onPress={() => moderate.mutate({ id, decision: 'APPROVE' })} />
                 ) : null}
-                {status === 'ACTIVE' ? (
-                  <Button label="Suspend" variant="danger" onPress={() => moderate.mutate({ id, action: 'suspend' })} />
+                {needsReview || isPublished ? (
+                  <Button
+                    label={isPublished ? 'Suspend' : 'Reject'}
+                    variant="danger"
+                    onPress={() => moderate.mutate({ id, decision: isPublished ? 'SUSPEND' : 'REJECT' })}
+                  />
                 ) : null}
-                {status === 'REJECTED' || status === 'SUSPENDED' ? (
-                  <Button label="Restore" variant="secondary" onPress={() => moderate.mutate({ id, action: 'restore' })} />
+                {status === 'SUSPENDED' ? (
+                  <Button label="Restore" variant="secondary" onPress={() => moderate.mutate({ id, decision: 'UNSUSPEND' })} />
                 ) : null}
               </View>
             </Card>

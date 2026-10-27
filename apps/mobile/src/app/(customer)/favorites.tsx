@@ -1,34 +1,28 @@
-/** Favorites — the customer's saved listings. */
+/** Favorites — the customer's saved listings, with one-tap remove. */
 
 import { router } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { ListingCard } from '@/components/ListingCard';
-import { EmptyState, ErrorState, Screen, Skeleton } from '@/components/ui';
+import { Button, EmptyState, ErrorState, Screen, Skeleton } from '@/components/ui';
 import { useTheme } from '@/store/ThemeContext';
-import { listFavorites } from '@/services/api/account';
-import { getListing } from '@/services/api/catalog';
-import type { ListingDetail } from '@/types';
+import { listFavorites, toggleFavorite } from '@/services/api/account';
 
 export default function FavoritesScreen() {
   const t = useTheme();
+  const qc = useQueryClient();
 
-  const favIds = useQuery({ queryKey: ['favorites'], queryFn: () => listFavorites() });
+  const favorites = useQuery({ queryKey: ['favorites'], queryFn: () => listFavorites({ limit: 50 }) });
 
-  const listings = useQuery({
-    queryKey: ['favorites-listings', favIds.data],
-    queryFn: async () => {
-      const results = await Promise.allSettled((favIds.data ?? []).map((id) => getListing(id)));
-      return results
-        .filter((r): r is PromiseFulfilledResult<ListingDetail> => r.status === 'fulfilled')
-        .map((r) => r.value);
-    },
-    enabled: !!favIds.data,
+  const remove = useMutation({
+    mutationFn: (listingId: string) => toggleFavorite(listingId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['favorites'] }),
+    onError: (e) => Alert.alert('Could not remove', e instanceof Error ? e.message : 'Try again.'),
   });
 
-  if (favIds.isLoading || listings.isLoading) {
+  if (favorites.isLoading) {
     return (
       <Screen scroll>
         {[0, 1].map((i) => (
@@ -37,15 +31,15 @@ export default function FavoritesScreen() {
       </Screen>
     );
   }
-  if (favIds.isError) {
+  if (favorites.isError) {
     return (
       <Screen>
-        <ErrorState error={favIds.error} onRetry={() => favIds.refetch()} />
+        <ErrorState error={favorites.error} onRetry={() => favorites.refetch()} />
       </Screen>
     );
   }
 
-  const items = listings.data ?? [];
+  const items = favorites.data?.items ?? [];
   if (!items.length) {
     return (
       <Screen>
@@ -63,12 +57,19 @@ export default function FavoritesScreen() {
     <Screen scroll>
       <Text style={[styles.heading, { color: t.fgStrong }]}>Favorites</Text>
       <View style={styles.grid}>
-        {items.map((listing) => (
-          <ListingCard
-            key={listing.id}
-            listing={listing}
-            onPress={() => router.push(`/(customer)/listing/${listing.slug}`)}
-          />
+        {items.map((fav) => (
+          <View key={fav.id} style={styles.item}>
+            <ListingCard
+              listing={fav.listing}
+              onPress={() => router.push(`/(customer)/listing/${fav.listing.slug}`)}
+            />
+            <Button
+              label="Remove from favorites"
+              variant="ghost"
+              onPress={() => remove.mutate(fav.listing.id)}
+              style={styles.remove}
+            />
+          </View>
         ))}
       </View>
     </Screen>
@@ -78,4 +79,6 @@ export default function FavoritesScreen() {
 const styles = StyleSheet.create({
   heading: { fontSize: 22, fontWeight: '800' },
   grid: { gap: 16 },
+  item: { gap: 4 },
+  remove: { alignSelf: 'flex-start' },
 });

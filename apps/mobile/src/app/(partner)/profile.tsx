@@ -1,4 +1,4 @@
-/** Partner business profile — editable business details. */
+/** Partner business profile — create/update via the onboarding contract. */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useState } from 'react';
@@ -6,36 +6,69 @@ import { Alert, StyleSheet, Text } from 'react-native';
 
 import { Button, Card, ErrorState, Screen, Skeleton, TextField } from '@/components/ui';
 import { useTheme } from '@/store/ThemeContext';
-import { getPartnerProfile, updatePartnerProfile } from '@/services/api/partner';
+import { getPartnerProfile, onboardPartner, type OnboardingInput } from '@/services/api/partner';
 
-const FIELDS = [
-  { key: 'businessName', label: 'Business name' },
-  { key: 'displayName', label: 'Display name' },
-  { key: 'contactPhone', label: 'Contact phone' },
-  { key: 'contactEmail', label: 'Contact email' },
-  { key: 'addressLine', label: 'Address' },
-  { key: 'city', label: 'City' },
-  { key: 'state', label: 'State' },
-  { key: 'pincode', label: 'Pincode' },
-  { key: 'description', label: 'About the business' },
-] as const;
+interface FormState {
+  businessName: string;
+  description: string;
+  addressLine1: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  website: string;
+}
 
-function toForm(profile: Record<string, unknown>): Record<string, string> {
-  const next: Record<string, string> = {};
-  for (const f of FIELDS) {
-    const val = profile[f.key];
-    next[f.key] = val == null ? '' : String(val);
-  }
-  return next;
+const EMPTY: FormState = {
+  businessName: '',
+  description: '',
+  addressLine1: '',
+  city: '',
+  state: '',
+  postalCode: '',
+  website: '',
+};
+
+function toForm(p: {
+  businessName?: string;
+  description?: string | null;
+  website?: string | null;
+  address?: { addressLine1?: string; city?: string; state?: string; postalCode?: string } | null;
+}): FormState {
+  return {
+    businessName: p.businessName ?? '',
+    description: p.description ?? '',
+    addressLine1: p.address?.addressLine1 ?? '',
+    city: p.address?.city ?? '',
+    state: p.address?.state ?? '',
+    postalCode: p.address?.postalCode ?? '',
+    website: p.website ?? '',
+  };
 }
 
 /** Keyed by the loaded profile so state initializes directly (no sync effect). */
-function ProfileForm({ initial }: { initial: Record<string, string> }) {
+function ProfileForm({ initial }: { initial: FormState }) {
   const qc = useQueryClient();
-  const [form, setForm] = useState(initial);
+  const [form, setForm] = useState<FormState>(initial);
+  const set = (k: keyof FormState) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   const save = useMutation({
-    mutationFn: () => updatePartnerProfile(form),
+    mutationFn: () => {
+      const payload: OnboardingInput = {
+        businessName: form.businessName.trim(),
+        businessType: 'SOLE_PROPRIETORSHIP',
+        description: form.description.trim() || null,
+        address: {
+          addressLine1: form.addressLine1.trim(),
+          city: form.city.trim(),
+          state: form.state.trim(),
+          postalCode: form.postalCode.trim(),
+          country: 'India',
+        },
+        website: form.website.trim() || null,
+        supportedTypes: ['WAREHOUSE'],
+      };
+      return onboardPartner(payload);
+    },
     onSuccess: () => {
       Alert.alert('Saved', 'Your business profile has been updated.');
       qc.invalidateQueries({ queryKey: ['partner-profile'] });
@@ -43,20 +76,38 @@ function ProfileForm({ initial }: { initial: Record<string, string> }) {
     onError: (e) => Alert.alert('Could not save', e instanceof Error ? e.message : 'Try again.'),
   });
 
+  const valid =
+    form.businessName.trim().length >= 2 &&
+    form.addressLine1.trim().length >= 2 &&
+    form.city.trim().length >= 1 &&
+    form.state.trim().length >= 1 &&
+    /^[0-9]{6}$/.test(form.postalCode.trim());
+
   return (
     <>
       <Card style={{ gap: 12 }}>
-        {FIELDS.map((f) => (
-          <TextField
-            key={f.key}
-            label={f.label}
-            value={form[f.key] ?? ''}
-            onChangeText={(v) => setForm((prev) => ({ ...prev, [f.key]: v }))}
-            multiline={f.key === 'description'}
-          />
-        ))}
+        <TextField label="Business name" value={form.businessName} onChangeText={set('businessName')} />
+        <TextField label="Address" value={form.addressLine1} onChangeText={set('addressLine1')} multiline />
+        <TextField label="City" value={form.city} onChangeText={set('city')} />
+        <TextField label="State" value={form.state} onChangeText={set('state')} />
+        <TextField
+          label="Pincode"
+          value={form.postalCode}
+          onChangeText={set('postalCode')}
+          keyboardType="numeric"
+          maxLength={6}
+          error={form.postalCode && !/^[0-9]{6}$/.test(form.postalCode) ? 'Enter a 6-digit pincode' : undefined}
+        />
+        <TextField
+          label="Website (optional)"
+          value={form.website}
+          onChangeText={set('website')}
+          autoCapitalize="none"
+          placeholder="https://…"
+        />
+        <TextField label="About the business" value={form.description} onChangeText={set('description')} multiline />
       </Card>
-      <Button label="Save profile" onPress={() => save.mutate()} loading={save.isPending} fullWidth />
+      <Button label="Save profile" onPress={() => save.mutate()} loading={save.isPending} disabled={!valid} fullWidth />
     </>
   );
 }
@@ -83,7 +134,7 @@ export default function PartnerProfileScreen() {
     );
   }
 
-  const initial = profile.data?.profile ? toForm(profile.data.profile) : {};
+  const initial = profile.data ? toForm(profile.data) : EMPTY;
 
   return (
     <Screen scroll>

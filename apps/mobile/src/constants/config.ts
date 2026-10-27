@@ -31,7 +31,7 @@ function withVersionPrefix(raw: string): string {
 
 /** Base URL for every API call, without a trailing slash. */
 export const API_BASE: string = withVersionPrefix(
-  envApiUrl ?? (isDev ? DEV_BASE[Platform.OS] ?? DEV_BASE.default! : 'https://bookmywarehouse.vercel.app/api/v1'),
+  envApiUrl ?? (isDev ? DEV_BASE[Platform.OS] ?? DEV_BASE.default! : 'https://api.bookmywarehouse.com'),
 );
 
 /** Origin (no /api/v1) used for the /health probe. */

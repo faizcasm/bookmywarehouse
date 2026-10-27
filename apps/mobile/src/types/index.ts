@@ -65,12 +65,14 @@ export interface EnvelopeMeta {
 
 export interface User {
   id: string;
-  fullName: string;
+  /** The server serializes the display name as `name` (user.serializer.ts). */
+  name: string;
   email: string;
   phone?: string | null;
   role: Role;
   emailVerified?: boolean;
-  accountStatus?: string;
+  /** `ACTIVE` | `SUSPENDED` | `DEACTIVATED` … */
+  status?: string;
   avatarUrl?: string | null;
   createdAt?: string;
 }
@@ -280,7 +282,42 @@ export interface VerificationState {
   submittedAt?: string | null;
   reviewedAt?: string | null;
   rejectionReason?: string | null;
-  documents?: { url: string; type: string }[];
+  documents?: { url: string; label: string }[];
+}
+
+/** GET /partner/profile — the partner business profile + verification summary. */
+export interface PartnerProfile {
+  userId: string;
+  businessName: string;
+  businessType?: string | null;
+  description?: string | null;
+  website?: string | null;
+  logoUrl?: string | null;
+  verificationStatus: VerificationStatus;
+  verification?: VerificationState | null;
+  responseRate?: number;
+  totalBookings?: number;
+  activeListings?: number;
+  address?: {
+    addressLine1?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    country?: string;
+  } | null;
+  joinedAt?: string;
+}
+
+/** One settlement line from GET /partner/earnings. */
+export interface Earning {
+  id: string;
+  bookingReference?: string;
+  listingTitle?: string;
+  grossAmount: number;
+  platformFee: number;
+  netAmount: number;
+  currency: Currency;
+  paidAt?: string | null;
 }
 
 /* ---------------------------------- admin ---------------------------------- */

@@ -1,17 +1,19 @@
-/** Conversation thread — messages + send box. */
+/** Conversation thread — header, messages, and send box. */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ChevronLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, ErrorState, LoadingOverlay } from '@/components/ui';
 import { useTheme } from '@/store/ThemeContext';
 import { useSession } from '@/store/SessionContext';
-import { getMessages, sendMessage } from '@/services/api/account';
+import { getMessages, sendMessage, markConversationRead } from '@/services/api/account';
 import { formatRelativeTime } from '@/utils/format';
 import { MESSAGE_POLL_MS } from '@/constants/config';
+import type { Message } from '@/types';
 
 export default function ConversationScreen() {
   const t = useTheme();
@@ -20,7 +22,7 @@ export default function ConversationScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useSession();
   const [body, setBody] = useState('');
-  const listRef = useRef<FlatList>(null);
+  const listRef = useRef<FlatList<Message>>(null);
 
   const messages = useQuery({
     queryKey: ['messages', id],
@@ -29,13 +31,22 @@ export default function ConversationScreen() {
     refetchInterval: MESSAGE_POLL_MS,
   });
 
+  // Clear the unread badge once the thread is opened.
   useEffect(() => {
-    const unsub = qc.getQueryCache().subscribe(() => {
-      // keep the list pinned to the bottom as new messages arrive
-      requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
-    });
-    return unsub;
-  }, [qc]);
+    if (!id) return;
+    markConversationRead(id)
+      .then(() => qc.invalidateQueries({ queryKey: ['conversations'] }))
+      .catch(() => {
+        /* best-effort */
+      });
+  }, [id, qc]);
+
+  // Pin to the bottom whenever the message list grows.
+  useEffect(() => {
+    if (messages.data) {
+      requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: false }));
+    }
+  }, [messages.data]);
 
   const send = useMutation({
     mutationFn: () => sendMessage(id!, body.trim()),
@@ -60,6 +71,16 @@ export default function ConversationScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={insets.top}
     >
+      <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: t.surface, borderBottomColor: t.line }]}>
+        <Pressable onPress={() => router.back()} hitSlop={12} style={styles.back}>
+          <ChevronLeft size={24} color={t.fg} />
+        </Pressable>
+        <Text style={[styles.headerTitle, { color: t.fgStrong }]} numberOfLines={1}>
+          Conversation
+        </Text>
+        <View style={styles.back} />
+      </View>
+
       <FlatList
         ref={listRef}
         data={messages.data ?? []}
@@ -94,6 +115,15 @@ export default function ConversationScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+  },
+  back: { width: 32, alignItems: 'center' },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize: 16, fontWeight: '700' },
   list: { padding: 16, gap: 8 },
   bubble: { maxWidth: '80%', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 8 },
   mine: { alignSelf: 'flex-end', borderBottomRightRadius: 4 },

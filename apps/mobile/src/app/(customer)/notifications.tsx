@@ -9,8 +9,7 @@ import { Badge, Button, Card, Screen } from '@/components/ui';
 import { useTheme } from '@/store/ThemeContext';
 import {
   listNotifications,
-  markNotificationRead,
-  markAllNotificationsRead,
+  markNotificationsRead,
 } from '@/services/api/account';
 import { formatRelativeTime, humanize } from '@/utils/format';
 import type { Notification } from '@/types';
@@ -20,7 +19,7 @@ export default function NotificationsScreen() {
   const qc = useQueryClient();
 
   const markAll = useMutation({
-    mutationFn: markAllNotificationsRead,
+    mutationFn: () => markNotificationsRead(),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
   });
 
@@ -69,18 +68,6 @@ export default function NotificationsScreen() {
               </View>
               {n.read ? null : <Badge label="New" tone="accent" />}
             </View>
-            {!n.read ? (
-              <Text
-                onPress={() =>
-                  markNotificationRead(n.id).then(() =>
-                    qc.invalidateQueries({ queryKey: ['notifications'] }),
-                  )
-                }
-                style={{ color: t.brand, marginTop: 6, fontSize: 13, fontWeight: '600' }}
-              >
-                Mark read
-              </Text>
-            ) : null}
           </Card>
         )}
       />

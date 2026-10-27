@@ -40,11 +40,11 @@ export default function ProfileScreen() {
       <View style={styles.header}>
         <View style={[styles.avatar, { backgroundColor: t.brandSoft }]}>
           <Text style={{ color: t.brandSoftFg, fontSize: 24, fontWeight: '700' }}>
-            {user.fullName?.charAt(0)?.toUpperCase() ?? 'U'}
+            {user.name?.charAt(0)?.toUpperCase() ?? 'U'}
           </Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.name, { color: t.fgStrong }]}>{user.fullName}</Text>
+          <Text style={[styles.name, { color: t.fgStrong }]}>{user.name}</Text>
           <Text style={{ color: t.muted }}>{user.email}</Text>
           <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
             <Badge label={humanize(user.role)} tone="accent" />

@@ -44,6 +44,33 @@ export function getBooking(id: string): Promise<Booking> {
   return api.get<BookingDTO>(`/bookings/${encodeURIComponent(id)}`).then(toBooking);
 }
 
-export function cancelBooking(id: string, reason?: string): Promise<Booking> {
-  return api.post<BookingDTO>(`/bookings/${encodeURIComponent(id)}/cancel`, { reason }).then(toBooking);
+/** The API's cancelBookingSchema requires a non-empty reason (min 3 chars). */
+export function cancelBooking(id: string, reason = 'Cancelled by customer'): Promise<Booking> {
+  return api
+    .post<BookingDTO>(`/bookings/${encodeURIComponent(id)}/cancel`, { reason })
+    .then(toBooking);
 }
+
+/* Booking lifecycle transitions — /bookings/:id/{accept,reject,start,complete}. */
+export function acceptBooking(id: string): Promise<Booking> {
+  return api.post<BookingDTO>(`/bookings/${encodeURIComponent(id)}/accept`).then(toBooking);
+}
+
+export function rejectBooking(id: string, reason: string): Promise<Booking> {
+  return api
+    .post<BookingDTO>(`/bookings/${encodeURIComponent(id)}/reject`, { reason })
+    .then(toBooking);
+}
+
+export function startBooking(id: string): Promise<Booking> {
+  return api.post<BookingDTO>(`/bookings/${encodeURIComponent(id)}/start`).then(toBooking);
+}
+
+export function completeBooking(id: string, note?: string): Promise<Booking> {
+  return api
+    .post<BookingDTO>(`/bookings/${encodeURIComponent(id)}/complete`, note ? { note } : {})
+    .then(toBooking);
+}
+
+/** POST /bookings/:id/dispute is exposed on the account service; re-exported here for convenience. */
+export { openDispute } from './account';

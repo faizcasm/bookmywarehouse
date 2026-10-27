@@ -1,53 +1,116 @@
-/** Partner endpoints (dashboard, profile, listings, availability, bookings, earnings, verification). */
+/**
+ * Partner endpoints.
+ *
+ * Booking lifecycle and the booking list/detail live under /bookings (auto-
+ * scoped to the acting partner server-side), so those are re-exported from the
+ * bookings service. Everything under /partner here matches partner.routes.ts.
+ */
+
+import type {
+  AvailabilityExceptionDTO,
+  AvailabilityRuleDTO,
+  ListingDetailDTO,
+  PartnerDashboardDTO,
+} from '@bmw/shared-types';
 
 import { api } from './client';
-import type { PartnerDashboard, Payout, VerificationState, ListingDetail, Booking, Paginated, AvailabilitySlot } from '@/types';
+import { toListingDetail, toPartnerDashboard } from './normalize';
+import type {
+  AvailabilitySlot,
+  Earning,
+  ListingDetail,
+  Paginated,
+  PartnerDashboard,
+  PartnerProfile,
+  VerificationState,
+  Currency,
+} from '@/types';
 import type { QueryParams } from './client';
 
+export {
+  getBooking as getPartnerBooking,
+  acceptBooking as confirmBooking,
+  startBooking,
+  completeBooking,
+  cancelBooking as cancelPartnerBooking,
+  rejectBooking as rejectPartnerBooking,
+  listBookings as listPartnerBookings,
+} from './bookings';
+
+/* ------------------------------ profile / KYC ---------------------------- */
+
+/** GET /partner/dashboard — KPIs normalized to the mobile view-model. */
 export function getPartnerDashboard(): Promise<PartnerDashboard> {
-  return api.get<PartnerDashboard>('/partner/dashboard');
+  return api.get<PartnerDashboardDTO>('/partner/dashboard').then(toPartnerDashboard);
 }
 
-export function getPartnerProfile(): Promise<{ profile: Record<string, unknown> }> {
-  return api.get('/partner/profile');
+export function getPartnerProfile(): Promise<PartnerProfile> {
+  return api.get<PartnerProfile>('/partner/profile');
 }
 
-export function updatePartnerProfile(input: Record<string, unknown>): Promise<Record<string, unknown>> {
-  return api.patch('/partner/profile', input);
+export interface OnboardingInput {
+  businessName: string;
+  businessType?: string;
+  description?: string | null;
+  address: {
+    addressLine1: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country?: string;
+  };
+  website?: string | null;
+  logoUrl?: string | null;
+  supportedTypes: ('WAREHOUSE' | 'EQUIPMENT' | 'SERVICE')[];
 }
+
+/** POST /partner/onboarding — create/update the business profile. */
+export function onboardPartner(input: OnboardingInput): Promise<PartnerProfile> {
+  return api.post<PartnerProfile>('/partner/onboarding', input);
+}
+
+export interface VerificationInput {
+  legalBusinessName: string;
+  businessType: string;
+  gstNumber?: string | null;
+  panNumber?: string | null;
+  registrationNumber?: string | null;
+  address: OnboardingInput['address'];
+  documents: { label: string; url: string }[];
+}
+
+/** POST /partner/verification — submit KYC for review. */
+export function submitVerification(input: VerificationInput): Promise<PartnerProfile> {
+  return api.post<PartnerProfile>('/partner/verification', input);
+}
+
+/** The API has no standalone GET /verification — read it from the profile. */
+export function getVerificationState(): Promise<VerificationState> {
+  return getPartnerProfile().then((p) => p.verification ?? { status: p.verificationStatus ?? 'DRAFT' });
+}
+
+/* -------------------------------- listings ------------------------------- */
 
 export function listPartnerListings(query?: QueryParams): Promise<Paginated<ListingDetail>> {
-  return api.get<Paginated<ListingDetail>>('/partner/listings', query);
+  return api.getPaged<ListingDetailDTO>('/partner/listings', query).then((dto) => ({
+    items: dto.items.map(toListingDetail),
+    meta: dto.meta,
+  }));
 }
 
-export interface CreateListingInput {
-  title: string;
-  type: 'WAREHOUSE' | 'EQUIPMENT' | 'SERVICE';
-  categoryId: string;
-  addressLine: string;
-  city: string;
-  state: string;
-  pincode: string;
-  latitude?: number;
-  longitude?: number;
-  description?: string;
-  capacityValue: number;
-  capacityUnit: string;
-  pricingPeriod: string;
-  basePriceMinor: number;
-  amenities?: string[];
-  operatingHours?: Record<string, { open: string; close: string }>;
-  rules?: string[];
-  coverImageId?: string;
-  galleryImageIds?: string[];
+export function getPartnerListing(id: string): Promise<ListingDetail> {
+  return api.get<ListingDetailDTO>(`/partner/listings/${encodeURIComponent(id)}`).then(toListingDetail);
 }
 
-export function createListing(input: CreateListingInput): Promise<ListingDetail> {
-  return api.post<ListingDetail>('/partner/listings', input);
+/** `body` should already be the nested create-listing payload — see toCreateListingPayload. */
+export function createListing(body: unknown): Promise<ListingDetail> {
+  return api.post<ListingDetailDTO>('/partner/listings', body).then(toListingDetail);
 }
 
-export function updateListing(id: string, input: Partial<CreateListingInput>): Promise<ListingDetail> {
-  return api.patch<ListingDetail>(`/partner/listings/${encodeURIComponent(id)}`, input);
+export function updateListing(id: string, body: unknown): Promise<ListingDetail> {
+  return api
+    .patch<ListingDetailDTO>(`/partner/listings/${encodeURIComponent(id)}`, body)
+    .then(toListingDetail);
 }
 
 export function deleteListing(id: string): Promise<void> {
@@ -55,67 +118,121 @@ export function deleteListing(id: string): Promise<void> {
 }
 
 export function publishListing(id: string): Promise<ListingDetail> {
-  return api.post<ListingDetail>(`/partner/listings/${encodeURIComponent(id)}/publish`);
+  return api
+    .post<ListingDetailDTO>(`/partner/listings/${encodeURIComponent(id)}/publish`)
+    .then(toListingDetail);
 }
 
 export function unpublishListing(id: string): Promise<ListingDetail> {
-  return api.post<ListingDetail>(`/partner/listings/${encodeURIComponent(id)}/unpublish`);
+  return api
+    .post<ListingDetailDTO>(`/partner/listings/${encodeURIComponent(id)}/unpublish`)
+    .then(toListingDetail);
 }
 
 export function archiveListing(id: string): Promise<ListingDetail> {
-  return api.post<ListingDetail>(`/partner/listings/${encodeURIComponent(id)}/archive`);
-}
-
-export function listAvailability(listingId: string): Promise<AvailabilitySlot[]> {
   return api
-    .get<{ items: AvailabilitySlot[] }>(`/partner/listings/${encodeURIComponent(listingId)}/availability`)
-    .then((d) => d.items);
+    .post<ListingDetailDTO>(`/partner/listings/${encodeURIComponent(id)}/archive`)
+    .then(toListingDetail);
 }
 
-export function setAvailability(listingId: string, input: { rules: AvailabilitySlot[] }): Promise<void> {
-  return api.post(`/partner/listings/${encodeURIComponent(listingId)}/availability`, input);
+/* ------------------------------ availability ----------------------------- */
+
+export interface AvailabilityRules {
+  rules: AvailabilityRuleDTO[];
+  blockedDates: AvailabilityExceptionDTO[];
 }
 
-export function deleteAvailability(listingId: string, ruleId: string): Promise<void> {
-  return api.delete(`/partner/listings/${encodeURIComponent(listingId)}/availability/${encodeURIComponent(ruleId)}`);
+export function getListingAvailability(listingId: string): Promise<AvailabilityRules> {
+  return api.get<AvailabilityRules>(
+    `/partner/listings/${encodeURIComponent(listingId)}/availability`,
+  );
 }
 
-export function listPartnerBookings(query?: QueryParams): Promise<Paginated<Booking>> {
-  return api.get<Paginated<Booking>>('/partner/bookings', query);
+export interface AvailabilityRuleInput {
+  listingId: string;
+  daysOfWeek: number[];
+  startTime: string;
+  endTime: string;
+  startDate?: string | null;
+  endDate?: string | null;
 }
 
-export function getPartnerBooking(id: string): Promise<Booking> {
-  return api.get<Booking>(`/partner/bookings/${encodeURIComponent(id)}`);
+export function addAvailabilityRule(input: AvailabilityRuleInput): Promise<{ id?: string }> {
+  return api.post('/partner/availability-rules', input);
 }
 
-export function confirmBooking(id: string): Promise<Booking> {
-  return api.post<Booking>(`/partner/bookings/${encodeURIComponent(id)}/confirm`);
+export function removeAvailabilityRule(ruleId: string): Promise<void> {
+  return api.delete(`/partner/availability-rules/${encodeURIComponent(ruleId)}`);
 }
 
-export function startBooking(id: string): Promise<Booking> {
-  return api.post<Booking>(`/partner/bookings/${encodeURIComponent(id)}/start`);
+export interface AvailabilityExceptionInput {
+  listingId: string;
+  date: string;
+  reason?: string | null;
+  isAvailable?: boolean;
 }
 
-export function completeBooking(id: string): Promise<Booking> {
-  return api.post<Booking>(`/partner/bookings/${encodeURIComponent(id)}/complete`);
+/** `isAvailable: false` blocks the date; `true` opens an otherwise closed one. */
+export function addAvailabilityException(input: AvailabilityExceptionInput): Promise<{ id?: string }> {
+  return api.post('/partner/availability-exceptions', input);
 }
 
-export function cancelPartnerBooking(id: string, reason?: string): Promise<Booking> {
-  return api.post<Booking>(`/partner/bookings/${encodeURIComponent(id)}/cancel`, { reason });
+export function removeAvailabilityException(exceptionId: string): Promise<void> {
+  return api.delete(`/partner/availability-exceptions/${encodeURIComponent(exceptionId)}`);
 }
 
-export function getEarnings(): Promise<{ totalEarningsMinor: number; currency: string; payouts: Payout[] }> {
-  return api.get('/partner/earnings');
+export type { AvailabilitySlot };
+
+/* -------------------------------- earnings ------------------------------- */
+
+export interface EarningsResult {
+  items: Earning[];
+  total: number;
+  summary: { gross: number; fees: number; net: number; currency: Currency };
 }
 
-export function getPayouts(): Promise<Payout[]> {
-  return api.get<{ items: Payout[] }>('/partner/payouts').then((d) => d.items);
+interface EarningsEnvelope {
+  items?: {
+    id: string;
+    bookingReference?: string;
+    listingTitle?: string;
+    grossAmount?: number;
+    platformFee?: number;
+    netAmount?: number;
+    currency?: string;
+    paidAt?: string | null;
+  }[];
+  total?: number;
+  summary?: { gross?: number; fees?: number; net?: number; currency?: string };
 }
 
-export function getVerificationState(): Promise<VerificationState> {
-  return api.get<VerificationState>('/partner/verification');
+export function getEarnings(query?: QueryParams): Promise<EarningsResult> {
+  return api
+    .getWithMeta<EarningsEnvelope>('/partner/earnings', { page: 1, limit: 50, ...query })
+    .then((r) => {
+      const d = r.data ?? {};
+      const currency = (d.summary?.currency ?? 'INR') as Currency;
+      return {
+        items: (d.items ?? []).map((e) => ({
+          id: e.id,
+          bookingReference: e.bookingReference,
+          listingTitle: e.listingTitle,
+          grossAmount: e.grossAmount ?? 0,
+          platformFee: e.platformFee ?? 0,
+          netAmount: e.netAmount ?? 0,
+          currency: (e.currency ?? currency) as Currency,
+          paidAt: e.paidAt ?? null,
+        })),
+        total: d.total ?? 0,
+        summary: {
+          gross: d.summary?.gross ?? 0,
+          fees: d.summary?.fees ?? 0,
+          net: d.summary?.net ?? 0,
+          currency,
+        },
+      };
+    });
 }
 
-export function submitVerification(input: { documents: { url: string; type: string }[] }): Promise<VerificationState> {
-  return api.post<VerificationState>('/partner/verification/submit', input);
-}
+export type { PartnerDashboard };
+export { toPartnerDashboard };

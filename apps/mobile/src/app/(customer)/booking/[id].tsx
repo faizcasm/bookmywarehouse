@@ -32,8 +32,8 @@ export default function BookingDetailScreen() {
 
   const pay = useMutation({
     mutationFn: async () => {
-      const init = await initiatePayment({ bookingId: id! });
-      if (init.sandbox) {
+      const init = await initiatePayment(id!);
+      if (init.sandbox && init.paymentId) {
         return simulatePayment(init.paymentId, 'success');
       }
       throw new Error('Live payment requires the Razorpay checkout, available in the full release.');
@@ -63,8 +63,8 @@ export default function BookingDetailScreen() {
 
   const b = booking.data;
   const meta = BOOKING_STATUS_META[b.status];
-  const canPay = b.status === 'AWAITING_PAYMENT' || b.status === 'PENDING_APPROVAL' || b.status === 'CONFIRMED';
-  const canCancel = b.status === 'PENDING_APPROVAL' || b.status === 'AWAITING_PAYMENT' || b.status === 'CONFIRMED';
+  const canPay = b.status === 'AWAITING_PAYMENT';
+  const canCancel = b.status === 'PENDING_APPROVAL' || b.status === 'AWAITING_PAYMENT';
 
   return (
     <Screen scroll>

@@ -7,33 +7,26 @@ import { Alert, StyleSheet, Text, View } from 'react-native';
 import { PaginatedList } from '@/components/PaginatedList';
 import { Button, Card, Screen } from '@/components/ui';
 import { useTheme } from '@/store/ThemeContext';
-import { listAdminReviews, deleteAdminReview } from '@/services/api/admin';
+import { listAdminReviews, moderateReview } from '@/services/api/admin';
 import { formatDate } from '@/utils/format';
-
-interface ReviewRow {
-  id: string;
-  rating: number;
-  comment?: string;
-  authorName?: string;
-  createdAt: string;
-}
+import type { Review } from '@/types';
 
 export default function AdminReviewsScreen() {
   const t = useTheme();
   const qc = useQueryClient();
 
   const remove = useMutation({
-    mutationFn: deleteAdminReview,
+    mutationFn: (id: string) => moderateReview(id, 'REMOVED'),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-reviews'] }),
-    onError: (e) => Alert.alert('Could not delete', e instanceof Error ? e.message : 'Try again.'),
+    onError: (e) => Alert.alert('Could not remove', e instanceof Error ? e.message : 'Try again.'),
   });
 
   return (
     <Screen padTop={false} style={styles.screen}>
       <Text style={[styles.heading, { color: t.fgStrong }]}>Reviews</Text>
-      <PaginatedList<ReviewRow>
+      <PaginatedList<Review>
         queryKey={['admin-reviews']}
-        fetchPage={(page) => listAdminReviews<ReviewRow>({ page, limit: 20 })}
+        fetchPage={(page) => listAdminReviews({ page, limit: 20 })}
         keyExtractor={(r) => r.id}
         emptyTitle="No reviews"
         emptySubtitle="Customer reviews will appear here."
@@ -47,12 +40,12 @@ export default function AdminReviewsScreen() {
             {r.authorName ? <Text style={{ color: t.muted, fontSize: 13 }}>{r.authorName}</Text> : null}
             {r.comment ? <Text style={{ color: t.fg }}>{r.comment}</Text> : null}
             <Button
-              label="Delete review"
+              label="Remove review"
               variant="danger"
               onPress={() =>
-                Alert.alert('Delete review', 'This removes it permanently.', [
+                Alert.alert('Remove review', 'This removes it from public view.', [
                   { text: 'Cancel', style: 'cancel' },
-                  { text: 'Delete', style: 'destructive', onPress: () => remove.mutate(r.id) },
+                  { text: 'Remove', style: 'destructive', onPress: () => remove.mutate(r.id) },
                 ])
               }
             />

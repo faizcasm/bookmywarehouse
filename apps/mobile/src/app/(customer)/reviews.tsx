@@ -6,7 +6,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { PaginatedList } from '@/components/PaginatedList';
 import { Card, Screen } from '@/components/ui';
 import { useTheme } from '@/store/ThemeContext';
-import { listReviews } from '@/services/api/account';
+import { listMyReviews } from '@/services/api/account';
 import { formatDate } from '@/utils/format';
 import type { Review } from '@/types';
 
@@ -17,7 +17,7 @@ export default function ReviewsScreen() {
     <Screen padTop={false} style={styles.screen}>
       <PaginatedList<Review>
         queryKey={['reviews']}
-        fetchPage={(page) => listReviews({ page })}
+        fetchPage={(page) => listMyReviews({ page })}
         keyExtractor={(r) => r.id}
         emptyTitle="No reviews yet"
         emptySubtitle="Reviews you write after a booking will appear here."

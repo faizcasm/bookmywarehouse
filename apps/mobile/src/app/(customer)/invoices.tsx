@@ -1,23 +1,40 @@
-/** Invoices — the customer's invoices with a share action. */
+/** Invoices — the customer's invoices with print + native share. */
 
-import React from 'react';
-import { Share, StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Alert, StyleSheet, Text, View } from 'react-native';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 
 import { PaginatedList } from '@/components/PaginatedList';
 import { Badge, Button, Card, Screen } from '@/components/ui';
 import { useTheme } from '@/store/ThemeContext';
-import { listInvoices } from '@/services/api/payments';
+import { listInvoices, getInvoiceHtml } from '@/services/api/payments';
 import { formatDate, formatMoney } from '@/utils/format';
 import type { Invoice } from '@/types';
 
 export default function InvoicesScreen() {
   const t = useTheme();
+  const [busyId, setBusyId] = useState<string | null>(null);
 
-  const share = async (number: string) => {
+  /** Render the server-side invoice HTML to PDF, then print / share it. */
+  const openInvoice = async (inv: Invoice) => {
+    setBusyId(inv.id);
     try {
-      await Share.share({ message: `Invoice ${number}`, title: `Invoice ${number}` });
-    } catch {
-      // Sharing is best-effort; ignore failures.
+      const html = await getInvoiceHtml(inv.id);
+      const { uri } = await Print.printToFileAsync({ html });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: `Invoice ${inv.invoiceNumber}`,
+          UTI: 'com.adobe.pdf',
+        });
+      } else {
+        await Print.printAsync({ uri });
+      }
+    } catch (err) {
+      Alert.alert('Could not open invoice', err instanceof Error ? err.message : 'Try again.');
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -41,7 +58,12 @@ export default function InvoicesScreen() {
             </View>
             <View style={styles.bottom}>
               <Text style={[styles.total, { color: t.fgStrong }]}>{formatMoney(inv.totalMinor, inv.currency)}</Text>
-              <Button label="Share" variant="ghost" onPress={() => share(inv.invoiceNumber)} />
+              <Button
+                label="View / share"
+                variant="ghost"
+                onPress={() => openInvoice(inv)}
+                loading={busyId === inv.id}
+              />
             </View>
           </Card>
         )}

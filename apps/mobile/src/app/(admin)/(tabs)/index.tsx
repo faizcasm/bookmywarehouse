@@ -7,7 +7,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Card, ErrorState, Screen, Skeleton } from '@/components/ui';
 import { useTheme } from '@/store/ThemeContext';
-import { getAdminDashboard, listVerifications, listAdminDisputes } from '@/services/api/admin';
+import { getAdminDashboard } from '@/services/api/admin';
 import { formatMoneyCompact } from '@/utils/format';
 
 function Stat({ label, value }: { label: string; value: string }) {
@@ -24,14 +24,6 @@ export default function AdminDashboardScreen() {
   const t = useTheme();
 
   const dashboard = useQuery({ queryKey: ['admin-dashboard'], queryFn: getAdminDashboard });
-  const verifications = useQuery({
-    queryKey: ['admin-pending-verifications'],
-    queryFn: () => listVerifications({ status: 'PENDING', limit: 1 }),
-  });
-  const disputes = useQuery({
-    queryKey: ['admin-open-disputes'],
-    queryFn: () => listAdminDisputes({ status: 'OPEN', limit: 1 }),
-  });
 
   if (dashboard.isLoading) {
     return (
@@ -53,28 +45,27 @@ export default function AdminDashboardScreen() {
     );
   }
 
-  const totals = (dashboard.data?.totals ?? {}) as Record<string, number>;
-  const gbp = (key: string) => (totals[key] != null ? String(totals[key]) : '—');
-  const gmoney = (key: string) => formatMoneyCompact(totals[key] ?? 0);
-
-  const pendingVerifications = verifications.data?.meta?.pagination?.totalItems ?? 0;
-  const openDisputes = disputes.data?.meta?.pagination?.totalItems ?? 0;
+  const d = dashboard.data;
+  const totals = d?.totals;
+  const revenue = d?.revenue;
+  const pendingVerifications = totals?.pendingVerifications ?? 0;
+  const openDisputes = totals?.disputesOpen ?? 0;
 
   return (
     <Screen scroll>
       <Text style={[styles.heading, { color: t.fgStrong }]}>Overview</Text>
 
       <View style={styles.stats}>
-        <Stat label="Users" value={gbp('users')} />
-        <Stat label="Partners" value={gbp('partners')} />
+        <Stat label="Customers" value={String(totals?.customers ?? 0)} />
+        <Stat label="Partners" value={String(totals?.partners ?? 0)} />
       </View>
       <View style={styles.stats}>
-        <Stat label="Listings" value={gbp('listings')} />
-        <Stat label="Bookings" value={gbp('bookings')} />
+        <Stat label="Listings" value={String(totals?.listings ?? 0)} />
+        <Stat label="Bookings" value={String(totals?.bookings ?? 0)} />
       </View>
       <View style={styles.stats}>
-        <Stat label="Payments" value={gbp('payments')} />
-        <Stat label="GMV" value={gmoney('gmvMinor')} />
+        <Stat label="Gross collected" value={formatMoneyCompact(revenue?.grossCollected ?? 0, revenue?.currency)} />
+        <Stat label="Platform fees" value={formatMoneyCompact(revenue?.platformFees ?? 0, revenue?.currency)} />
       </View>
 
       <Card onPress={() => router.push('/(admin)/(tabs)/verifications')} style={styles.shortcut}>
@@ -91,11 +82,11 @@ export default function AdminDashboardScreen() {
         <Text style={{ color: t.brand, marginTop: 4 }}>Resolve now →</Text>
       </Card>
 
-      {dashboard.data?.recentBookings?.length ? (
+      {d?.recentBookings?.length ? (
         <>
           <Text style={[styles.sectionTitle, { color: t.fgStrong }]}>Recent bookings</Text>
           <Card>
-            {dashboard.data.recentBookings.slice(0, 5).map((b) => (
+            {d.recentBookings.slice(0, 5).map((b) => (
               <View key={b.id} style={styles.bookRow}>
                 <Text style={{ color: t.fg, flex: 1 }} numberOfLines={1}>
                   {b.listingTitle ?? b.id}

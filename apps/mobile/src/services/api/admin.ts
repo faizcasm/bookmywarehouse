@@ -1,129 +1,326 @@
-/** Admin endpoints (dashboard, users, partners, verifications, listings, bookings, payments, refunds, invoices, disputes, categories, reviews, settings, audit, exports). */
+/**
+ * Admin endpoints (dashboard, users, partners, verifications, listings,
+ * bookings, payments, refunds, invoices, disputes, categories, reviews,
+ * settings, audit, exports). Matches admin.routes.ts exactly.
+ */
+
+import type { BookingDTO, ReviewDTO } from '@bmw/shared-types';
 
 import { api, apiText } from './client';
-import type { AdminDashboard, Booking, Paginated } from '@/types';
+import { toBooking, toReview } from './normalize';
+import type { Booking, Paginated, Review, User } from '@/types';
 import type { QueryParams } from './client';
 
+/* ------------------------------- dashboard ------------------------------- */
+
+export interface AdminDashboard {
+  totals: {
+    customers: number;
+    partners: number;
+    verifiedPartners: number;
+    listings: number;
+    activeListings: number;
+    bookings: number;
+    pendingBookings: number;
+    disputesOpen: number;
+    pendingVerifications: number;
+    pendingListings: number;
+  };
+  revenue: {
+    currency: string;
+    grossCollected: number;
+    platformFees: number;
+    refunds: number;
+    netCollected: number;
+    periodDays: number;
+  };
+  recentBookings: Booking[];
+}
+
+interface AdminDashboardEnvelope {
+  totals?: Partial<AdminDashboard['totals']>;
+  revenue?: Partial<AdminDashboard['revenue']>;
+  recentBookings?: BookingDTO[];
+}
+
 export function getAdminDashboard(): Promise<AdminDashboard> {
-  return api.get<AdminDashboard>('/admin/dashboard');
+  return api.get<AdminDashboardEnvelope>('/admin/dashboard').then((d) => ({
+    totals: {
+      customers: d.totals?.customers ?? 0,
+      partners: d.totals?.partners ?? 0,
+      verifiedPartners: d.totals?.verifiedPartners ?? 0,
+      listings: d.totals?.listings ?? 0,
+      activeListings: d.totals?.activeListings ?? 0,
+      bookings: d.totals?.bookings ?? 0,
+      pendingBookings: d.totals?.pendingBookings ?? 0,
+      disputesOpen: d.totals?.disputesOpen ?? 0,
+      pendingVerifications: d.totals?.pendingVerifications ?? 0,
+      pendingListings: d.totals?.pendingListings ?? 0,
+    },
+    revenue: {
+      currency: d.revenue?.currency ?? 'INR',
+      grossCollected: d.revenue?.grossCollected ?? 0,
+      platformFees: d.revenue?.platformFees ?? 0,
+      refunds: d.revenue?.refunds ?? 0,
+      netCollected: d.revenue?.netCollected ?? 0,
+      periodDays: d.revenue?.periodDays ?? 30,
+    },
+    recentBookings: (d.recentBookings ?? []).map(toBooking),
+  }));
 }
 
-export function listAdminUsers<T = Record<string, unknown>>(query?: QueryParams): Promise<Paginated<T>> {
-  return api.getPaged<T>('/admin/users', query);
+/* --------------------------------- users --------------------------------- */
+
+export type UserModerationAction = 'SUSPEND' | 'REACTIVATE' | 'DEACTIVATE';
+
+export function listAdminUsers(query?: QueryParams): Promise<Paginated<User>> {
+  return api.getPaged<User>('/admin/users', query);
 }
 
-export function updateUserStatus(id: string, status: 'ACTIVE' | 'SUSPENDED' | 'DEACTIVATED'): Promise<void> {
-  return api.patch(`/admin/users/${encodeURIComponent(id)}/status`, { status });
+/** PATCH /admin/users/:id — suspend / reactivate / deactivate. */
+export function moderateUser(id: string, action: UserModerationAction, reason?: string): Promise<void> {
+  return api.patch(`/admin/users/${encodeURIComponent(id)}`, { action, reason: reason ?? null });
 }
 
-export function listAdminPartners<T = Record<string, unknown>>(query?: QueryParams): Promise<Paginated<T>> {
-  return api.getPaged<T>('/admin/partners', query);
+/* ------------------------------- partners/KYC ---------------------------- */
+
+export interface AdminPartnerRow {
+  partnerId: string;
+  userId: string;
+  businessName: string;
+  businessType?: string | null;
+  verificationStatus: string;
+  city?: string | null;
+  listingCount?: number;
+  totalBookings?: number;
+  user?: { id: string; name: string; email: string; status: string; avatarUrl?: string | null } | null;
+  createdAt?: string;
+}
+
+export type PartnerDecision = 'APPROVE' | 'REJECT' | 'SUSPEND';
+
+export function listVerifications(query?: QueryParams): Promise<Paginated<AdminPartnerRow>> {
+  return api.getPaged<AdminPartnerRow>('/admin/verification-queue', query);
+}
+
+export function listAdminPartners(query?: QueryParams): Promise<Paginated<AdminPartnerRow>> {
+  return api.getPaged<AdminPartnerRow>('/admin/partners', query);
 }
 
 export function getAdminPartner(id: string): Promise<Record<string, unknown>> {
   return api.get(`/admin/partners/${encodeURIComponent(id)}`);
 }
 
-export function listVerifications<T = Record<string, unknown>>(query?: QueryParams): Promise<Paginated<T>> {
-  return api.getPaged<T>('/admin/verifications', query);
+/** POST /admin/partners/:id/decision — `id` is the PartnerProfile id. */
+export function decidePartner(
+  partnerId: string,
+  decision: PartnerDecision,
+  reason?: string,
+): Promise<void> {
+  return api.post(`/admin/partners/${encodeURIComponent(partnerId)}/decision`, {
+    decision,
+    reason: reason ?? null,
+  });
 }
 
-export function approveVerification(id: string): Promise<void> {
-  return api.post(`/admin/verifications/${encodeURIComponent(id)}/approve`);
+/* ------------------------------- listings -------------------------------- */
+
+export type ListingModerationDecision = 'APPROVE' | 'REJECT' | 'SUSPEND' | 'UNSUSPEND';
+
+export interface AdminListingRow {
+  id: string;
+  title?: string;
+  type?: string;
+  status?: string;
+  city?: string;
+  price?: { amount?: number; currency?: string } | null;
+  createdAt?: string;
 }
 
-export function rejectVerification(id: string, reason: string): Promise<void> {
-  return api.post(`/admin/verifications/${encodeURIComponent(id)}/reject`, { reason });
+export function listAdminListings(query?: QueryParams): Promise<Paginated<AdminListingRow>> {
+  return api.getPaged<AdminListingRow>('/admin/listings', query);
 }
 
-export function listAdminListings<T = Record<string, unknown>>(query?: QueryParams): Promise<Paginated<T>> {
-  return api.getPaged<T>('/admin/listings', query);
+/** PATCH /admin/listings/:id */
+export function moderateListing(
+  id: string,
+  decision: ListingModerationDecision,
+  reason?: string,
+): Promise<void> {
+  return api.patch(`/admin/listings/${encodeURIComponent(id)}`, { decision, reason: reason ?? null });
 }
 
-export function moderateListing(id: string, action: 'approve' | 'reject' | 'suspend' | 'restore'): Promise<void> {
-  return api.post(`/admin/listings/${encodeURIComponent(id)}/${action}`);
+/* -------------------------------- bookings ------------------------------- */
+
+/** Admin sees every booking via the shared /bookings list with scope=admin. */
+export function listAdminBookings(query?: QueryParams): Promise<Paginated<Booking>> {
+  return api.getPaged<BookingDTO>('/bookings', { ...query, scope: 'admin' }).then((dto) => ({
+    items: dto.items.map(toBooking),
+    meta: dto.meta,
+  }));
 }
 
-export function listAdminBookings<T = Booking>(query?: QueryParams): Promise<Paginated<T>> {
-  return api.getPaged<T>('/admin/bookings', query);
+/* --------------------------- payments and refunds ------------------------ */
+
+export interface AdminPaymentRow {
+  id: string;
+  reference?: string;
+  status?: string;
+  amount?: number;
+  currency?: string;
+  provider?: string;
+  createdAt?: string;
 }
 
-export function refundBooking(id: string, amountMinor: number): Promise<Booking> {
-  return api.post<Booking>(`/admin/bookings/${encodeURIComponent(id)}/refund`, { amountMinor });
+export function listAdminPayments(query?: QueryParams): Promise<Paginated<AdminPaymentRow>> {
+  return api.getPaged<AdminPaymentRow>('/admin/payments', query);
 }
 
-export function listAdminPayments<T = Record<string, unknown>>(query?: QueryParams): Promise<Paginated<T>> {
-  return api.getPaged<T>('/admin/payments', query);
+export interface AdminRefundRow {
+  id: string;
+  status?: string;
+  amountMinor?: number;
+  amount?: number;
+  currency?: string;
+  createdAt?: string;
 }
 
-export function retryPaymentWebhook(id: string): Promise<void> {
-  return api.post(`/admin/payments/${encodeURIComponent(id)}/retry-webhook`);
-}
-
-export function listAdminRefunds<T = Record<string, unknown>>(query?: QueryParams): Promise<Paginated<T>> {
-  return api.getPaged<T>('/admin/refunds', query);
+export function listAdminRefunds(query?: QueryParams): Promise<Paginated<AdminRefundRow>> {
+  return api.getPaged<AdminRefundRow>('/admin/refunds', query);
 }
 
 export function processRefund(id: string): Promise<void> {
   return api.post(`/admin/refunds/${encodeURIComponent(id)}/process`);
 }
 
-export function voidRefund(id: string): Promise<void> {
-  return api.post(`/admin/refunds/${encodeURIComponent(id)}/void`);
+export interface AdminInvoiceRow {
+  id: string;
+  invoiceNumber?: string;
+  status?: string;
+  total?: number;
+  currency?: string;
+  createdAt?: string;
 }
 
-export function listAdminInvoices<T = Record<string, unknown>>(query?: QueryParams): Promise<Paginated<T>> {
-  return api.getPaged<T>('/admin/invoices', query);
+export function listAdminInvoices(query?: QueryParams): Promise<Paginated<AdminInvoiceRow>> {
+  return api.getPaged<AdminInvoiceRow>('/admin/invoices', query);
 }
 
-export function getAdminInvoice(id: string): Promise<Record<string, unknown>> {
-  return api.get(`/admin/invoices/${encodeURIComponent(id)}`);
+/* -------------------------------- disputes ------------------------------- */
+
+export interface AdminDisputeRow {
+  id: string;
+  bookingId?: string;
+  reason?: string;
+  status?: string;
+  createdAt?: string;
 }
 
-export function listAdminDisputes<T = Record<string, unknown>>(query?: QueryParams): Promise<Paginated<T>> {
-  return api.getPaged<T>('/admin/disputes', query);
+export type DisputeResolution = 'RESOLVED_CUSTOMER' | 'RESOLVED_PARTNER' | 'CLOSED';
+
+export function listAdminDisputes(query?: QueryParams): Promise<Paginated<AdminDisputeRow>> {
+  return api.getPaged<AdminDisputeRow>('/admin/disputes', query);
 }
 
-export function resolveDispute(id: string, resolution: string): Promise<void> {
-  return api.post(`/admin/disputes/${encodeURIComponent(id)}/resolve`, { resolution });
+export function resolveDispute(
+  id: string,
+  resolution: DisputeResolution,
+  resolutionNote: string,
+  refundAmount?: number,
+): Promise<void> {
+  return api.post(`/admin/disputes/${encodeURIComponent(id)}/resolve`, {
+    resolution,
+    resolutionNote,
+    refundAmount: refundAmount ?? null,
+  });
 }
 
-export function listAdminCategories(): Promise<{ id: string; name: string; slug: string; parentId?: string }[]> {
-  return api.get<{ items: { id: string; name: string; slug: string; parentId?: string }[] }>('/admin/categories').then((d) => d.items);
+/* ------------------------------- categories ------------------------------ */
+
+export interface AdminCategory {
+  id: string;
+  name: string;
+  slug: string;
+  type?: string;
+  isActive?: boolean;
+  parentId?: string | null;
 }
 
-export function createCategory(input: { name: string; slug: string; parentId?: string }): Promise<Record<string, unknown>> {
-  return api.post('/admin/categories', input);
+export function listAdminCategories(): Promise<AdminCategory[]> {
+  return api
+    .get<{ items: AdminCategory[] }>('/admin/categories', { includeInactive: 'true' })
+    .then((d) => d.items);
 }
 
-export function updateCategory(id: string, input: { name?: string; slug?: string; parentId?: string }): Promise<void> {
+export function createCategory(input: {
+  name: string;
+  slug: string;
+  type: string;
+  parentId?: string;
+}): Promise<AdminCategory> {
+  return api.post<AdminCategory>('/admin/categories', input);
+}
+
+export function updateCategory(id: string, input: Partial<{ name: string; slug: string; isActive: boolean; parentId: string | null }>): Promise<void> {
   return api.patch(`/admin/categories/${encodeURIComponent(id)}`, input);
 }
 
-export function deleteCategory(id: string): Promise<void> {
-  return api.delete(`/admin/categories/${encodeURIComponent(id)}`);
+/* --------------------------------- reviews ------------------------------- */
+
+export type ReviewModerationStatus = 'PUBLISHED' | 'HIDDEN' | 'REMOVED';
+
+export function listAdminReviews(query?: QueryParams): Promise<Paginated<Review>> {
+  return api.getPaged<ReviewDTO>('/admin/reviews', query).then((dto) => ({
+    items: dto.items.map(toReview),
+    meta: dto.meta,
+  }));
 }
 
-export function listAdminReviews<T = Record<string, unknown>>(query?: QueryParams): Promise<Paginated<T>> {
-  return api.getPaged<T>('/admin/reviews', query);
+/** POST /admin/reviews/:id/moderate */
+export function moderateReview(id: string, status: ReviewModerationStatus, note?: string): Promise<void> {
+  return api.post(`/admin/reviews/${encodeURIComponent(id)}/moderate`, { status, note: note ?? null });
 }
 
-export function deleteAdminReview(id: string): Promise<void> {
-  return api.delete(`/admin/reviews/${encodeURIComponent(id)}`);
+/* ----------------------------- settings / audit -------------------------- */
+
+export interface PlatformSettings {
+  currency?: string;
+  platformFeePercent?: number;
+  customerFeePercent?: number;
+  taxPercent?: number;
+  minPayoutAmount?: number;
+  supportEmail?: string;
+  allowSelfServiceListings?: boolean;
+  requirePartnerVerification?: boolean;
+  maintenanceMode?: boolean;
+  announcement?: string | null;
 }
 
-export function getAdminSettings(): Promise<Record<string, unknown>> {
-  return api.get('/admin/settings');
+export function getAdminSettings(): Promise<PlatformSettings> {
+  return api.get<PlatformSettings>('/admin/settings');
 }
 
-export function updateAdminSettings(input: Record<string, unknown>): Promise<void> {
+export function updateAdminSettings(input: PlatformSettings): Promise<void> {
   return api.patch('/admin/settings', input);
 }
 
-export function listAuditLogs<T = Record<string, unknown>>(query?: QueryParams): Promise<Paginated<T>> {
-  return api.getPaged<T>('/admin/audit-logs', query);
+export interface AuditLogRow {
+  id: string;
+  actor?: string | null;
+  action?: string;
+  entityType?: string;
+  entityId?: string;
+  summary?: string | null;
+  createdAt?: string;
 }
 
-export function downloadExport(kind: 'users' | 'bookings' | 'payments'): Promise<string> {
-  return apiText(`/admin/exports/${encodeURIComponent(kind)}`);
+export function listAuditLogs(query?: QueryParams): Promise<Paginated<AuditLogRow>> {
+  return api.getPaged<AuditLogRow>('/admin/audit-logs', query);
+}
+
+/* --------------------------------- exports ------------------------------- */
+
+/** GET /admin/exports/{bookings|payouts}.csv — returns the raw CSV text. */
+export function downloadExport(kind: 'bookings' | 'payouts'): Promise<string> {
+  return apiText(`/admin/exports/${kind}.csv`);
 }
