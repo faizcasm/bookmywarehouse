@@ -60,7 +60,7 @@ jobs:
         run: pnpm --filter @bmw/mobile lint
 
       - name: Jest
-        run: pnpm --filter @bmw/mobile test -- --runInBand
+        run: pnpm --filter @bmw/mobile exec jest --runInBand
 
       - name: Export Android and iOS bundles
         working-directory: apps/mobile
