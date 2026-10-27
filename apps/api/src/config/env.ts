@@ -167,19 +167,45 @@ function enforceProductionRequirements(data: AppEnv): AppEnv {
     );
   }
 
-  const warnings: string[] = [];
-  if (data.PAYMENT_PROVIDER === 'SANDBOX') {
-    warnings.push('PAYMENT_PROVIDER=SANDBOX — checkout is simulated (set PAYMENT_PUBLIC_KEY/PAYMENT_SECRET_KEY + RAZORPAY for live payments).');
+  // Never let a production deployment silently accept simulated payments,
+  // undelivered verification/reset emails, or non-durable inline image storage.
+  // These integrations are required before the app can handle real customers.
+  const missingIntegrations: string[] = [];
+
+  if (data.PAYMENT_PROVIDER !== 'RAZORPAY') {
+    missingIntegrations.push('PAYMENT_PROVIDER=RAZORPAY (SANDBOX is development-only; Stripe is not implemented)');
+  } else {
+    if (!data.PAYMENT_PUBLIC_KEY) missingIntegrations.push('PAYMENT_PUBLIC_KEY');
+    if (!data.PAYMENT_SECRET_KEY) missingIntegrations.push('PAYMENT_SECRET_KEY');
   }
-  if (!(data.EMAIL_PROVIDER === 'resend' && data.EMAIL_PROVIDER_API_KEY)) {
-    warnings.push('EMAIL_PROVIDER is not "resend" — transactional emails are logged, not delivered.');
+
+  if (data.EMAIL_PROVIDER !== 'resend' || !data.EMAIL_PROVIDER_API_KEY) {
+    missingIntegrations.push('EMAIL_PROVIDER=resend and EMAIL_PROVIDER_API_KEY');
   }
-  if (!(data.CLOUDINARY_CLOUD_NAME && data.CLOUDINARY_API_KEY && data.CLOUDINARY_API_SECRET)) {
-    warnings.push('Cloudinary is not configured — image uploads fall back to inline development storage.');
+
+  if (!data.CLOUDINARY_CLOUD_NAME || !data.CLOUDINARY_API_KEY || !data.CLOUDINARY_API_SECRET) {
+    missingIntegrations.push('CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET');
   }
-  for (const warning of warnings) {
-    console.warn(`[env] production readiness: ${warning}`);
+
+  const productionUrls: Array<[string, string]> = [
+    ['API_BASE_URL', data.API_BASE_URL],
+    ['CUSTOMER_APP_URL', data.CUSTOMER_APP_URL],
+    ['PARTNER_APP_URL', data.PARTNER_APP_URL],
+    ['ADMIN_APP_URL', data.ADMIN_APP_URL],
+  ];
+  for (const [name, value] of productionUrls) {
+    if (!value.startsWith('https://')) {
+      missingIntegrations.push(`${name} must use HTTPS`);
+    }
   }
+
+  if (missingIntegrations.length > 0) {
+    throw new Error(
+      `Production configuration is incomplete: ${missingIntegrations.join('; ')}. ` +
+        'Configure these values in the deployment environment before serving production traffic.',
+    );
+  }
+
   return data;
 }
 
