@@ -1,0 +1,69 @@
+name: Mobile quality gate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/mobile/**'
+      - 'packages/shared-types/**'
+      - 'packages/validation/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'package.json'
+      - '.github/workflows/mobile-quality.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/mobile/**'
+      - 'packages/shared-types/**'
+      - 'packages/validation/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'package.json'
+      - '.github/workflows/mobile-quality.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mobile:
+    name: Typecheck, lint, tests and Expo export
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: TypeScript
+        run: pnpm --filter @bmw/mobile typecheck
+
+      - name: ESLint
+        run: pnpm --filter @bmw/mobile lint
+
+      - name: Jest
+        run: pnpm --filter @bmw/mobile test -- --runInBand
+
+      - name: Export Android and iOS bundles
+        working-directory: apps/mobile
+        env:
+          EXPO_PUBLIC_API_URL: https://api.bookmywarehouse.com
+        run: pnpm exec expo export --platform android --platform ios
