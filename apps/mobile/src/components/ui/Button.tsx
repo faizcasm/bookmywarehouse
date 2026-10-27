@@ -57,7 +57,9 @@ export function Button({
       testID={testID}
       style={({ pressed }) => [
         styles.base,
-        { backgroundColor: bg, opacity: isDisabled ? 0.55 : pressed ? 0.85 : 1 },
+        { backgroundColor: bg, opacity: isDisabled ? 0.55 : pressed ? 0.9 : 1 },
+        pressed && !isDisabled && { transform: [{ scale: 0.985 }] },
+        variant === 'primary' && styles.primaryShadow,
         fullWidth && styles.fullWidth,
         style,
       ]}
@@ -75,13 +77,20 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 48,
+    minHeight: 50,
     paddingHorizontal: 20,
-    borderRadius: 12,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
   },
   fullWidth: { width: '100%' },
+  primaryShadow: {
+    shadowColor: '#047857',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 2,
+  },
   label: { fontSize: 16, fontWeight: '600' },
 });
