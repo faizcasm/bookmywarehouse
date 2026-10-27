@@ -33,5 +33,5 @@ export function safeNext(raw: string | string[] | undefined, fallback: string): 
 
 /** Home route for a role, used when there is no `next`. */
 export function homeFor(role: Role | null | undefined): string {
-  return HOME_BY_ROLE[(role ?? 'GUEST') as Role | 'GUEST'] ?? HOME_BY_ROLE.GUEST;
+  return HOME_BY_ROLE[(role ?? 'GUEST') as Role | 'GUEST'] ?? '/(customer)/(tabs)';
 }
