@@ -51,12 +51,21 @@ export function listMyReviews(query?: { page?: number; limit?: number }): Promis
   }));
 }
 
+/**
+ * POST /reviews → **201 `{ id }` only** (not a full ReviewDTO), so this returns
+ * the id for cache invalidation instead of pretending to have a full object.
+ */
 export function createReview(input: {
   bookingId: string;
   rating: number;
   comment?: string;
-}): Promise<Review> {
-  return api.post<ReviewDTO>('/reviews', input).then(toReview);
+}): Promise<{ id: string }> {
+  return api.post<{ id: string }>('/reviews', input);
+}
+
+/** POST /reviews/:id/respond — partner/owner reply to a published review. */
+export function respondToReview(reviewId: string, text: string): Promise<{ id: string }> {
+  return api.post<{ id: string }>(`/reviews/${encodeURIComponent(reviewId)}/respond`, { text });
 }
 
 export function listConversations(query?: { page?: number }): Promise<Paginated<Conversation>> {
@@ -71,6 +80,24 @@ export function getMessages(conversationId: string): Promise<Message[]> {
 
 export function sendMessage(conversationId: string, body: string): Promise<Message> {
   return api.post<Message>(`/conversations/${encodeURIComponent(conversationId)}/messages`, { body });
+}
+
+/**
+ * POST /conversations — start (or reuse) a thread. Returns the conversation id
+ * so the UI can navigate straight into it.
+ */
+export function createConversation(input: {
+  listingId?: string;
+  toUserId?: string;
+  subject: string;
+  body: string;
+}): Promise<{ conversationId: string; messageId: string }> {
+  return api.post<{ conversationId: string; messageId: string }>('/conversations', input);
+}
+
+/** GET /conversations/:id — one conversation (used to resolve a thread id). */
+export function getConversation(id: string): Promise<Conversation> {
+  return api.get(`/conversations/${encodeURIComponent(id)}`);
 }
 
 export function markConversationRead(conversationId: string): Promise<void> {
@@ -100,10 +127,16 @@ export const DISPUTE_REASONS = [
 ] as const;
 export type DisputeReason = (typeof DISPUTE_REASONS)[number];
 
-/** POST /bookings/:id/dispute — open a dispute on a booking. */
+/**
+ * POST /bookings/:id/dispute → **201 `{ id, reference }` only** (not a full
+ * Dispute). Returns both so the UI can show the generated case reference.
+ */
 export function openDispute(
   bookingId: string,
   input: { reason: DisputeReason; description: string },
-): Promise<Dispute> {
-  return api.post<Dispute>(`/bookings/${encodeURIComponent(bookingId)}/dispute`, input);
+): Promise<{ id: string; reference: string }> {
+  return api.post<{ id: string; reference: string }>(
+    `/bookings/${encodeURIComponent(bookingId)}/dispute`,
+    input,
+  );
 }

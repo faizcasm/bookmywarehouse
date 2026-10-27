@@ -1,82 +1,82 @@
-/** Bookings tab — list of the customer's bookings with status tabs. */
+/**
+ * Bookings tab — the customer's bookings with server-side status filtering
+ * and pagination.
+ */
 
-import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { PackageCheck } from 'lucide-react-native';
+import React, { useCallback, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 
-import { Badge, Card, EmptyState, ErrorState, Screen, Skeleton } from '@/components/ui';
+import { PaginatedList } from '@/components/PaginatedList';
+import { Badge, Card, Chip, Screen, SignInPrompt } from '@/components/ui';
 import { useTheme } from '@/store/ThemeContext';
 import { useSession } from '@/store/SessionContext';
 import { listBookings } from '@/services/api/bookings';
-import { formatDayRange, formatMoney, BOOKING_STATUS_META } from '@/utils/format';
+import { formatDayRange, formatMoney, shortenId, BOOKING_STATUS_META } from '@/utils/format';
 import type { Booking } from '@/types';
 
-const FILTERS = [
+/** Every chip maps to a real backend BookingStatus (comma lists supported). */
+const STATUS_FILTERS = [
   { key: 'all', label: 'All' },
   { key: 'PENDING_APPROVAL', label: 'Pending' },
-  { key: 'AWAITING_PAYMENT', label: 'Unpaid' },
+  { key: 'AWAITING_PAYMENT', label: 'Awaiting payment' },
   { key: 'CONFIRMED', label: 'Confirmed' },
   { key: 'IN_PROGRESS', label: 'Active' },
   { key: 'COMPLETED', label: 'Completed' },
+  { key: 'CANCELLED', label: 'Cancelled' },
 ];
 
 export default function BookingsScreen() {
-  const t = useTheme();
-  const { status } = useSession();
+  const { user } = useSession();
   const [filter, setFilter] = useState('all');
 
-  const query = useQuery({
-    queryKey: ['bookings', filter],
-    queryFn: () => listBookings(filter === 'all' ? {} : { status: filter }),
-    enabled: status === 'authenticated',
-  });
+  const fetchPage = useCallback(
+    (page: number) =>
+      listBookings({ page, limit: 10, status: filter === 'all' ? undefined : filter }),
+    [filter],
+  );
 
-  if (status !== 'authenticated') {
+  if (!user) {
     return (
       <Screen>
-        <EmptyState
+        <SignInPrompt
           title="Sign in to see your bookings"
-          subtitle="Your bookings and invoices appear here once you're signed in."
-          actionLabel="Sign in"
-          onAction={() => router.push('/(auth)/login')}
+          subtitle="Your booking requests, confirmations and invoices live here."
+          next="/(customer)/(tabs)/bookings"
         />
       </Screen>
     );
   }
 
   return (
-    <Screen padTop={false} style={styles.screen}>
-      <View style={styles.tabs}>
-        {FILTERS.map((f) => (
-          <Text
+    <Screen style={styles.screen}>
+      <View style={styles.filters}>
+        {STATUS_FILTERS.map((f) => (
+          <Chip
             key={f.key}
+            label={f.label}
+            selected={filter === f.key}
+            size="sm"
             onPress={() => setFilter(f.key)}
-            style={[styles.tab, { backgroundColor: filter === f.key ? t.brand : t.surface, borderColor: filter === f.key ? t.brand : t.line, color: filter === f.key ? t.brandFg : t.fg }]}
-          >
-            {f.label}
-          </Text>
+          />
         ))}
       </View>
 
-      {query.isLoading ? (
-        <View style={styles.list}>
-          {[0, 1].map((i) => (
-            <Skeleton key={i} height={120} radius={16} />
-          ))}
-        </View>
-      ) : query.isError ? (
-        <ErrorState error={query.error} onRetry={() => query.refetch()} />
-      ) : query.data && query.data.items.length ? (
-        <FlatList
-          data={query.data.items}
-          keyExtractor={(b) => b.id}
-          renderItem={({ item }) => <BookingRow booking={item} />}
-          contentContainerStyle={styles.list}
-        />
-      ) : (
-        <EmptyState title="No bookings" subtitle="Bookings you create will show up here." />
-      )}
+      <PaginatedList<Booking>
+        queryKey={['bookings', filter]}
+        fetchPage={fetchPage}
+        keyExtractor={(b) => b.id}
+        itemHeight={118}
+        emptyTitle={filter === 'all' ? 'No bookings yet' : 'No bookings with this status'}
+        emptySubtitle={
+          filter === 'all'
+            ? 'Spaces you book will appear here.'
+            : 'Try a different status filter to see your other bookings.'
+        }
+        renderItem={(booking) => <BookingRow booking={booking} />}
+      />
     </Screen>
   );
 }
@@ -84,26 +84,52 @@ export default function BookingsScreen() {
 function BookingRow({ booking }: { booking: Booking }) {
   const t = useTheme();
   const meta = BOOKING_STATUS_META[booking.status];
+  const reference = booking.reference ?? shortenId(booking.id);
+
   return (
-    <Card onPress={() => router.push(`/(customer)/booking/${booking.id}`)}>
-      <View style={styles.rowTop}>
-        <Text style={[styles.rowTitle, { color: t.fgStrong }]} numberOfLines={1}>
+    <Card onPress={() => router.push(`/(customer)/booking/${booking.id}`)} style={styles.row}>
+      {booking.coverUrl ? (
+        <Image
+          source={{ uri: booking.coverUrl }}
+          style={styles.thumb}
+          contentFit="cover"
+          transition={180}
+          accessibilityLabel={booking.listingTitle ?? 'Listing'}
+        />
+      ) : (
+        <View style={[styles.thumb, styles.thumbFallback, { backgroundColor: t.surface3 }]}>
+          <PackageCheck size={24} color={t.faint} />
+        </View>
+      )}
+
+      <View style={styles.info}>
+        <Text style={[styles.title, { color: t.fgStrong }]} numberOfLines={1}>
           {booking.listingTitle ?? 'Booking'}
         </Text>
-        <Badge label={meta?.label ?? booking.status} tone={meta?.tone ?? 'neutral'} />
+        <Text style={[styles.reference, { color: t.muted }]} numberOfLines={1}>
+          {reference}
+        </Text>
+        <Text style={{ color: t.muted, fontSize: 13 }} numberOfLines={1}>
+          {formatDayRange(booking.startDate, booking.endDate)}
+        </Text>
+        <Text style={[styles.price, { color: t.fgStrong }]}>
+          {formatMoney(booking.totalMinor, booking.currency)}
+        </Text>
       </View>
-      <Text style={{ color: t.muted }}>{formatDayRange(booking.startDate, booking.endDate)}</Text>
-      <Text style={[styles.rowPrice, { color: t.fgStrong }]}>{formatMoney(booking.totalMinor, booking.currency)}</Text>
+
+      <Badge label={meta?.label ?? booking.status} tone={meta?.tone ?? 'neutral'} />
     </Card>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { paddingHorizontal: 0, gap: 12 },
-  tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16 },
-  tab: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, borderWidth: 1, overflow: 'hidden', fontSize: 13, fontWeight: '600' },
-  list: { paddingHorizontal: 16, paddingBottom: 24, gap: 12 },
-  rowTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  rowTitle: { fontSize: 16, fontWeight: '700', flexShrink: 1 },
-  rowPrice: { fontSize: 15, fontWeight: '700', marginTop: 4 },
+  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16 },
+  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  thumb: { width: 76, height: 76, borderRadius: 12 },
+  thumbFallback: { alignItems: 'center', justifyContent: 'center' },
+  info: { flex: 1, gap: 2 },
+  title: { fontSize: 15.5, fontWeight: '700' },
+  reference: { fontSize: 12.5, fontWeight: '600' },
+  price: { fontSize: 15, fontWeight: '800', marginTop: 2 },
 });

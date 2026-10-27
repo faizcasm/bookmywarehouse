@@ -1,89 +1,115 @@
-/** Admin exports — generate a CSV export and share it via the native sheet. */
+/**
+ * Admin exports — generate a bookings or payouts CSV and hand it to the
+ * native share sheet. (The API currently exposes only these two export
+ * kinds.)
+ */
 
 import { useMutation } from '@tanstack/react-query';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import React, { useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { Button, Card, Screen } from '@/components/ui';
-import { useTheme } from '@/store/ThemeContext';
+import { Banner, Button, Card, Screen, Segmented, type SegmentedOption } from '@/components/ui';
 import { downloadExport } from '@/services/api/admin';
+import { useSession } from '@/store/SessionContext';
+import { useTheme } from '@/store/ThemeContext';
 
-const KINDS = ['bookings', 'payouts'] as const;
-type Kind = (typeof KINDS)[number];
+const KIND_OPTIONS: SegmentedOption[] = [
+  { value: 'bookings', label: 'Bookings' },
+  { value: 'payouts', label: 'Payouts' },
+];
+
+type Kind = 'bookings' | 'payouts';
+
+function messageFor(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return 'Something went wrong. Please try again.';
+}
 
 export default function AdminExportsScreen() {
   const t = useTheme();
-  const [selected, setSelected] = useState<Kind>('bookings');
+  const { user } = useSession();
+  const [kind, setKind] = useState<Kind>('bookings');
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const run = useMutation({
-    mutationFn: async (kind: Kind) => {
-      const csv = await downloadExport(kind);
+    mutationFn: async (selected: Kind) => {
+      const csv = await downloadExport(selected);
       // Write the CSV to the cache dir, then hand the file to the OS share sheet.
-      const file = new File(Paths.cache, `${kind}.csv`);
-      try {
-        if (file.exists) file.delete();
-      } catch {
-        /* ignore — create below overwrites */
-      }
+      const file = new File(Paths.cache, `${selected}.csv`);
+      if (file.exists) file.delete();
       file.create({ overwrite: true, intermediates: true });
       await file.write(csv);
-      return { kind, uri: file.uri, rows: csv.split('\n').length };
+      return { selected, uri: file.uri, rows: Math.max(0, csv.split('\n').length - 1) };
     },
-    onSuccess: async ({ kind, uri, rows }) => {
+    onSuccess: async ({ selected, uri, rows }) => {
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri, {
           mimeType: 'text/csv',
-          dialogTitle: `Export ${kind}`,
+          dialogTitle: `Export ${selected}`,
           UTI: 'public.comma-separated-values-text',
         });
+        setSuccessMessage(`${selected}.csv (${rows} rows) is ready to share.`);
       } else {
-        Alert.alert('Export ready', `${kind}.csv (${rows} rows) was saved to the app cache.`);
+        setSuccessMessage(`${selected}.csv (${rows} rows) was saved to the app cache.`);
       }
     },
-    onError: (e) => Alert.alert('Export failed', e instanceof Error ? e.message : 'Try again.'),
   });
+
+  if (!user) {
+    return (
+      <Screen scroll>
+        <Text style={[styles.heading, { color: t.fgStrong }]}>Export data</Text>
+        <Banner tone="info" message="Sign in with an administrator account to export platform data." />
+      </Screen>
+    );
+  }
 
   return (
     <Screen scroll>
       <Text style={[styles.heading, { color: t.fgStrong }]}>Export data</Text>
-      <Text style={{ color: t.muted }}>
+      <Text style={[styles.subheading, { color: t.muted }]}>
         Generate a CSV of platform data and hand it to your device share sheet so you can save or send it.
       </Text>
 
-      <View style={styles.chipRow}>
-        {KINDS.map((kind) => {
-          const active = selected === kind;
-          return (
-            <Text
-              key={kind}
-              onPress={() => setSelected(kind)}
-              style={[
-                styles.chip,
-                { backgroundColor: active ? t.brand : t.surface, borderColor: active ? t.brand : t.line, color: active ? t.brandFg : t.fg },
-              ]}
-            >
-              {kind.charAt(0).toUpperCase() + kind.slice(1)}
-            </Text>
-          );
-        })}
+      {successMessage ? (
+        <Banner tone="success" message={successMessage} actionLabel="Dismiss" onAction={() => setSuccessMessage(null)} />
+      ) : null}
+
+      <View style={styles.tabs}>
+        <Segmented options={KIND_OPTIONS} value={kind} onChange={(next) => setKind(next as Kind)} />
       </View>
 
-      <Card>
+      <Card style={{ gap: 10 }}>
+        <Text style={[styles.cardCopy, { color: t.muted }]}>
+          {kind === 'bookings'
+            ? 'Every booking on the platform with status, dates and totals.'
+            : 'Partner payouts with amounts, status and settlement dates.'}
+        </Text>
         <Button
-          label={`Export ${selected}`}
-          onPress={() => run.mutate(selected)}
+          label={`Export ${kind}`}
+          onPress={() => run.mutate(kind)}
           loading={run.isPending}
           fullWidth
         />
       </Card>
+
+      {run.isError ? (
+        <Banner
+          tone="danger"
+          message={messageFor(run.error)}
+          actionLabel="Retry"
+          onAction={() => run.mutate(kind)}
+        />
+      ) : null}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   heading: { fontSize: 24, fontWeight: '800' },
-  chipRow: { flexDirection: 'row', gap: 8 },
-  chip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 999, borderWidth: 1, overflow: 'hidden', fontSize: 14, fontWeight: '600' },
+  subheading: { fontSize: 13.5, lineHeight: 19, marginTop: -8 },
+  tabs: { marginBottom: 4 },
+  cardCopy: { fontSize: 13.5, lineHeight: 19 },
 });

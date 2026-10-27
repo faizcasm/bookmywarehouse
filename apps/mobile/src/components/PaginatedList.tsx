@@ -20,6 +20,10 @@ interface PaginatedListProps<T> {
   emptyTitle: string;
   emptySubtitle?: string;
   itemHeight?: number;
+  /** Rendered above the rows (filters, summaries) but scrolls with them. */
+  header?: React.ReactElement;
+  /** Hide the built-in empty block (when the caller renders its own). */
+  hideEmpty?: boolean;
 }
 
 export function PaginatedList<T>({
@@ -30,6 +34,8 @@ export function PaginatedList<T>({
   emptyTitle,
   emptySubtitle,
   itemHeight = 96,
+  header,
+  hideEmpty,
 }: PaginatedListProps<T>) {
   const t = useTheme();
 
@@ -45,6 +51,7 @@ export function PaginatedList<T>({
     items: T[];
   }>({ key: '', base: undefined, page: 1, items: [] });
   const [loadingMore, setLoadingMore] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const query = useQuery({
     queryKey: [...queryKey, 1],
@@ -79,17 +86,33 @@ export function PaginatedList<T>({
   const data = query.data ? [...query.data.items, ...extraItems] : [];
   const meta = query.data?.meta?.pagination;
 
-  if (query.isLoading) {
+  const refetch = query.refetch;
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetch]);
+
+  if (query.isLoading && !refreshing) {
     return (
       <View style={styles.list}>
+        {header}
         {[0, 1, 2].map((i) => (
           <Skeleton key={i} height={itemHeight} radius={16} />
         ))}
       </View>
     );
   }
-  if (query.isError) {
-    return <ErrorState error={query.error} onRetry={() => query.refetch()} />;
+  if (query.isError && !data.length) {
+    return (
+      <View style={styles.list}>
+        {header}
+        <ErrorState error={query.error} onRetry={() => query.refetch()} />
+      </View>
+    );
   }
 
   return (
@@ -100,6 +123,9 @@ export function PaginatedList<T>({
       contentContainerStyle={styles.list}
       onEndReachedThreshold={0.4}
       onEndReached={loadMore}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      ListHeaderComponent={header}
       ListFooterComponent={
         loadingMore ? (
           <ActivityIndicator color={t.brand} style={{ marginVertical: 16 }} />
@@ -108,7 +134,9 @@ export function PaginatedList<T>({
         ) : undefined
       }
       ListEmptyComponent={
-        data.length === 0 ? <EmptyState title={emptyTitle} subtitle={emptySubtitle} /> : undefined
+        !hideEmpty && data.length === 0 ? (
+          <EmptyState title={emptyTitle} subtitle={emptySubtitle} />
+        ) : undefined
       }
     />
   );

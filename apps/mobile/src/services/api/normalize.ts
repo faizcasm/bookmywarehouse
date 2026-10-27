@@ -74,12 +74,26 @@ export function toListingSummary(dto: ListingSummaryDTO): ListingSummary {
     priceMinor: dto.price?.amount ?? 0,
     currency: dto.price?.currency ?? 'INR',
     pricingPeriod: dto.price?.period ?? '',
+    priceModel: dto.price?.model,
     ratingAvg: dto.rating?.average ?? null,
     ratingCount: dto.rating?.count ?? 0,
     verified: dto.partner?.verified ?? false,
     capacityValue: dto.totalCapacity ?? null,
     capacityUnit: dto.capacityUnit ?? null,
     amenities: undefined,
+    partner: dto.partner
+      ? {
+          id: dto.partner.id,
+          businessName: dto.partner.businessName,
+          verified: dto.partner.verified,
+          logoUrl: dto.partner.logoUrl ?? null,
+          rating: dto.partner.rating?.average,
+          responseRate: dto.partner.responseRate,
+          joinedAt: dto.partner.joinedAt ?? null,
+        }
+      : undefined,
+    isFavorite: dto.isFavorite ?? false,
+    availableFrom: dto.availableFrom ?? null,
   };
 }
 
@@ -107,11 +121,76 @@ export function toListingDetail(dto: ListingDetailDTO): ListingDetail {
     latitude: dto.location?.coordinates?.lat ?? null,
     longitude: dto.location?.coordinates?.lng ?? null,
     categoryId: dto.categoryId ?? null,
+    categoryName: dto.categoryName ?? null,
     partnerId: dto.partner?.id,
     partnerName: dto.partner?.businessName,
     specifications: buildSpecifications(dto),
     rules: dto.rules ?? [],
+    safetyFeatures: dto.safetyFeatures ?? [],
+    cancellationTerms: dto.cancellationTerms
+      ? {
+          policy: dto.cancellationTerms.policy,
+          description: dto.cancellationTerms.description,
+          customerRefundPercent: dto.cancellationTerms.customerRefundPercent,
+          note: dto.cancellationTerms.note ?? null,
+        }
+      : undefined,
+    minBookingDuration: dto.minBookingDuration ?? null,
+    availabilityRules: dto.availabilityRules ?? [],
+    blockedDates: (dto.blockedDates ?? []).map((b) => ({
+      id: b.id,
+      date: b.date,
+      reason: b.reason ?? null,
+      isAvailable: b.isAvailable,
+    })),
+    canRequestBooking: dto.canRequestBooking,
+    related: (dto.related ?? []).map(toListingSummary),
     amenities: dto.amenities ?? [],
+    postalCode: dto.location?.postalCode ?? null,
+    warehouse: dto.warehouse
+      ? {
+          facilityType: dto.warehouse.facilityType,
+          storageTypes: dto.warehouse.storageTypes ?? [],
+          availableCapacity: dto.warehouse.availableCapacity ?? null,
+          numberOfUnits: dto.warehouse.numberOfUnits ?? null,
+          unitDimensions: dto.warehouse.unitDimensions ?? null,
+          ceilingHeightM: dto.warehouse.ceilingHeightM ?? null,
+          floorLoadCapacityKg: dto.warehouse.floorLoadCapacityKg ?? null,
+          temperatureControlled: dto.warehouse.temperatureControlled,
+          humidityControlled: dto.warehouse.humidityControlled,
+          powerBackup: dto.warehouse.powerBackup,
+          fireSafety: dto.warehouse.fireSafety,
+          cctv: dto.warehouse.cctv,
+          certifications: dto.warehouse.certifications ?? [],
+          operatingHours: dto.warehouse.operatingHours ?? null,
+        }
+      : null,
+    equipment: dto.equipment
+      ? {
+          equipmentCategory: dto.equipment.equipmentCategory,
+          brand: dto.equipment.brand ?? null,
+          model: dto.equipment.model ?? null,
+          manufactureYear: dto.equipment.manufactureYear ?? null,
+          quantity: dto.equipment.quantity,
+          availableQuantity: dto.equipment.availableQuantity ?? null,
+          rentalPeriod: dto.equipment.rentalPeriod,
+          deliveryAvailable: dto.equipment.deliveryAvailable,
+          operatorAvailable: dto.equipment.operatorAvailable,
+          operatorChargePerDay: dto.equipment.operatorChargePerDay ?? null,
+          minRentalDuration: dto.equipment.minRentalDuration ?? null,
+          specifications: dto.equipment.specifications ?? {},
+        }
+      : null,
+    service: dto.service
+      ? {
+          serviceType: dto.service.serviceType,
+          serviceAreas: dto.service.serviceAreas ?? [],
+          estimatedDurationHours: dto.service.estimatedDurationHours ?? null,
+          teamSize: dto.service.teamSize ?? null,
+          dailyCapacity: dto.service.dailyCapacity ?? null,
+          requirements: dto.service.requirements ?? null,
+        }
+      : null,
     createdAt: dto.createdAt,
   };
 }
@@ -184,19 +263,31 @@ export function toQuoteInput(spaceUnits: number): { capacity: number; quantity: 
   return { capacity: units, quantity: units };
 }
 
-export function toBookingQuote(dto: QuoteResponseDTO, spaceUnits: number): BookingQuote {
+export function toBookingQuote(
+  dto: QuoteResponseDTO,
+  input: { spaceUnits: number; deliveryRequired?: boolean; operatorRequired?: boolean },
+): BookingQuote {
   const pricing = dto.pricing;
   return {
     listingId: dto.listingId,
     startDate: dto.startDate,
     endDate: dto.endDate ?? dto.startDate,
-    spaceUnits,
+    spaceUnits: input.spaceUnits,
     baseMinor: pricing?.subtotal ?? 0,
     taxesMinor: pricing?.taxes ?? 0,
     feesMinor: pricing?.platformFee ?? 0,
+    discountMinor: pricing?.discount ?? 0,
     totalMinor: pricing?.total ?? 0,
     currency: (pricing?.currency ?? dto.currency ?? 'INR') as BookingQuote['currency'],
     nights: undefined,
+    available: dto.available !== false,
+    unavailableReason: dto.unavailableReason ?? null,
+    remainingCapacity: dto.remainingCapacity ?? null,
+    breakdown: (pricing?.breakdown ?? []).map((line) => ({
+      label: line.label,
+      amountMinor: line.amount,
+    })),
+    rateDescription: pricing?.rateDescription ?? null,
   };
 }
 
@@ -216,6 +307,7 @@ export function toBooking(dto: BookingDTO): Booking {
   return {
     id: dto.id,
     reference: dto.reference,
+    type: dto.type,
     listingId: dto.listing?.id ?? '',
     listingTitle: dto.listing?.title,
     listingSlug: dto.listing?.slug,
@@ -224,11 +316,33 @@ export function toBooking(dto: BookingDTO): Booking {
     startDate: dto.startDate,
     endDate: dto.endDate ?? '',
     spaceUnits: dto.quantity ?? 1,
+    capacityUnit: dto.capacityUnit ?? null,
     totalMinor: dto.pricing?.total ?? 0,
     currency: (dto.pricing?.currency ?? 'INR') as Booking['currency'],
     createdAt: dto.createdAt,
     partnerName: dto.partner?.businessName,
+    partnerId: dto.partner?.id,
     customerName: dto.customer?.name,
+    customerId: dto.customer?.id,
+    invoiceId: dto.invoiceId ?? null,
+    reviewId: dto.reviewId ?? null,
+    cancellationReason: dto.cancellationReason ?? null,
+    rejectionReason: dto.rejectionReason ?? null,
+    notes: dto.notes ?? null,
+    specialRequirements: dto.specialRequirements ?? null,
+    pricing: dto.pricing
+      ? {
+          subtotalMinor: dto.pricing.subtotal ?? 0,
+          platformFeeMinor: dto.pricing.platformFee ?? 0,
+          taxesMinor: dto.pricing.taxes ?? 0,
+          discountMinor: dto.pricing.discount ?? 0,
+          breakdown: (dto.pricing.breakdown ?? []).map((line) => ({
+            label: line.label,
+            amountMinor: line.amount,
+          })),
+          rateDescription: dto.pricing.rateDescription ?? null,
+        }
+      : undefined,
     timeline: toTimeline(dto.statusHistory),
     availableActions: dto.allowedTransitions ?? [],
   };
@@ -269,11 +383,23 @@ export function toInvoice(dto: InvoiceDTO): Invoice {
 
 export function toPartnerDashboard(dto: PartnerDashboardDTO): PartnerDashboard {
   return {
+    verificationStatus: dto.verificationStatus,
     activeListings: dto.totals?.activeListings ?? 0,
+    draftListings: dto.totals?.draftListings ?? 0,
     pendingBookings: dto.totals?.pendingRequests ?? 0,
-    totalEarningsMinor: dto.revenue?.totalEarned ?? 0,
-    currency: dto.revenue?.currency ?? 'INR',
+    confirmedBookings: dto.totals?.confirmedBookings ?? 0,
+    completedBookings: dto.totals?.completedBookings ?? 0,
+    cancelledBookings: dto.totals?.cancelledBookings ?? 0,
+    unreadMessages: dto.totals?.unreadMessages ?? 0,
+    reviewCount: dto.totals?.reviewCount ?? 0,
+    responseRate: dto.responseRate,
     ratingAvg: dto.totals?.averageRating ?? null,
+    totalEarningsMinor: dto.revenue?.totalEarned ?? 0,
+    pendingPayoutMinor: dto.revenue?.pendingPayout ?? 0,
+    last30DaysMinor: dto.revenue?.last30Days ?? 0,
+    currency: dto.revenue?.currency ?? 'INR',
+    trends: dto.trends ?? [],
+    upcomingBookings: (dto.upcomingBookings ?? []).map(toBooking),
     recentBookings: (dto.recentRequests ?? []).map(toBooking),
   };
 }
@@ -299,11 +425,16 @@ export function toReview(dto: ReviewDTO): Review {
   return {
     id: dto.id,
     listingId: dto.listingId,
+    listingTitle: dto.listingTitle,
     bookingId: dto.bookingId,
     rating: dto.rating ?? 0,
     comment: dto.comment ?? null,
     authorName: dto.author?.name,
+    authorAvatar: dto.author?.avatarUrl ?? null,
+    authorRole: dto.author?.role,
+    status: dto.status,
     response: dto.response?.text ?? null,
+    responseAt: dto.response?.at ?? null,
     createdAt: dto.createdAt,
   };
 }
@@ -338,7 +469,11 @@ export function toMessage(dto: MessageDTO): Message {
 
 export function toNotification(dto: NotificationDTO): Notification {
   const link = typeof dto.link === 'string' ? dto.link : null;
+  // Keep only the first two path segments for `linkType`/`linkId` (the routing
+  // key), but retain the WHOLE path so deeper routes (`/partner/bookings/<id>`)
+  // still navigate to the right screen instead of collapsing onto a list.
   const match = link ? link.match(/\/([a-z]+)\/([A-Za-z0-9_-]+)/) : null;
+  const pathMatch = link ? link.match(/^\/[A-Za-z0-9/_-]+/) : null;
   return {
     id: dto.id,
     type: dto.type,
@@ -348,6 +483,7 @@ export function toNotification(dto: NotificationDTO): Notification {
     createdAt: dto.createdAt,
     linkType: match?.[1] ?? null,
     linkId: match?.[2] ?? null,
+    linkPath: pathMatch?.[0] ?? null,
   };
 }
 

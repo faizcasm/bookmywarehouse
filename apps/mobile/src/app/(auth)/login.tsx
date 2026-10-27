@@ -1,7 +1,7 @@
 /** Login screen — email + password, role-aware redirect on success. */
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link, router } from 'expo-router';
+import { Link, router, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -13,11 +13,13 @@ import { useTheme } from '@/store/ThemeContext';
 import { useSession } from '@/store/SessionContext';
 import { ApiError } from '@/services/api/client';
 import { loginSchema, type LoginInput } from '@/schemas';
+import { homeFor, safeNext } from '@/utils/navigation';
 
 export default function LoginScreen() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
   const { login } = useSession();
+  const params = useLocalSearchParams<{ next?: string }>();
   const [formError, setFormError] = useState<string | null>(null);
 
   const {
@@ -31,10 +33,9 @@ export default function LoginScreen() {
     setFormError(null);
     try {
       const user = await login(values);
-      // Route by role after login.
-      if (user.role === 'ADMIN') router.replace('/(admin)/(tabs)');
-      else if (user.role === 'PARTNER') router.replace('/(partner)/(tabs)');
-      else router.replace('/(customer)/(tabs)');
+      // Honour an explicit destination (deep link / gated screen), else route by role.
+      const target = safeNext(params.next, homeFor(user.role));
+      router.replace(target as never);
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.issues.length) {

@@ -10,15 +10,17 @@ import type {
   AvailabilityExceptionDTO,
   AvailabilityRuleDTO,
   ListingDetailDTO,
+  ListingSummaryDTO,
   PartnerDashboardDTO,
 } from '@bmw/shared-types';
 
 import { api } from './client';
-import { toListingDetail, toPartnerDashboard } from './normalize';
+import { toListingDetail, toListingSummary, toPartnerDashboard } from './normalize';
 import type {
   AvailabilitySlot,
   Earning,
   ListingDetail,
+  ListingSummary,
   Paginated,
   PartnerDashboard,
   PartnerProfile,
@@ -89,11 +91,32 @@ export function getVerificationState(): Promise<VerificationState> {
   return getPartnerProfile().then((p) => p.verification ?? { status: p.verificationStatus ?? 'DRAFT' });
 }
 
+export interface PayoutDetailsInput {
+  accountHolderName: string;
+  accountNumber: string;
+  ifsc: string;
+  bankName: string;
+  upiId?: string | null;
+}
+
+/**
+ * PATCH /partner/payout-details — bank/UPI settlement info. The API stores the
+ * account number **masked** and only ever returns the last 4 digits.
+ */
+export function savePayoutDetails(input: PayoutDetailsInput): Promise<{ message?: string }> {
+  return api.patch<{ message?: string }>('/partner/payout-details', input);
+}
+
 /* -------------------------------- listings ------------------------------- */
 
-export function listPartnerListings(query?: QueryParams): Promise<Paginated<ListingDetail>> {
-  return api.getPaged<ListingDetailDTO>('/partner/listings', query).then((dto) => ({
-    items: dto.items.map(toListingDetail),
+/**
+ * GET /partner/listings returns **summaries** (no description/details), so the
+ * list is typed as `ListingSummary` — detail fields are only on
+ * `getPartnerListing`.
+ */
+export function listPartnerListings(query?: QueryParams): Promise<Paginated<ListingSummary>> {
+  return api.getPaged<ListingSummaryDTO>('/partner/listings', query).then((dto) => ({
+    items: dto.items.map(toListingSummary),
     meta: dto.meta,
   }));
 }
@@ -102,37 +125,40 @@ export function getPartnerListing(id: string): Promise<ListingDetail> {
   return api.get<ListingDetailDTO>(`/partner/listings/${encodeURIComponent(id)}`).then(toListingDetail);
 }
 
+/**
+ * Mutations under /partner/listings return `{ id, slug?, status }` — a stub
+ * used for cache invalidation, **not** a full ListingDetailDTO.
+ */
+export interface ListingMutationResult {
+  id: string;
+  slug?: string;
+  status?: string;
+}
+
 /** `body` should already be the nested create-listing payload — see toCreateListingPayload. */
-export function createListing(body: unknown): Promise<ListingDetail> {
-  return api.post<ListingDetailDTO>('/partner/listings', body).then(toListingDetail);
+export function createListing(body: unknown): Promise<ListingMutationResult> {
+  return api.post<ListingMutationResult>('/partner/listings', body);
 }
 
-export function updateListing(id: string, body: unknown): Promise<ListingDetail> {
-  return api
-    .patch<ListingDetailDTO>(`/partner/listings/${encodeURIComponent(id)}`, body)
-    .then(toListingDetail);
+export function updateListing(id: string, body: unknown): Promise<ListingMutationResult> {
+  return api.patch<ListingMutationResult>(`/partner/listings/${encodeURIComponent(id)}`, body);
 }
 
-export function deleteListing(id: string): Promise<void> {
-  return api.delete(`/partner/listings/${encodeURIComponent(id)}`);
+/** DELETE → `{ deleted: true }`. */
+export function deleteListing(id: string): Promise<{ deleted?: boolean }> {
+  return api.delete<{ deleted?: boolean }>(`/partner/listings/${encodeURIComponent(id)}`);
 }
 
-export function publishListing(id: string): Promise<ListingDetail> {
-  return api
-    .post<ListingDetailDTO>(`/partner/listings/${encodeURIComponent(id)}/publish`)
-    .then(toListingDetail);
+export function publishListing(id: string): Promise<ListingMutationResult> {
+  return api.post<ListingMutationResult>(`/partner/listings/${encodeURIComponent(id)}/publish`);
 }
 
-export function unpublishListing(id: string): Promise<ListingDetail> {
-  return api
-    .post<ListingDetailDTO>(`/partner/listings/${encodeURIComponent(id)}/unpublish`)
-    .then(toListingDetail);
+export function unpublishListing(id: string): Promise<ListingMutationResult> {
+  return api.post<ListingMutationResult>(`/partner/listings/${encodeURIComponent(id)}/unpublish`);
 }
 
-export function archiveListing(id: string): Promise<ListingDetail> {
-  return api
-    .post<ListingDetailDTO>(`/partner/listings/${encodeURIComponent(id)}/archive`)
-    .then(toListingDetail);
+export function archiveListing(id: string): Promise<ListingMutationResult> {
+  return api.post<ListingMutationResult>(`/partner/listings/${encodeURIComponent(id)}/archive`);
 }
 
 /* ------------------------------ availability ----------------------------- */

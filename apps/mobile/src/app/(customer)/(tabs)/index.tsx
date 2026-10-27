@@ -1,13 +1,19 @@
-/** Home screen — hero search, categories, featured listings. */
+/**
+ * Home screen — platform banners, hero search, categories and featured listings.
+ *
+ * The announcement / maintenance banners come from the public platform
+ * settings endpoint so ops can reach every user without an app release.
+ */
 
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { Search, ArrowRight } from 'lucide-react-native';
+import { Search, ArrowRight, Store } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ListingCard } from '@/components/ListingCard';
 import {
+  Banner,
   Button,
   Card,
   EmptyState,
@@ -17,10 +23,17 @@ import {
   Skeleton,
 } from '@/components/ui';
 import { useTheme } from '@/store/ThemeContext';
-import { getCategories, searchListings } from '@/services/api/catalog';
+import { getCategories, getPlatformSettings, searchListings } from '@/services/api/catalog';
+import { formatNumber } from '@/utils/format';
 
 export default function HomeScreen() {
   const t = useTheme();
+
+  const settings = useQuery({
+    queryKey: ['platform-settings'],
+    queryFn: getPlatformSettings,
+    staleTime: 5 * 60_000,
+  });
 
   const featured = useQuery({
     queryKey: ['search', 'featured'],
@@ -32,8 +45,21 @@ export default function HomeScreen() {
     queryFn: getCategories,
   });
 
+  const maintenance = settings.data?.maintenanceMode === true;
+  const announcement = settings.data?.announcement?.trim() || null;
+
   return (
     <Screen scroll>
+      {/* Platform notices — ops-controlled, only rendered when set. */}
+      {maintenance ? (
+        <Banner
+          tone="warn"
+          title="Scheduled maintenance"
+          message="Some actions may be unavailable while we make improvements. You can still browse listings."
+        />
+      ) : null}
+      {announcement ? <Banner tone="info" message={announcement} /> : null}
+
       {/* Hero */}
       <View style={styles.hero}>
         <Text style={[styles.heroTitle, { color: t.fgStrong }]}>
@@ -61,7 +87,15 @@ export default function HomeScreen() {
       </View>
 
       {/* Categories */}
-      {categories.data && categories.data.length ? (
+      {categories.isLoading ? (
+        <View style={styles.catRow}>
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} width={120} height={62} radius={14} />
+          ))}
+        </View>
+      ) : categories.isError ? (
+        <ErrorState error={categories.error} onRetry={() => categories.refetch()} title="Couldn't load categories" />
+      ) : categories.data && categories.data.length ? (
         <View>
           <SectionHeader
             title="Browse by category"
@@ -87,13 +121,17 @@ export default function HomeScreen() {
                   { backgroundColor: t.surface, borderColor: pressed ? t.lineStrong : t.line },
                   pressed && { opacity: 0.9 },
                 ]}
+                accessibilityRole="button"
+                accessibilityLabel={`Browse ${cat.name}${
+                  cat.listingCount != null ? `, ${cat.listingCount} listings` : ''
+                }`}
               >
                 <Text style={{ color: t.fg, fontWeight: '700', fontSize: 14 }} numberOfLines={1}>
                   {cat.name}
                 </Text>
                 {cat.listingCount != null ? (
                   <Text style={{ color: t.faint, fontSize: 12 }}>
-                    {cat.listingCount} listing{cat.listingCount === 1 ? '' : 's'}
+                    {formatNumber(cat.listingCount, 0)} listing{cat.listingCount === 1 ? '' : 's'}
                   </Text>
                 ) : null}
               </Pressable>
@@ -141,6 +179,9 @@ export default function HomeScreen() {
 
       {/* Partner CTA */}
       <Card style={styles.cta}>
+        <View style={[styles.ctaIcon, { backgroundColor: t.brandSoft }]}>
+          <Store size={20} color={t.brandSoftFg} />
+        </View>
         <Text style={[styles.ctaTitle, { color: t.fgStrong }]}>Have space to rent?</Text>
         <Text style={{ color: t.muted, lineHeight: 20 }}>
           List your warehouse or equipment and reach thousands of businesses.
@@ -186,9 +227,19 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 2,
     minWidth: 110,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   gridItem: { width: '47.5%' },
   cta: { gap: 4, marginTop: 8 },
+  ctaIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
   ctaTitle: { fontSize: 18, fontWeight: '800' },
 });

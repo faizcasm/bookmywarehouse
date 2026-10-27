@@ -13,15 +13,21 @@ export interface QuoteInput {
   /** Omit for open-ended (no fixed end date) bookings. */
   endDate?: string;
   spaceUnits: number;
+  /** WAREHOUSE: pallet/space add-on; EQUIPMENT/SERVICE: crew delivery. */
+  deliveryRequired?: boolean;
+  /** EQUIPMENT: operator/crew comes with it. */
+  operatorRequired?: boolean;
 }
 
 export function getQuote(input: QuoteInput): Promise<BookingQuote> {
   const body = { ...input, ...toQuoteInput(input.spaceUnits) };
-  return api.post<QuoteResponseDTO>('/bookings/quote', body).then((dto) => toBookingQuote(dto, input.spaceUnits));
+  return api.post<QuoteResponseDTO>('/bookings/quote', body).then((dto) => toBookingQuote(dto, input));
 }
 
 export interface CreateBookingInput extends QuoteInput {
   specialInstructions?: string;
+  /** Free-text notes to the partner (≤1000 chars). */
+  notes?: string;
 }
 
 export function createBooking(input: CreateBookingInput): Promise<Booking> {
@@ -29,6 +35,7 @@ export function createBooking(input: CreateBookingInput): Promise<Booking> {
     ...input,
     ...toQuoteInput(input.spaceUnits),
     specialRequirements: input.specialInstructions,
+    notes: input.notes,
   };
   return api.post<BookingDTO>('/bookings', body).then(toBooking);
 }
@@ -44,11 +51,23 @@ export function getBooking(id: string): Promise<Booking> {
   return api.get<BookingDTO>(`/bookings/${encodeURIComponent(id)}`).then(toBooking);
 }
 
-/** The API's cancelBookingSchema requires a non-empty reason (min 3 chars). */
-export function cancelBooking(id: string, reason = 'Cancelled by customer'): Promise<Booking> {
+/**
+ * POST /bookings/:id/cancel → `{ booking, refundAmountMinor }` (NOT a bare
+ * BookingDTO). Returns both so the UI can show the refund that was queued.
+ */
+export function cancelBooking(
+  id: string,
+  reason = 'Cancelled by customer',
+): Promise<{ booking: Booking; refundAmountMinor: number }> {
   return api
-    .post<BookingDTO>(`/bookings/${encodeURIComponent(id)}/cancel`, { reason })
-    .then(toBooking);
+    .post<{ booking: BookingDTO; refundAmountMinor?: number }>(
+      `/bookings/${encodeURIComponent(id)}/cancel`,
+      { reason },
+    )
+    .then((r) => ({
+      booking: toBooking(r.booking),
+      refundAmountMinor: r.refundAmountMinor ?? 0,
+    }));
 }
 
 /* Booking lifecycle transitions — /bookings/:id/{accept,reject,start,complete}. */

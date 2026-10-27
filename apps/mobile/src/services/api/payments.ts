@@ -42,21 +42,34 @@ export function initiatePayment(bookingId: string): Promise<InitiateResult> {
     }));
 }
 
-/** Sandbox only — drives the full capture lifecycle without a real gateway. */
+/**
+ * Sandbox only — drives the full capture lifecycle without a real gateway.
+ * POST /payments/simulate returns `{ eventId, processed }`, not a PaymentDTO.
+ */
 export function simulatePayment(
   paymentId: string,
   outcome: 'success' | 'failure' | 'SUCCESS' | 'FAILURE' = 'success',
-): Promise<Payment> {
-  return api
-    .post<PaymentDTO>('/payments/simulate', { paymentId, outcome: outcome.toUpperCase() })
-    .then(toPayment);
+): Promise<{ eventId?: string; processed?: boolean }> {
+  return api.post('/payments/simulate', { paymentId, outcome: outcome.toUpperCase() });
 }
 
-export function listMyPayments(query?: QueryParams): Promise<Paginated<Payment>> {
-  return api.getPaged<PaymentDTO>('/payments', query).then((dto) => ({
-    items: dto.items.map(toPayment),
-    meta: dto.meta,
-  }));
+/** POST /payments/verify — confirm a hosted-checkout payment by signature. */
+export function verifyPayment(input: {
+  orderId: string;
+  paymentId: string;
+  signature: string;
+}): Promise<{ paymentId: string; status: string; alreadyProcessed?: boolean }> {
+  return api.post('/payments/verify', input);
+}
+
+/**
+ * GET /payments — the customer's payment history. The endpoint caps at 50 and
+ * returns `{ items }` with **no pagination meta**, so this reports one page.
+ */
+export function listMyPayments(): Promise<Payment[]> {
+  return api
+    .get<{ items: PaymentDTO[] }>('/payments')
+    .then((d) => (d.items ?? []).map(toPayment));
 }
 
 export function listInvoices(query?: QueryParams): Promise<Paginated<Invoice>> {

@@ -1,90 +1,110 @@
-/** Messages tab — conversation list. */
+/** Messages tab — conversation list with unread indicators. */
 
-import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import React from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { Card, EmptyState, ErrorState, Screen, Skeleton } from '@/components/ui';
+import { PaginatedList } from '@/components/PaginatedList';
+import { Avatar, Badge, Card, Screen, SignInPrompt } from '@/components/ui';
 import { useTheme } from '@/store/ThemeContext';
 import { useSession } from '@/store/SessionContext';
 import { listConversations } from '@/services/api/account';
 import { formatRelativeTime } from '@/utils/format';
+import type { Conversation } from '@/types';
 
 export default function MessagesScreen() {
-  const t = useTheme();
-  const { status } = useSession();
+  const { user } = useSession();
 
-  const query = useQuery({
-    queryKey: ['conversations'],
-    queryFn: () => listConversations(),
-    enabled: status === 'authenticated',
-  });
-
-  if (status !== 'authenticated') {
+  if (!user) {
     return (
       <Screen>
-        <EmptyState
+        <SignInPrompt
           title="Sign in to view messages"
           subtitle="Your conversations with partners and customers appear here."
-          actionLabel="Sign in"
-          onAction={() => router.push('/(auth)/login')}
+          next="/(customer)/(tabs)/messages"
         />
       </Screen>
     );
   }
 
   return (
-    <Screen padTop={false} style={styles.screen}>
-      {query.isLoading ? (
-        <View style={styles.list}>
-          {[0, 1, 2].map((i) => (
-            <Skeleton key={i} height={72} radius={16} />
-          ))}
-        </View>
-      ) : query.isError ? (
-        <ErrorState error={query.error} onRetry={() => query.refetch()} />
-      ) : query.data && query.data.items.length ? (
-        <FlatList
-          data={query.data.items}
-          keyExtractor={(c) => c.id}
-          renderItem={({ item }) => (
-            <Card onPress={() => router.push(`/(customer)/conversation/${item.id}`)} style={styles.row}>
-              <View style={styles.rowTop}>
-                <Text style={[styles.name, { color: t.fgStrong }]} numberOfLines={1}>
-                  {item.counterpartyName}
-                </Text>
-                <Text style={{ color: t.faint, fontSize: 12 }}>{formatRelativeTime(item.lastMessageAt)}</Text>
-              </View>
-              {item.listingTitle ? (
-                <Text style={{ color: t.muted, fontSize: 12 }} numberOfLines={1}>
-                  {item.listingTitle}
-                </Text>
-              ) : null}
-              <Text style={{ color: t.muted }} numberOfLines={1}>
-                {item.lastMessage ?? 'No messages yet'}
-              </Text>
-              {item.unreadCount ? (
-                <View style={[styles.unread, { backgroundColor: t.brand }]}>
-                  <Text style={{ color: t.brandFg, fontSize: 12, fontWeight: '700' }}>{item.unreadCount}</Text>
-                </View>
-              ) : null}
-            </Card>
-          )}
-          contentContainerStyle={styles.list}
-        />
-      ) : (
-        <EmptyState title="No conversations" subtitle="Messages from your bookings will appear here." />
-      )}
+    <Screen style={styles.screen}>
+      <PaginatedList<Conversation>
+        queryKey={['conversations']}
+        fetchPage={(page) => listConversations({ page })}
+        keyExtractor={(c) => c.id}
+        itemHeight={92}
+        emptyTitle="No conversations"
+        emptySubtitle="Messages from your bookings will appear here."
+        renderItem={(conversation) => <ConversationRow conversation={conversation} />}
+      />
     </Screen>
   );
 }
 
+function ConversationRow({ conversation }: { conversation: Conversation }) {
+  const t = useTheme();
+  const unread = (conversation.unreadCount ?? 0) > 0;
+
+  return (
+    <Card
+      onPress={() => router.push(`/(customer)/conversation/${conversation.id}`)}
+      style={{ ...styles.row, ...(unread ? { borderColor: t.brand } : null) }}
+    >
+      <Avatar
+        uri={conversation.counterpartyAvatar}
+        name={conversation.counterpartyName}
+        size={44}
+      />
+      <View style={styles.info}>
+        <View style={styles.topLine}>
+          <Text
+            style={[styles.name, { color: unread ? t.fgStrong : t.fg }]}
+            numberOfLines={1}
+          >
+            {conversation.counterpartyName}
+          </Text>
+          <Text style={[styles.time, { color: t.faint }]}>
+            {formatRelativeTime(conversation.lastMessageAt)}
+          </Text>
+        </View>
+        {conversation.listingTitle ? (
+          <Text style={[styles.context, { color: t.muted }]} numberOfLines={1}>
+            {conversation.listingTitle}
+          </Text>
+        ) : null}
+        <View style={styles.bottomLine}>
+          <Text
+            style={[styles.preview, { color: unread ? t.fgStrong : t.muted }]}
+            numberOfLines={1}
+          >
+            {conversation.lastMessage ?? 'No messages yet'}
+          </Text>
+          {conversation.unreadCount ? (
+            <Badge
+              label={conversation.unreadCount > 99 ? '99+' : String(conversation.unreadCount)}
+              tone="accent"
+            />
+          ) : null}
+        </View>
+      </View>
+    </Card>
+  );
+}
+
 const styles = StyleSheet.create({
-  screen: { paddingHorizontal: 0 },
-  list: { paddingHorizontal: 16, paddingBottom: 24, gap: 12 },
-  row: { gap: 2 },
-  rowTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  screen: { paddingHorizontal: 0, flex: 1 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  info: { flex: 1, gap: 2 },
+  topLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   name: { fontSize: 15, fontWeight: '700', flexShrink: 1 },
-  unread: { position: 'absolute', top: 12, right: 12, minWidth: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  time: { fontSize: 12 },
+  context: { fontSize: 12.5 },
+  bottomLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  preview: { fontSize: 13.5, flexShrink: 1 },
 });

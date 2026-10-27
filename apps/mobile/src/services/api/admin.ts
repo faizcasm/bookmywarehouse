@@ -4,11 +4,11 @@
  * settings, audit, exports). Matches admin.routes.ts exactly.
  */
 
-import type { BookingDTO, ReviewDTO } from '@bmw/shared-types';
+import type { BookingDTO, DisputeDTO, ReviewDTO } from '@bmw/shared-types';
 
 import { api, apiText } from './client';
-import { toBooking, toReview } from './normalize';
-import type { Booking, Paginated, Review, User } from '@/types';
+import { toBooking, toDispute, toReview } from './normalize';
+import type { Booking, Dispute, Paginated, Review, User } from '@/types';
 import type { QueryParams } from './client';
 
 /* ------------------------------- dashboard ------------------------------- */
@@ -34,13 +34,18 @@ export interface AdminDashboard {
     netCollected: number;
     periodDays: number;
   };
+  /** 14-day `{ date, bookings, grossAmount }` series for the dashboard charts. */
+  trends: { date: string; bookings: number; grossAmount: number }[];
   recentBookings: Booking[];
+  recentDisputes: Dispute[];
 }
 
 interface AdminDashboardEnvelope {
   totals?: Partial<AdminDashboard['totals']>;
   revenue?: Partial<AdminDashboard['revenue']>;
+  trends?: { date: string; bookings?: number; grossAmount?: number }[];
   recentBookings?: BookingDTO[];
+  recentDisputes?: DisputeDTO[];
 }
 
 export function getAdminDashboard(): Promise<AdminDashboard> {
@@ -65,7 +70,13 @@ export function getAdminDashboard(): Promise<AdminDashboard> {
       netCollected: d.revenue?.netCollected ?? 0,
       periodDays: d.revenue?.periodDays ?? 30,
     },
+    trends: (d.trends ?? []).map((point) => ({
+      date: point.date,
+      bookings: point.bookings ?? 0,
+      grossAmount: point.grossAmount ?? 0,
+    })),
     recentBookings: (d.recentBookings ?? []).map(toBooking),
+    recentDisputes: (d.recentDisputes ?? []).map(toDispute),
   }));
 }
 
@@ -80,6 +91,17 @@ export function listAdminUsers(query?: QueryParams): Promise<Paginated<User>> {
 /** PATCH /admin/users/:id — suspend / reactivate / deactivate. */
 export function moderateUser(id: string, action: UserModerationAction, reason?: string): Promise<void> {
   return api.patch(`/admin/users/${encodeURIComponent(id)}`, { action, reason: reason ?? null });
+}
+
+/** POST /admin/users — admin creates a customer/partner/admin account. */
+export function createAdminUser(input: {
+  name: string;
+  email: string;
+  password: string;
+  role: 'CUSTOMER' | 'PARTNER' | 'ADMIN';
+  phone?: string;
+}): Promise<User> {
+  return api.post<User>('/admin/users', input);
 }
 
 /* ------------------------------- partners/KYC ---------------------------- */
@@ -189,6 +211,12 @@ export function listAdminRefunds(query?: QueryParams): Promise<Paginated<AdminRe
   return api.getPaged<AdminRefundRow>('/admin/refunds', query);
 }
 
+/**
+ * POST /admin/refunds/:id/process — **the API accepts no body**: it processes
+ * the full stored refund amount, so there is no amount/reason parameter to pass.
+ * The confirmation UI must therefore state the stored amount rather than collect
+ * one.
+ */
 export function processRefund(id: string): Promise<void> {
   return api.post(`/admin/refunds/${encodeURIComponent(id)}/process`);
 }
@@ -306,11 +334,14 @@ export function updateAdminSettings(input: PlatformSettings): Promise<void> {
 
 export interface AuditLogRow {
   id: string;
-  actor?: string | null;
+  /** Populated actor — `{id, name, role}`; `id: 'system'` for system actions. */
+  actor?: { id?: string; name?: string; role?: string } | string | null;
   action?: string;
   entityType?: string;
   entityId?: string;
   summary?: string | null;
+  metadata?: Record<string, unknown> | null;
+  ip?: string | null;
   createdAt?: string;
 }
 

@@ -1,7 +1,7 @@
 /** Forgot-password screen — submits email, shows a confirmation state. */
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { router } from 'expo-router';
+import { Link, router } from 'expo-router';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -49,6 +49,9 @@ export default function ForgotPasswordScreen() {
               If an account exists for that address, we&apos;ve sent a link to reset your password.
             </Text>
             <Button label="Back to sign in" onPress={() => router.replace('/(auth)/login')} style={{ marginTop: 12 }} />
+            <Link href="/(auth)/reset-password" style={[styles.link, { color: t.successSoftFg }]}>
+              Have a reset token? Enter it manually
+            </Link>
           </View>
         ) : (
           <>
@@ -77,6 +80,9 @@ export default function ForgotPasswordScreen() {
               )}
             />
             <Button label="Send reset link" onPress={onSubmit} loading={isSubmitting} fullWidth />
+            <Link href="/(auth)/reset-password" style={[styles.link, { color: t.brand }]}>
+              I already have a reset token
+            </Link>
           </>
         )}
       </ScrollView>
@@ -91,4 +97,5 @@ const styles = StyleSheet.create({
   errorBox: { padding: 12, borderRadius: 12 },
   confirm: { padding: 16, borderRadius: 16, gap: 8 },
   confirmTitle: { fontSize: 18, fontWeight: '700' },
+  link: { fontSize: 14, fontWeight: '600', textAlign: 'center', marginTop: 4 },
 });

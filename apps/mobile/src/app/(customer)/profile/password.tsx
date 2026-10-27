@@ -1,12 +1,12 @@
-/** Change password. */
+/** Change password — current + new with inline success/error feedback. */
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Alert, StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
-import { Button, Screen, TextField } from '@/components/ui';
+import { Banner, Button, Screen, TextField } from '@/components/ui';
 import { useTheme } from '@/store/ThemeContext';
 import { changePasswordSchema, type ChangePasswordInput } from '@/schemas';
 import { changePassword } from '@/services/api/auth';
@@ -15,10 +15,12 @@ import { ApiError } from '@/services/api/client';
 export default function ChangePasswordScreen() {
   const t = useTheme();
   const [error, setError] = useState<string | null>(null);
+  const [changed, setChanged] = useState(false);
 
   const {
     control,
     handleSubmit,
+    reset,
     setError: setFieldError,
     formState: { errors, isSubmitting },
   } = useForm<ChangePasswordInput>({ resolver: zodResolver(changePasswordSchema) });
@@ -27,9 +29,8 @@ export default function ChangePasswordScreen() {
     setError(null);
     try {
       await changePassword(values.currentPassword, values.newPassword);
-      Alert.alert('Password changed', 'Use your new password next time you sign in.', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      reset();
+      setChanged(true);
     } catch (err) {
       if (err instanceof ApiError && err.issues.length) {
         for (const issue of err.issues) {
@@ -44,7 +45,18 @@ export default function ChangePasswordScreen() {
   return (
     <Screen scroll>
       <Text style={[styles.title, { color: t.fgStrong }]}>Change password</Text>
-      {error ? <Text style={{ color: t.danger }}>{error}</Text> : null}
+
+      {changed ? (
+        <Banner
+          tone="success"
+          title="Password updated"
+          message="Use your new password the next time you sign in."
+          actionLabel="Back"
+          onAction={() => router.back()}
+        />
+      ) : null}
+      {error ? <Banner tone="danger" message={error} /> : null}
+
       <Controller
         control={control}
         name="currentPassword"
@@ -74,7 +86,13 @@ export default function ChangePasswordScreen() {
           />
         )}
       />
-      <Button label="Update password" onPress={onSubmit} loading={isSubmitting} fullWidth />
+      <Button
+        label="Update password"
+        onPress={onSubmit}
+        loading={isSubmitting}
+        disabled={changed}
+        fullWidth
+      />
     </Screen>
   );
 }
