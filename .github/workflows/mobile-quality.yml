@@ -53,6 +53,12 @@ jobs:
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build shared types
+        run: pnpm --filter @bmw/shared-types build
+
+      - name: Build validation schemas
+        run: pnpm --filter @bmw/validation build
+
       - name: TypeScript
         run: pnpm --filter @bmw/mobile typecheck
 
