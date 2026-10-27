@@ -106,6 +106,7 @@ export default function FavoritesScreen() {
           <View style={styles.item}>
             <ListingCard
               listing={fav.listing}
+              showFavorite={false}
               onPress={() => router.push(`/(customer)/listing/${fav.listing.slug}`)}
             />
             <View style={styles.footer}>
