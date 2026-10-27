@@ -39,8 +39,14 @@ export default function CustomerTabsLayout() {
         tabBarActiveTintColor: t.brand,
         tabBarInactiveTintColor: t.faint,
         tabBarStyle: {
-          backgroundColor: t.surface,
-          borderTopColor: t.line,
+          backgroundColor: t.name === 'dark' ? 'rgba(18,18,18,0.92)' : 'rgba(255,255,255,0.88)',
+          borderTopColor: t.name === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.06)',
+          borderTopWidth: 1,
+          shadowColor: '#0f172a',
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.07,
+          shadowRadius: 12,
+          elevation: 8,
         },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
         tabBarBadgeStyle: {
